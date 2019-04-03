@@ -287,7 +287,7 @@ Generate_SPDStats(){
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
 		Print_Output "true" "Starting speedtest now..." "$PASS"
-		/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
+		/jffs/scripts/spdcli.py --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
 		Print_Output "true" "Finished speedtest" "$PASS"
 		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
