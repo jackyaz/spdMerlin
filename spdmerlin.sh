@@ -570,6 +570,7 @@ Menu_Uninstall(){
 	Shortcut_spdMerlin delete
 	opkg remove --autoremove python
 	umount /www/Advanced_Feedback.asp 2>/dev/null
+	sed -i '/{url: "Advanced_Feedback.asp", tabName: "SpeedTest"}/d' "/jffs/scripts/custom_menuTree.js"
 	if [ ! -f "/jffs/scripts/ntpmerlin" ]; then
 		opkg remove --autoremove rrdtool
 		umount /www/require/modules/menuTree.js 2>/dev/null
