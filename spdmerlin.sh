@@ -502,6 +502,7 @@ MainMenu(){
 
 Menu_Install(){
 	opkg install python
+	opkg install rrdtool
 	
 	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
 	
@@ -566,6 +567,7 @@ Menu_Uninstall(){
 	done
 	Shortcut_spdMerlin delete
 	opkg remove --autoremove python
+	opkg remove --autoremove rrdtool
 	umount /www/require/modules/menuTree.js 2>/dev/null
 	umount /www/Advanced_Feedback.asp 2>/dev/null
 	rm -f "/jffs/scripts/custom_menuTree.js" 2>/dev/null
