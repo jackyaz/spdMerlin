@@ -540,6 +540,11 @@ Menu_Install(){
 		exit 1
 	fi
 	
+	if [ "$(uname -m)" != "aarch64" ]; then
+		curl -fsL --retry 3 "http://bin.entware.net/armv7sf-k2.6/libbz2_1.0.6-5a_armv7-2.6.ipk" -o /tmp/libbz.ipk
+		opkg install /tmp/libbz.ipk
+		rm -f /tmp/libbz.ipk
+	fi
 	opkg install python
 	opkg install rrdtool
 	
