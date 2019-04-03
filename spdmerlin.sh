@@ -256,14 +256,14 @@ Generate_SPDStats(){
 	
 	RDB=/jffs/scripts/speedtest_rrd.rrd
 	
-	/jffs/scripts/spdcli/py --simple --no-pre-allocate >> /tmp/st1.$$
+	/jffs/scripts/spdcli/py --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
 	
 	NPING=$(grep Ping /tmp/st1 | awk 'BEGIN{FS=" "}{print $2}')
 	NDOWNLD=$(grep Download /tmp/st1 | awk 'BEGIN{FS=" "}{print $2}')
 	NUPLD=$(grep Upload /tmp/st1 | awk 'BEGIN{FS=" "}{print $2}')
 	
 	rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
-	rm /tmp/st1.$$
+	rm /tmp/spd-rrdstats.$$
 	
 	TZ=$(cat /etc/TZ)
 	export TZ
