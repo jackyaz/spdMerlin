@@ -538,7 +538,7 @@ Menu_Uninstall(){
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
 	while true; do
-		printf "\\n\\e[1mDo you want to delete %s configuration file and stats? (y/n)\\e[0m\\n" "$SPD_NAME"
+		printf "\\n\\e[1mDo you want to delete %s stats? (y/n)\\e[0m\\n" "$SPD_NAME"
 		read -r "confirm"
 		case "$confirm" in
 			y|Y)
