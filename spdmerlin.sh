@@ -244,14 +244,33 @@ Modify_WebUI_File(){
 	tmpfile=/tmp/menuTree.js
 	cp "/www/require/modules/menuTree.js" "$tmpfile"
 	
-	sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "SpeedTest"},' "$tmpfile"
-	if ! diff -q "$tmpfile" "/jffs/scripts/custom_menuTree.js" >/dev/null 2>&1; then
-		cp "$tmpfile" "/jffs/scripts/custom_menuTree.js"
+	sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_Feedback.asp", tabName: "SpeedTest"},' "$tmpfile"
+	sed -i '/{url: "Advanced_Feedback.asp", tabName: "<#2033#>"}/d' "$tmpfile"
+	sed -i '/retArray.push("Advanced_Feedback.asp");/d' "$tmpfile"
+	if [ -f "/jffs/scripts/ntpmerlin" ]; then
+		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "NTP Daemon"},' "$tmpfile"
+	fi
+	rm -f "$tmpfile"
+	
+	mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
+	
+	umount /www/state.js 2>/dev/null
+	sleep 1
+	tmpfile=/tmp/state.js
+	cp "/www/state.js" "$tmpfile"
+	sed -i -e '/else if(location.pathname == "\/Advanced_Feedback.asp") {/,+4d' "$tmpfile"
+	
+	if [ ! -f /jffs/scripts/custom_state.js ]; then
+		cp "/www/state.js" "/jffs/scripts/custom_state.js"
+	fi
+	
+	if ! diff -q "$tmpfile" "/jffs/scripts/custom_state.js" >/dev/null 2>&1; then
+		cp "$tmpfile" "/jffs/scripts/custom_state.js"
 	fi
 	
 	rm -f "$tmpfile"
 	
-	mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
+	mount -o bind /jffs/scripts/custom_state.js /www/state.js
 }
 
 Generate_SPDStats(){
