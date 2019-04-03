@@ -18,7 +18,7 @@
 readonly SPD_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
-readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
+readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
 readonly SPD_VERSION="0.0.1"
 readonly SPD_BRANCH="master"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
@@ -111,7 +111,7 @@ Update_Version(){
 		
 		if [ "$doupdate" != "false" ]; then
 			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
-			chmod 0755 "/jffs/scripts/$SPD_NAME_LOWER"
+			chmod 0755 /jffs/scripts/"$SPD_NAME_LOWER"
 			Clear_Lock
 			/jffs/scripts/"$SPD_NAME_LOWER" generate
 			exit 0
@@ -127,7 +127,7 @@ Update_Version(){
 			Print_Output "true" "Downloading latest version ($serverver) of $SPD_NAME" "$PASS"
 			Update_File "spdcli.py"
 			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
-			chmod 0755 "/jffs/scripts/$SPD_NAME_LOWER"
+			chmod 0755 /jffs/scripts/"$SPD_NAME_LOWER"
 			Clear_Lock
 			/jffs/scripts/"$SPD_NAME_LOWER" generate
 			exit 0
@@ -142,7 +142,7 @@ Update_File(){
 		Download_File "$SPD_REPO/$1" "$tmpfile"
 		if ! diff -q "$tmpfile" "/jffs/scripts/$1" >/dev/null 2>&1; then
 			Download_File "$SPD_REPO/$1" "/jffs/scripts/$1"
-			chmod 0755 "/jffs/scripts/$1"
+			chmod 0755 /jffs/scripts/"$1"
 			Print_Output "true" "New version of $1 downloaded to /jffs/scripts/$1" "$PASS"
 		fi
 		rm -f "$tmpfile"
@@ -528,7 +528,7 @@ Menu_Install(){
 	opkg install rrdtool
 	
 	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
-	chmod 0755 "/jffs/scripts/spdcli.py"
+	chmod 0755 /jffs/scripts/spdcli.py
 	
 	Mount_SPD_WebUI
 	
