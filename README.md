@@ -14,7 +14,7 @@ spdMerlin uses [speedtest-cli](https://github.com/sivel/speedtest-cli)
 This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/), which was adapted from [ntpMerlin](https://github.com/jackyaz/ntpMerlin)
 Permission received from JGrana to publish this!
 
-![Menu UI](https://puu.sh/D9ccG/42b28695af.png)
+![Menu UI](https://puu.sh/D9Fez/3c84de3f66.png)
 
 ## Supported Models
 ### Models
@@ -43,7 +43,7 @@ If this does not work, you will need to use the full path:
 Launch spdmerlin and select option u
 
 ## Help
-Please post about any issues and problems here: [ntpMerlin on SNBForums](https://www.snbforums.com/threads/ntpmerlin-installer-for-kvic-ntp-daemon.55756/)
+Please post about any issues and problems here: [spdMerlin on SNBForums](https://www.snbforums.com/threads/spdmerlin.55904/)
 
 ## FAQs
 ### I haven't used scripts before on AsusWRT-Merlin
