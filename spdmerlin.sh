@@ -140,10 +140,10 @@ Update_File(){
 	if [ "$1" = "spdcli.py" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SPD_REPO/$1" "$tmpfile"
-		chmod +x "$tmpfile"
+		chmod 0755 "$tmpfile"
 		if ! diff -q "$tmpfile" "/jffs/scripts/$1" >/dev/null 2>&1; then
 			Download_File "$SPD_REPO/$1" "/jffs/scripts/$1"
-			chmod +x "/jffs/scripts/$1"
+			chmod 0755 "/jffs/scripts/$1"
 			Print_Output "true" "New version of $1 downloaded to /jffs/scripts/$1" "$PASS"
 		fi
 		rm -f "$tmpfile"
@@ -250,6 +250,11 @@ Modify_WebUI_File(){
 	if [ -f "/jffs/scripts/ntpmerlin" ]; then
 		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "NTP Daemon"},' "$tmpfile"
 	fi
+	
+	if ! diff -q "$tmpfile" "/jffs/scripts/custom_menuTree.js" >/dev/null 2>&1; then
+		cp "$tmpfile" "/jffs/scripts/custom_menuTree.js"
+	fi
+	
 	rm -f "$tmpfile"
 	
 	mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
@@ -283,7 +288,7 @@ Generate_SPDStats(){
 	
 	if Check_Swap ; then
 		
-		RDB=/jffs/scripts/speedtest_rrd.rrd
+		RDB=/jffs/scripts/spdstats_rrd.rrd
 		
 		/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
 		
