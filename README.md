@@ -11,7 +11,7 @@ spdMerlin is free to use under the [GNU General Public License version 3](https:
 
 spdMerlin uses [speedtest-cli](https://github.com/sivel/speedtest-cli)
 
-This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/), which was adapted from https://github.com/jackyaz/ntpMerlin
+This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/), which was adapted from [ntpMerlin](https://github.com/jackyaz/ntpMerlin)
 Permission received from JGrana to publish this!
 
 ![Menu UI](https://puu.sh/D9ccG/42b28695af.png)
@@ -20,7 +20,6 @@ Permission received from JGrana to publish this!
 ### Models
 All modes supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Models confirmed to work are below:
 *   RT-AC86U
-
 
 ## Installation
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:
