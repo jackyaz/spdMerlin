@@ -446,8 +446,8 @@ ScriptHeader(){
 	printf "\\e[1m##  |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_| ##\\e[0m\\n"
 	printf "\\e[1m##      | |                                              ##\\e[0m\\n"
 	printf "\\e[1m##      |_|                                              ##\\e[0m\\n"
-	printf "\\e[1m##                                                      ##\\e[0m\\n"
-	printf "\\e[1m##                  %s on %-9s                 ##\\e[0m\\n" "$SPD_VERSION" "$ROUTER_MODEL"
+	printf "\\e[1m##                                                       ##\\e[0m\\n"
+	printf "\\e[1m##                  %s on %-9s                   ##\\e[0m\\n" "$SPD_VERSION" "$ROUTER_MODEL"
 	printf "\\e[1m##                                                      ##\\e[0m\\n"
 	printf "\\e[1m##       https://github.com/jackyaz/spdMerlin           ##\\e[0m\\n"
 	printf "\\e[1m##                                                      ##\\e[0m\\n"
@@ -457,7 +457,6 @@ ScriptHeader(){
 
 MainMenu(){
 	printf "1.    Generate updated %s graphs now\\n\\n" "$SPD_NAME"
-	printf "3.    Edit %s config\\n\\n" "$SPD_NAME"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -474,11 +473,6 @@ MainMenu(){
 				printf "\\n"
 				Menu_GenerateStats
 				PressEnter
-				break
-			;;
-			3)
-				printf "\\n"
-				Menu_Edit
 				break
 			;;
 			u)
