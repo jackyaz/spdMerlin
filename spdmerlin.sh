@@ -266,7 +266,7 @@ Generate_SPDStats(){
 		
 		RDB=/jffs/scripts/speedtest_rrd.rrd
 		
-		/jffs/scripts/spdcli.py --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
+		/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
 		
 		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
