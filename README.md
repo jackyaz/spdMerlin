@@ -1,15 +1,16 @@
 # spdMerlin - Automatic speedtest for AsusWRT Merlin - with graphs
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/1bc89c12c4bf44b49b28161f328e49b0)](https://www.codacy.com/app/jackyaz/ntpMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/ntpMerlin&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
 ## v0.0.1
-### Updated on 2019-04-01
+### Updated on 2019-04-03
 ## About
-Run an NTP server for your network. Graphs available for NTP accuracy on the Tools page of the WebUI.
+Run automated speedtests for your Internet on your router. Graphs available for speedtest results on the Tools page of the WebUI.
 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
-This script serves as a user-friendly installer for a project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
+This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/), which was adapted from https://github.com/jackyaz/ntpMerlin
+Permission received from JGrana to publish this!
 
 ![Menu UI](https://puu.sh/D9ccG/42b28695af.png)
 
