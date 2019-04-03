@@ -419,20 +419,6 @@ PressEnter(){
 
 ScriptHeader(){
 	clear
-	DST_ENABLED="$(nvram get time_zone_dst)"
-	if ! Validate_Number "" "$DST_ENABLED" "silent"; then DST_ENABLED=0; fi
-	if [ "$DST_ENABLED" -eq "0" ]; then
-		DST_ENABLED="Inactive"
-	else
-		DST_ENABLED="Active"
-	fi
-	
-	DST_SETTING="$(nvram get time_zone_dstoff)"
-	DST_SETTING="$(echo "$DST_SETTING" | sed 's/M//g')"
-	DST_START="$(echo "$DST_SETTING" | cut -f1 -d",")"
-	DST_START="Month $(echo "$DST_START" | cut -f1 -d".") Week $(echo "$DST_START" | cut -f2 -d".") Weekday $(echo "$DST_START" | cut -f3 -d"." | cut -f1 -d"/") Hour $(echo "$DST_START" | cut -f3 -d"." | cut -f2 -d"/")"
-	DST_END="$(echo "$DST_SETTING" | cut -f2 -d",")"
-	DST_END="Month $(echo "$DST_END" | cut -f1 -d".") Week $(echo "$DST_END" | cut -f2 -d".") Weekday $(echo "$DST_END" | cut -f3 -d"." | cut -f1 -d"/") Hour $(echo "$DST_END" | cut -f3 -d"." | cut -f2 -d"/")"
 	
 	printf "\\n"
 	printf "\\e[1m###########################################################\\e[0m\\n"
