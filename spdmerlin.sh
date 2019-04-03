@@ -437,7 +437,7 @@ ScriptHeader(){
 	DST_END="Month $(echo "$DST_END" | cut -f1 -d".") Week $(echo "$DST_END" | cut -f2 -d".") Weekday $(echo "$DST_END" | cut -f3 -d"." | cut -f1 -d"/") Hour $(echo "$DST_END" | cut -f3 -d"." | cut -f2 -d"/")"
 	
 	printf "\\n"
-	printf "\\e[1m##########################################################\\e[0m\\n"
+	printf "\\e[1m###########################################################\\e[0m\\n"
 	printf "\\e[1m##                   _  __  __              _  _         ##\\e[0m\\n"
 	printf "\\e[1m##                  | ||  \/  |            | |(_)        ##\\e[0m\\n"
 	printf "\\e[1m##   ___  _ __    __| || \  / |  ___  _ __ | | _  _ __   ##\\e[0m\\n"
@@ -447,7 +447,7 @@ ScriptHeader(){
 	printf "\\e[1m##      | |                                              ##\\e[0m\\n"
 	printf "\\e[1m##      |_|                                              ##\\e[0m\\n"
 	printf "\\e[1m##                                                       ##\\e[0m\\n"
-	printf "\\e[1m##                  %s on %-9s                   ##\\e[0m\\n" "$SPD_VERSION" "$ROUTER_MODEL"
+	printf "\\e[1m##                 %s on %-9s                   ##\\e[0m\\n" "$SPD_VERSION" "$ROUTER_MODEL"
 	printf "\\e[1m##                                                      ##\\e[0m\\n"
 	printf "\\e[1m##       https://github.com/jackyaz/spdMerlin           ##\\e[0m\\n"
 	printf "\\e[1m##                                                      ##\\e[0m\\n"
