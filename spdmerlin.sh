@@ -140,7 +140,6 @@ Update_File(){
 	if [ "$1" = "spdcli.py" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SPD_REPO/$1" "$tmpfile"
-		chmod 0755 "$tmpfile"
 		if ! diff -q "$tmpfile" "/jffs/scripts/$1" >/dev/null 2>&1; then
 			Download_File "$SPD_REPO/$1" "/jffs/scripts/$1"
 			chmod 0755 "/jffs/scripts/$1"
@@ -529,6 +528,7 @@ Menu_Install(){
 	opkg install rrdtool
 	
 	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
+	chmod 0755 "/jffs/scripts/spdcli.py"
 	
 	Mount_SPD_WebUI
 	
