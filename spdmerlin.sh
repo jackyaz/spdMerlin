@@ -487,7 +487,7 @@ MainMenu(){
 }
 
 Menu_Install(){
-	opkg install ntpd
+	opkg install python
 	
 	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
 	
@@ -551,11 +551,13 @@ Menu_Uninstall(){
 		esac
 	done
 	Shortcut_spdMerlin delete
-	opkg remove ntpd
+	opkg remove --autoremove python
 	umount /www/require/modules/menuTree.js 2>/dev/null
 	umount /www/Advanced_Feedback.asp 2>/dev/null
 	rm -f "/jffs/scripts/custom_menuTree.js" 2>/dev/null
+	rm -f "/jffs/scripts/custom_state.js" 2>/dev/null
 	rm -f "/jffs/scripts/spdstats_www.asp" 2>/dev/null
+	rm -f "/jffs/scripts/spdcli.py" 2>/dev/null
 	rm -f "/jffs/scripts/$SPD_NAME_LOWER" 2>/dev/null
 	Clear_Lock
 	Print_Output "true" "Uninstall completed" "$PASS"
