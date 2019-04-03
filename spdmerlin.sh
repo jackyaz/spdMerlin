@@ -501,7 +501,45 @@ MainMenu(){
 	MainMenu
 }
 
+Check_Requirements(){
+	CHECKSFAILED="false"
+	
+	if [ "$(nvram get jffs2_scripts)" -ne 1 ]; then
+		nvram set jffs2_scripts=1
+		nvram commit
+		Print_Output "true" "Custom JFFS Scripts enabled" "$WARN"
+	fi
+	
+	if ! Check_Swap; then
+		Print_Output "true" "No Swap file detected!" "$ERR"
+		CHECKSFAILED="true"
+	fi
+	
+	if [ ! -f "/opt/bin/opkg" ]; then
+		Print_Output "true" "Entware not detected!" "$ERR"
+		CHECKSFAILED="true"
+	fi
+	
+	if [ "$CHECKSFAILED" = "false" ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 Menu_Install(){
+	Print_Output "true" "Welcome to $SPD_NAME $SPD_VERSION, a script by JackYaz"
+	sleep 1
+
+	Print_Output "true" "Checking your router meets the requirements for $SPD_NAME"
+
+	if ! Check_Requirements; then
+		Print_Output "true" "Requirements for $SPD_NAME not met, please see above for the reason(s)" "$CRIT"
+		PressEnter
+		Clear_Lock
+		exit 1
+	fi
+	
 	opkg install python
 	opkg install rrdtool
 	
