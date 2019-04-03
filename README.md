@@ -43,7 +43,7 @@ If this does not work, you will need to use the full path:
 Launch spdmerlin and select option u
 
 ## Help
-Please post about any issues and problems here: [spdMerlin on SNBForums](https://www.snbforums.com/threads/spdmerlin.55904/)
+Please post about any issues and problems here: [spdMerlin on SNBForums](https://www.snbforums.com/threads/spdmerlin-automated-speedtests-with-graphs.55904/)
 
 ## FAQs
 ### I haven't used scripts before on AsusWRT-Merlin
