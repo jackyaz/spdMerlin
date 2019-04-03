@@ -446,10 +446,10 @@ ScriptHeader(){
 	printf "\\e[1m##      |_|                                              ##\\e[0m\\n"
 	printf "\\e[1m##                                                       ##\\e[0m\\n"
 	printf "\\e[1m##                 %s on %-9s                   ##\\e[0m\\n" "$SPD_VERSION" "$ROUTER_MODEL"
-	printf "\\e[1m##                                                      ##\\e[0m\\n"
-	printf "\\e[1m##       https://github.com/jackyaz/spdMerlin           ##\\e[0m\\n"
-	printf "\\e[1m##                                                      ##\\e[0m\\n"
-	printf "\\e[1m##########################################################\\e[0m\\n"
+	printf "\\e[1m##                                                       ##\\e[0m\\n"
+	printf "\\e[1m##        https://github.com/jackyaz/spdMerlin           ##\\e[0m\\n"
+	printf "\\e[1m##                                                       ##\\e[0m\\n"
+	printf "\\e[1m###########################################################\\e[0m\\n"
 	printf "\\n"
 }
 
