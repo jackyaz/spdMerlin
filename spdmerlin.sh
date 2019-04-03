@@ -19,7 +19,7 @@ readonly SPD_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
-readonly SPD_VERSION="v0.0.2"
+readonly SPD_VERSION="v1.0.0"
 readonly SPD_BRANCH="master"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
@@ -571,10 +571,12 @@ Menu_Uninstall(){
 	opkg remove --autoremove python
 	umount /www/Advanced_Feedback.asp 2>/dev/null
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: "SpeedTest"}/d' "/jffs/scripts/custom_menuTree.js"
+	umount /www/require/modules/menuTree.js 2>/dev/null
 	if [ ! -f "/jffs/scripts/ntpmerlin" ]; then
 		opkg remove --autoremove rrdtool
-		umount /www/require/modules/menuTree.js 2>/dev/null
 		rm -f "/jffs/scripts/custom_menuTree.js" 2>/dev/null
+	else
+		mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
 	fi
 	rm -f "/jffs/scripts/custom_state.js" 2>/dev/null
 	rm -f "/jffs/scripts/spdstats_www.asp" 2>/dev/null
