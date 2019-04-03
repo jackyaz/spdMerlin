@@ -113,7 +113,6 @@ Update_Version(){
 			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SPD_NAME_LOWER"
 			Clear_Lock
-			/jffs/scripts/"$SPD_NAME_LOWER" generate
 			exit 0
 		else
 			Print_Output "true" "No new version - latest is $localver" "$WARN"
@@ -129,7 +128,6 @@ Update_Version(){
 			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SPD_NAME_LOWER"
 			Clear_Lock
-			/jffs/scripts/"$SPD_NAME_LOWER" generate
 			exit 0
 		;;
 	esac
