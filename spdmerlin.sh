@@ -241,8 +241,8 @@ Modify_WebUI_File(){
 	tmpfile=/tmp/menuTree.js
 	cp "/www/require/modules/menuTree.js" "$tmpfile"
 	
-	sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_Feedback.asp", tabName: "SpeedTest"},' "$tmpfile"
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: /d' "$tmpfile"
+	sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_Feedback.asp", tabName: "SpeedTest"},' "$tmpfile"
 	sed -i '/retArray.push("Advanced_Feedback.asp");/d' "$tmpfile"
 	if [ -f "/jffs/scripts/ntpmerlin" ]; then
 		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "NTP Daemon"},' "$tmpfile"
