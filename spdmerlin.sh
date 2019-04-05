@@ -385,7 +385,7 @@ PreferredServer(){
 			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
 			/jffs/scripts/spdcli.py --list > /tmp/spdServers.txt
 			sed -i -e 's/^[ \t]*//;s/[ \t]*$//' /tmp/spdServers.txt
-			if grep -q "$PREFERREDSERVERNO" /tmp/spdServers.txt; then
+			if grep -q "^$PREFERREDSERVERNO)" /tmp/spdServers.txt; then
 				rm -f /tmp/spdServers.txt
 				return 0
 			else
