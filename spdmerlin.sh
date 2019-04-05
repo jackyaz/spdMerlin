@@ -317,6 +317,8 @@ PreferredServer(){
 				COUNTER=$((COUNTER + 1))
 			done
 			
+			printf "\\nGo back\\n"
+			
 			exitmenu="false"
 			serverno=""
 			servername=""
@@ -337,6 +339,7 @@ PreferredServer(){
 							else
 								serverno="$(echo "$serverlist" | sed "$server!d" | cut -f1 -d')' | awk '{$1=$1};1')"
 								servername="$(echo "$serverlist" | sed "$server!d" | cut -f2 -d')' | awk '{$1=$1};1')"")"
+								printf "\\n"
 								break
 							fi
 						fi
@@ -367,19 +370,19 @@ Generate_SPDStats(){
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
 		
-		if [ "$speedtestserver" = "auto" ]; then
+		if [ "$speedtestserverno" = "auto" ]; then
 			Print_Output "true" "Starting speedtest now, using auto-selected server..." "$PASS"
 			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
 		else
 			Print_Output "true" "Starting speedtest now using $speedtestservername" "$PASS"
 			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 		fi
-		Print_Output "true" "Finished speedtest" "$PASS"
+		
 		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		
-		Print_Output "true" "Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
+		Print_Output "true" "Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)" "$PASS"
 		
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
