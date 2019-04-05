@@ -404,6 +404,8 @@ Generate_SPDStats(){
 			GPRINT:nupld:MAX:"Max\: %3.1lf %s" \
 			GPRINT:nupld:AVERAGE:"Avg\: %3.1lf %s" \
 			GPRINT:nupld:LAST:"Curr\: %3.1lf %s\n" >/dev/null 2>&1
+			
+			CacheGraphImages cache 2>/dev/null
 	else
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
 		return 1
@@ -591,6 +593,7 @@ Menu_Startup(){
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	RRD_Initialise
+	CacheGraphImages extract 2>/dev/null
 	Clear_Lock
 }
 
