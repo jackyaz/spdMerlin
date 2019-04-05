@@ -304,24 +304,50 @@ PreferredServer(){
 		
 		;;
 		onetime)
-			printf "Generating list of 25 closest servers...\\n"
+			printf "Generating list of 25 closest servers...\\n\\n"
 			serverlist="$(/jffs/scripts/spdcli.py --list | sed '1d' | head -n 25)"
 			COUNTER=1
 			until [ $COUNTER -gt 25 ]; do
 				serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
-				printf "%s) %s\\n" "$COUNTER" "$serverdetails"
+				if [ "$COUNTER" -lt "10" ]; then
+					printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
+				else
+					printf "%s) %s\\n" "$COUNTER" "$serverdetails"
+				fi
 				COUNTER=$((COUNTER + 1))
 			done
+			
+			exitmenu="false"
+			serverno=""
+			servername=""
+			
 			while true; do
 				printf "\\n\\e[1mPlease select a server from the list above (1-25):\\e[0m\\n"
 				read -r "server"
 				case "$server" in
 					*)
-						break
-						#printf "\\e[1mPlease select a server from the list above (1-25)"
+						if [ "$server" = "e" ]; then
+							exitmenu="true"
+							break
+						elif ! Validate_Number "" "$server" "silent"; then
+							printf "\\n\\e[31mPlease enter a valid number (1-25)\\e[0m\\n"
+						else
+							if [ "$server" -lt 1 ] || [ "$server" -gt 25 ]; then
+								printf "\\n\\e[31mPlease enter a number between 1 and 25\\e[0m\\n"
+							else
+								serverno="$(echo "$serverlist" | sed "$server!d" | cut -f1 -d')' | awk '{$1=$1};1')"
+								servername="$(echo "$serverlist" | sed "$server!d" | cut -f2 -d')' | awk '{$1=$1};1')"")"
+								break
+							fi
+						fi
 					;;
 				esac
 			done
+			
+			if [ "$exitmenu" != "true" ]; then
+				Generate_SPDStats "$serverno" "$servername"
+				PressEnter
+			fi
 		;;
 	esac
 }
@@ -334,17 +360,19 @@ Generate_SPDStats(){
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	
-	selectedserver="$1"
+	speedtestserverno="$1"
+	speedtestservername="$2"
 	
 	if Check_Swap ; then
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
-		Print_Output "true" "Starting speedtest now..." "$PASS"
 		
-		if [ "$selectedserver" = "auto" ]; then
+		if [ "$speedtestserver" = "auto" ]; then
+			Print_Output "true" "Starting speedtest now, using auto-selected server..." "$PASS"
 			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
 		else
-			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure --server "$selectedserver" >> /tmp/spd-rrdstats.$$
+			Print_Output "true" "Starting speedtest now using $speedtestservername" "$PASS"
+			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 		fi
 		Print_Output "true" "Finished speedtest" "$PASS"
 		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
@@ -526,7 +554,6 @@ MainMenu(){
 			2)
 				printf "\\n"
 				PreferredServer "onetime"
-				PressEnter
 				break
 			;;
 			u)
