@@ -311,7 +311,6 @@ GenerateServerList(){
 	
 	printf "\\ne)  Go back\\n"
 	
-	serverlist=$(GenerateServerList)
 	serverno=""
 	servername=""
 	combined=""
