@@ -275,6 +275,24 @@ Modify_WebUI_File(){
 	mount -o bind /jffs/scripts/custom_state.js /www/state.js
 }
 
+CacheGraphImages(){
+	case "$1" in
+		cache)
+			if [ "$(ls /www/ext/*speed*.png | wc -l)" -ge "1" ]; then
+				DIAGPATH="/tmp/""$SPD_NAME_LOWER""Diag"
+				mkdir -p "$DIAGPATH"
+				cp /www/ext/*speed*.png "$DIAGPATH"
+				tar -czf "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz" -C "$DIAGPATH" .
+				rm -rf "$DIAGPATH" 2>/dev/null
+			fi
+		;;
+		extract)
+			tar -C /www/ext/ -xzf "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz"
+			rm -f "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz"
+		;;
+	esac
+}
+
 Generate_SPDStats(){
 	# This script is adapted from http://www.wraith.sf.ca.us/ntp
 	# This function originally written by kvic, further adapted by JGrana
