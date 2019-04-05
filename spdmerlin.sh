@@ -317,7 +317,7 @@ PreferredServer(){
 				COUNTER=$((COUNTER + 1))
 			done
 			
-			printf "\\nGo back\\n"
+			printf "\\ne)  Go back\\n"
 			
 			exitmenu="false"
 			serverno=""
