@@ -19,8 +19,8 @@ readonly SPD_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
-readonly SPD_VERSION="v1.0.2"
-readonly SPD_BRANCH="master"
+readonly SPD_VERSION="v1.1.0"
+readonly SPD_BRANCH="develop"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 ### End of script variables ###
@@ -295,6 +295,37 @@ CacheGraphImages(){
 	esac
 }
 
+PreferredServer(){
+	case "$1" in
+		create)
+		
+		;;
+		delete)
+		
+		;;
+		onetime)
+			printf "Generating list of 25 closest servers..."
+			serverlist="$(/jffs/scripts/spdcli.py --list | sed '1d' | head -n 25)"
+			COUNTER=1
+			until [ $COUNTER -gt 25 ]; do
+				serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2 -d')' | awk '{$1=$1};1')"
+				printf "\\n\\e[1m%s) %s\\e[0m\\n" "$COUNTER" "$serverdetails"
+				COUNTER=$((COUNTER + 1))
+			done
+			while true; do
+				printf "\\n\\e[1mPlease select a server from the list above (1-25):\\e[0m\\n"
+				read -r "server"
+				case "$server" in
+					*)
+						break
+						#printf "\\e[1mPlease select a server from the list above (1-25)"
+					;;
+				esac
+			done
+		;;
+	esac
+}
+
 Generate_SPDStats(){
 	# This script is adapted from http://www.wraith.sf.ca.us/ntp
 	# This function originally written by kvic, further adapted by JGrana
@@ -303,11 +334,18 @@ Generate_SPDStats(){
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	
+	selectedserver="$1"
+	
 	if Check_Swap ; then
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
 		Print_Output "true" "Starting speedtest now..." "$PASS"
-		/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
+		
+		if [ "$selectedserver" = "auto" ]; then
+			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
+		else
+			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure --server "$selectedserver" >> /tmp/spd-rrdstats.$$
+		fi
 		Print_Output "true" "Finished speedtest" "$PASS"
 		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
@@ -464,7 +502,9 @@ ScriptHeader(){
 }
 
 MainMenu(){
-	printf "1.    Run a speedtest now\\n\\n"
+	printf "1.    Run a speedtest now (auto select server)\\n\\n"
+	#printf "2.    Run a speedtest now (use preferred servers)\\n\\n"
+	printf "2.    Run a speedtest (select a server)\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -479,7 +519,13 @@ MainMenu(){
 		case "$menu" in
 			1)
 				printf "\\n"
-				Menu_GenerateStats
+				Menu_GenerateStats "auto"
+				PressEnter
+				break
+			;;
+			2)
+				printf "\\n"
+				PreferredServer "onetime"
 				PressEnter
 				break
 			;;
@@ -599,7 +645,7 @@ Menu_Startup(){
 
 Menu_GenerateStats(){
 	Check_Lock
-	Generate_SPDStats
+	Generate_SPDStats "$1"
 	Clear_Lock
 }
 
@@ -675,7 +721,7 @@ case "$1" in
 		exit 0
 	;;
 	generate)
-		Menu_GenerateStats
+		Menu_GenerateStats "auto"
 		exit 0
 	;;
 	update)
