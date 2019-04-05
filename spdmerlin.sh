@@ -32,6 +32,11 @@ readonly WARN="\\e[33m"
 readonly PASS="\\e[32m"
 ### End of output format variables ###
 
+### Start of Speedtest Server Variables ###
+serverno=""
+servername=""
+### End of Speedtest Server Variables ###
+
 # $1 = print to syslog, $2 = message to print, $3 = log level
 Print_Output(){
 	if [ "$1" = "true" ]; then
@@ -311,36 +316,26 @@ GenerateServerList(){
 	
 	printf "\\ne)  Go back\\n"
 	
-	serverno=""
-	servername=""
-	combined=""
-	
 	while true; do
 		printf "\\n\\e[1mPlease select a server from the list above (1-25):\\e[0m\\n"
 		read -r "server"
-		case "$server" in
-			*)
-				if [ "$server" = "e" ]; then
-					combined="exit"
-					break
-				elif ! Validate_Number "" "$server" "silent"; then
-					printf "\\n\\e[31mPlease enter a valid number (1-25)\\e[0m\\n"
-				else
-					if [ "$server" -lt 1 ] || [ "$server" -gt 25 ]; then
-						printf "\\n\\e[31mPlease enter a number between 1 and 25\\e[0m\\n"
-					else
-						serverno="$(echo "$serverlist" | sed "$server!d" | cut -f1 -d')' | awk '{$1=$1};1')"
-						servername="$(echo "$serverlist" | sed "$server!d" | cut -f2 -d')' | awk '{$1=$1};1')"")"
-						combined="$serverno"'|'"$servername"
-						printf "\\n"
-						break
-					fi
-				fi
-			;;
-		esac
+		
+		if [ "$server" = "e" ]; then
+			serverno="exit"
+			break
+		elif ! Validate_Number "" "$server" "silent"; then
+			printf "\\n\\e[31mPlease enter a valid number (1-25)\\e[0m\\n"
+		else
+			if [ "$server" -lt 1 ] || [ "$server" -gt 25 ]; then
+				printf "\\n\\e[31mPlease enter a number between 1 and 25\\e[0m\\n"
+			else
+				serverno="$(echo "$serverlist" | sed "$server!d" | cut -f1 -d')' | awk '{$1=$1};1')"
+				servername="$(echo "$serverlist" | sed "$server!d" | cut -f2 -d')' | awk '{$1=$1};1')"")"
+				printf "\\n"
+				break
+			fi
+		fi
 	done
-	
-	return "$combined"
 }
 
 PreferredServer(){
@@ -352,10 +347,10 @@ PreferredServer(){
 		
 		;;
 		onetime)
-			serverdetails=$(GenerateServerList)
+			GenerateServerList
 			
-			if [ "$serverdetails" != "exit" ]; then
-				Generate_SPDStats "$(echo "$serverdetails" | cut -f1 -d'|')" "$(echo "$serverdetails" | cut -f2 -d'|')"
+			if [ "$serverno" != "exit" ]; then
+				Generate_SPDStats "$serverno" "$servername"
 				PressEnter
 			fi
 		;;
