@@ -278,7 +278,7 @@ Modify_WebUI_File(){
 CacheGraphImages(){
 	case "$1" in
 		cache)
-			if [ "$(ls /www/ext/*speed*.png | wc -l)" -ge "1" ]; then
+			if [ "$(/usr/bin/find /www/ext/*speed*.png | wc -l)" -ge "1" ]; then
 				DIAGPATH="/tmp/""$SPD_NAME_LOWER""Diag"
 				mkdir -p "$DIAGPATH"
 				cp /www/ext/*speed*.png "$DIAGPATH"
