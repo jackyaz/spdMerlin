@@ -412,8 +412,8 @@ Generate_SPDStats(){
 		if [ "$mode" = "schedule" ]; then
 			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
 			if PreferredServer check; then
-				speedtestserverno="$(echo "$(PreferredServer list)" | cut -f1 -d"|")"
-				speedtestservername="$(echo "$(PreferredServer list)" | cut -f2 -d"|")"
+				speedtestserverno="$(PreferredServer list | cut -f1 -d"|")"
+				speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
 			else
 				mode="auto"
 			fi
@@ -426,8 +426,8 @@ Generate_SPDStats(){
 				return 1
 			fi
 		elif [ "$mode" = "user" ]; then
-			speedtestserverno="$(echo "$(PreferredServer list)" | cut -f1 -d"|")"
-			speedtestservername="$(echo "$(PreferredServer list)" | cut -f2 -d"|")"
+			speedtestserverno="$(PreferredServer list | cut -f1 -d"|")"
+			speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
 		fi
 		
 		if [ "$mode" = "auto" ]; then
@@ -609,7 +609,7 @@ MainMenu(){
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server)\\n"
 	printf "3.    Run a speedtest (select a server)\\n\\n"
-	printf "4.    Toggle preferred server for automatic tests\\n      (currently %s)\\n      Server: %s\\n\\n" "$PREFERREDSERVER_ENABLED" "$(echo "$(PreferredServer list)" | cut -f2 -d"|")"
+	printf "4.    Toggle preferred server for automatic tests\\n      (currently %s)\\n      Server: %s\\n\\n" "$PREFERREDSERVER_ENABLED" "$(PreferredServer list | cut -f2 -d"|")"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
