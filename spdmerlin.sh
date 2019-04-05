@@ -304,12 +304,12 @@ PreferredServer(){
 		
 		;;
 		onetime)
-			printf "Generating list of 25 closest servers..."
+			printf "Generating list of 25 closest servers...\\n"
 			serverlist="$(/jffs/scripts/spdcli.py --list | sed '1d' | head -n 25)"
 			COUNTER=1
 			until [ $COUNTER -gt 25 ]; do
 				serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
-				printf "\\n%s) %s\\n" "$COUNTER" "$serverdetails"
+				printf "%s) %s\\n" "$COUNTER" "$serverdetails"
 				COUNTER=$((COUNTER + 1))
 			done
 			while true; do
