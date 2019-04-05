@@ -282,13 +282,15 @@ CacheGraphImages(){
 				DIAGPATH="/tmp/""$SPD_NAME_LOWER""Diag"
 				mkdir -p "$DIAGPATH"
 				cp /www/ext/*speed*.png "$DIAGPATH"
+				rm -f "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz" 2>/dev/null
 				tar -czf "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz" -C "$DIAGPATH" .
 				rm -rf "$DIAGPATH" 2>/dev/null
 			fi
 		;;
 		extract)
-			tar -C /www/ext/ -xzf "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz"
-			rm -f "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz"
+			if [ -f "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz" ] && [ "$(/usr/bin/find /www/ext/*speed*.png 2>/dev/null | wc -l)" -eq "0" ]; then
+				tar -C /www/ext/ -xzf "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz"
+			fi
 		;;
 	esac
 }
