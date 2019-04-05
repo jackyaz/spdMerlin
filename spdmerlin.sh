@@ -22,6 +22,7 @@ readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
 readonly SPD_VERSION="v1.1.0"
 readonly SPD_BRANCH="develop"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
+readonly SPD_CONF="/jffs/configs/$SPD_NAME_LOWER.config"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 ### End of script variables ###
 
@@ -162,6 +163,31 @@ Validate_Number(){
 		if [ -z "$3" ]; then
 			Print_Output "false" "$formatted - $2 is not a number" "$ERR"
 		fi
+		return 1
+	fi
+}
+
+Validate_TrueFalse(){
+	case "$2" in
+		true|TRUE|false|FALSE)
+			return 0
+		;;
+		*)
+			Print_Output "false" "$1 - $2 - must be either true or false" "$ERR"
+			return 1
+		;;
+	esac
+}
+
+Conf_Exists(){
+	if [ -f "$SPD_CONF" ]; then
+		dos2unix "$SPD_CONF"
+		chmod 0644 "$SPD_CONF"
+		sed -i -e 's/"//g' "$SPD_CONF"
+		return 0
+	else
+		echo "PREFERREDSERVER=0|None configured" > "$SPD_CONF"
+		echo "USEPREFERRED=false" >> "$SPD_CONF"
 		return 1
 	fi
 }
@@ -340,20 +366,32 @@ GenerateServerList(){
 
 PreferredServer(){
 	case "$1" in
-		create)
+		update)
 		
 		;;
-		delete)
-		
-		;;
-		onetime)
-			GenerateServerList
-			
-			if [ "$serverno" != "exit" ]; then
-				Generate_SPDStats "$serverno" "$servername"
-				PressEnter
+		check)
+			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
+			if [ "$USEPREFERRED" = "true" ]; then
+				return 0
+			else
+				return 1
 			fi
 		;;
+		list)
+			PREFERREDSERVER=$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=")
+			echo "$PREFERREDSERVER"
+		;;
+		validate)
+			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
+			/jffs/scripts/spdcli.py --list > /tmp/spdServers.txt
+			sed -i -e 's/^[ \t]*//;s/[ \t]*$//' /tmp/spdServers.txt
+			if grep -q "$PREFERREDSERVERNO" /tmp/spdServers.txt; then
+				rm -f /tmp/spdServers.txt
+				return 0
+			else
+				rm -f /tmp/spdServers.txt
+				return 1
+			fi
 	esac
 }
 
@@ -364,18 +402,44 @@ Generate_SPDStats(){
 	# The original is part of a set of scripts written by Steven Bjork.
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
+	Conf_Exists
 	
-	speedtestserverno="$1"
-	speedtestservername="$2"
+	mode="$1"
+	speedtestserverno=""
+	speedtestservername=""
 	
 	if Check_Swap ; then
+		if [ "$mode" = "schedule" ]; then
+			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
+			if PreferredServer check; then
+				speedtestserverno="$(echo "$(PreferredServer list)" | cut -f1 -d"|")"
+				speedtestservername="$(echo "$(PreferredServer list)" | cut -f2 -d"|")"
+			else
+				mode="auto"
+			fi
+		elif [ "$mode" = "onetime" ]; then
+			GenerateServerList
+			if [ "$serverno" != "exit" ]; then
+				speedtestserverno="$serverno"
+				speedtestservername="$servername"
+			else
+				return 1
+			fi
+		elif [ "$mode" = "user" ]; then
+			speedtestserverno="$(echo "$(PreferredServer list)" | cut -f1 -d"|")"
+			speedtestservername="$(echo "$(PreferredServer list)" | cut -f2 -d"|")"
+		fi
 		
-		RDB=/jffs/scripts/spdstats_rrd.rrd
-		
-		if [ "$speedtestserverno" = "auto" ]; then
+		if [ "$mode" = "auto" ]; then
 			Print_Output "true" "Starting speedtest using auto-selected server" "$PASS"
 			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
 		else
+			if [ "$mode" != "onetime" ]; then
+				if ! PreferredServer validate; then
+					Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
+					return 1
+				fi
+			fi
 			Print_Output "true" "Starting speedtest using $speedtestservername" "$PASS"
 			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 		fi
@@ -386,6 +450,7 @@ Generate_SPDStats(){
 		
 		Print_Output "true" "Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)" "$PASS"
 		
+		RDB=/jffs/scripts/spdstats_rrd.rrd
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
 		
@@ -535,9 +600,16 @@ ScriptHeader(){
 }
 
 MainMenu(){
-	printf "1.    Run a speedtest now (auto select server)\\n\\n"
-	#printf "2.    Run a speedtest now (use preferred servers)\\n\\n"
-	printf "2.    Run a speedtest (select a server)\\n\\n"
+	PREFERREDSERVER_ENABLED=""
+	if PreferredServer check; then
+		PREFERREDSERVER_ENABLED="Enabled"
+	else
+		PREFERREDSERVER_ENABLED="Disabled"
+	fi
+	printf "1.    Run a speedtest now (auto select server)\\n"
+	printf "2.    Run a speedtest now (use preferred server)\\n"
+	printf "3.    Run a speedtest (select a server)\\n\\n"
+	printf "4.    Toggle preferred server for automatic tests\\n      (currently %s)\\n      Server: %s\\n\\n" "$PREFERREDSERVER_ENABLED" "$(echo "$(PreferredServer list)" | cut -f2 -d"|")"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -558,7 +630,14 @@ MainMenu(){
 			;;
 			2)
 				printf "\\n"
-				PreferredServer "onetime"
+				Menu_GenerateStats "user"
+				PressEnter
+				break
+			;;
+			3)
+				printf "\\n"
+				Menu_GenerateStats "onetime"
+				PressEnter
 				break
 			;;
 			u)
@@ -650,6 +729,8 @@ Menu_Install(){
 	opkg install rrdtool
 	opkg install ca-certificates
 	
+	Conf_Exists
+	
 	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
 	chmod 0755 /jffs/scripts/spdcli.py
 	
@@ -661,7 +742,7 @@ Menu_Install(){
 	
 	Shortcut_spdMerlin create
 	
-	Generate_SPDStats
+	Menu_GenerateStats "auto"
 }
 
 Menu_Startup(){
@@ -753,7 +834,7 @@ case "$1" in
 		exit 0
 	;;
 	generate)
-		Menu_GenerateStats "auto"
+		Menu_GenerateStats "schedule"
 		exit 0
 	;;
 	update)
