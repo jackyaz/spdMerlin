@@ -1,27 +1,28 @@
 #!/bin/sh
 
-##########################################################
-##                  _  __  __              _  _         ##
-##                 | ||  \/  |            | |(_)        ##
-##  ___  _ __    __| || \  / |  ___  _ __ | | _  _ __   ##
-## / __|| '_ \  / _` || |\/| | / _ \| '__|| || || '_ \  ##
-## \__ \| |_) || (_| || |  | ||  __/| |   | || || | | | ##
-## |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_| ##
-##      | |                                             ##
-##      |_|                                             ##
-##                                                      ##
-##       https://github.com/jackyaz/spdMerlin           ##
-##                                                      ##
-##########################################################
+############################################################
+##                   _  __  __              _  _          ##
+##                  | ||  \/  |            | |(_)         ##
+##   ___  _ __    __| || \  / |  ___  _ __ | | _  _ __    ##
+##  / __|| '_ \  / _` || |\/| | / _ \| '__|| || || '_ \   ##
+##  \__ \| |_) || (_| || |  | ||  __/| |   | || || | | |  ##
+##  |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_|  ##
+##       | |                                              ##
+##       |_|                                              ##
+##                                                        ##
+##        https://github.com/jackyaz/spdMerlin            ##
+##                                                        ##
+############################################################
 
 ### Start of script variables ###
 readonly SPD_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
-readonly SPD_VERSION="v1.0.2"
+readonly SPD_VERSION="v1.1.0"
 readonly SPD_BRANCH="master"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
+readonly SPD_CONF="/jffs/configs/$SPD_NAME_LOWER.config"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 ### End of script variables ###
 
@@ -31,6 +32,11 @@ readonly ERR="\\e[31m"
 readonly WARN="\\e[33m"
 readonly PASS="\\e[32m"
 ### End of output format variables ###
+
+### Start of Speedtest Server Variables ###
+serverno=""
+servername=""
+### End of Speedtest Server Variables ###
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
 Print_Output(){
@@ -78,11 +84,7 @@ Clear_Lock(){
 }
 
 Check_Swap () {
-	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then
-		return 0
-	else
-		return 1
-	fi
+	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then return 0; else return 1; fi
 }
 
 Update_Version(){
@@ -157,6 +159,32 @@ Validate_Number(){
 		if [ -z "$3" ]; then
 			Print_Output "false" "$formatted - $2 is not a number" "$ERR"
 		fi
+		return 1
+	fi
+}
+
+Validate_TrueFalse(){
+	case "$2" in
+		true|TRUE|false|FALSE)
+			return 0
+		;;
+		*)
+			Print_Output "false" "$1 - $2 - must be either true or false" "$ERR"
+			return 1
+		;;
+	esac
+}
+
+Conf_Exists(){
+	if [ -f "$SPD_CONF" ]; then
+		dos2unix "$SPD_CONF"
+		chmod 0644 "$SPD_CONF"
+		sed -i -e 's/"//g' "$SPD_CONF"
+		return 0
+	else
+		echo "PREFERREDSERVER=0|None configured" > "$SPD_CONF"
+		echo "USEPREFERRED=false" >> "$SPD_CONF"
+		echo "USESINGLE=false" >> "$SPD_CONF"
 		return 1
 	fi
 }
@@ -295,6 +323,97 @@ CacheGraphImages(){
 	esac
 }
 
+GenerateServerList(){
+	printf "Generating list of 25 closest servers...\\n\\n"
+	serverlist="$(/jffs/scripts/spdcli.py --secure --list | sed '1d' | head -n 25)"
+	COUNTER=1
+	until [ $COUNTER -gt 25 ]; do
+		serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
+		if [ "$COUNTER" -lt "10" ]; then
+			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
+		else
+			printf "%s) %s\\n" "$COUNTER" "$serverdetails"
+		fi
+		COUNTER=$((COUNTER + 1))
+	done
+	
+	printf "\\ne)  Go back\\n"
+	
+	while true; do
+		printf "\\n\\e[1mPlease select a server from the list above (1-25):\\e[0m\\n"
+		read -r "server"
+		
+		if [ "$server" = "e" ]; then
+			serverno="exit"
+			break
+		elif ! Validate_Number "" "$server" "silent"; then
+			printf "\\n\\e[31mPlease enter a valid number (1-25)\\e[0m\\n"
+		else
+			if [ "$server" -lt 1 ] || [ "$server" -gt 25 ]; then
+				printf "\\n\\e[31mPlease enter a number between 1 and 25\\e[0m\\n"
+			else
+				serverno="$(echo "$serverlist" | sed "$server!d" | cut -f1 -d')' | awk '{$1=$1};1')"
+				servername="$(echo "$serverlist" | sed "$server!d" | cut -f2 -d')' | awk '{$1=$1};1')"")"
+				printf "\\n"
+				break
+			fi
+		fi
+	done
+}
+
+PreferredServer(){
+	case "$1" in
+		update)
+			GenerateServerList
+			if [ "$serverno" != "exit" ]; then
+				sed -i 's/^PREFERREDSERVER.*$/PREFERREDSERVER='"$serverno""|""$servername"'/' "$SPD_CONF"
+			else
+				return 1
+			fi
+		;;
+		enable)
+			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=true/' "$SPD_CONF"
+		;;
+		disable)
+			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=false/' "$SPD_CONF"
+		;;
+		check)
+			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
+			if [ "$USEPREFERRED" = "true" ]; then return 0; else return 1; fi
+		;;
+		list)
+			PREFERREDSERVER=$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=")
+			echo "$PREFERREDSERVER"
+		;;
+		validate)
+			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
+			/jffs/scripts/spdcli.py --secure --list > /tmp/spdServers.txt
+			sed -i -e 's/^[ \t]*//;s/[ \t]*$//' /tmp/spdServers.txt
+			if grep -q "^$PREFERREDSERVERNO)" /tmp/spdServers.txt; then
+				rm -f /tmp/spdServers.txt
+				return 0
+			else
+				rm -f /tmp/spdServers.txt
+				return 1
+			fi
+	esac
+}
+
+SingleMode(){
+	case "$1" in
+		enable)
+			sed -i 's/^USESINGLE.*$/USESINGLE=true/' "$SPD_CONF"
+		;;
+		disable)
+			sed -i 's/^USESINGLE.*$/USESINGLE=false/' "$SPD_CONF"
+		;;
+		check)
+			USESINGLE=$(grep "USESINGLE" "$SPD_CONF" | cut -f2 -d"=")
+			if [ "$USESINGLE" = "true" ]; then return 0; else return 1; fi
+		;;
+	esac
+}
+
 Generate_SPDStats(){
 	# This script is adapted from http://www.wraith.sf.ca.us/ntp
 	# This function originally written by kvic, further adapted by JGrana
@@ -302,19 +421,66 @@ Generate_SPDStats(){
 	# The original is part of a set of scripts written by Steven Bjork.
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
+	Conf_Exists
+	
+	mode="$1"
+	speedtestserverno=""
+	speedtestservername=""
 	
 	if Check_Swap ; then
+		if [ "$mode" = "schedule" ]; then
+			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
+			if PreferredServer check; then
+				speedtestserverno="$(PreferredServer list | cut -f1 -d"|")"
+				speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
+			else
+				mode="auto"
+			fi
+		elif [ "$mode" = "onetime" ]; then
+			GenerateServerList
+			if [ "$serverno" != "exit" ]; then
+				speedtestserverno="$serverno"
+				speedtestservername="$servername"
+			else
+				return 1
+			fi
+		elif [ "$mode" = "user" ]; then
+			speedtestserverno="$(PreferredServer list | cut -f1 -d"|")"
+			speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
+		fi
 		
-		RDB=/jffs/scripts/spdstats_rrd.rrd
-		Print_Output "true" "Starting speedtest now..." "$PASS"
-		/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
-		Print_Output "true" "Finished speedtest" "$PASS"
+		if [ "$mode" = "auto" ]; then
+			if SingleMode check; then
+				Print_Output "true" "Starting speedtest using auto-selected server in single connection mode" "$PASS"
+				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --single >> /tmp/spd-rrdstats.$$
+			else
+				Print_Output "true" "Starting speedtest using auto-selected server in multi-connection mode" "$PASS"
+				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
+			fi
+		else
+			if [ "$mode" != "onetime" ]; then
+				if ! PreferredServer validate; then
+					Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
+					return 1
+				fi
+			fi
+			
+			if SingleMode check; then
+				Print_Output "true" "Starting speedtest using $speedtestservername in single connection mode" "$PASS"
+				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+			else
+				Print_Output "true" "Starting speedtest using $speedtestservername in multi-connection mode" "$PASS"
+				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+			fi
+		fi
+		
 		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		
-		Print_Output "true" "Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
+		Print_Output "true" "Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)" "$PASS"
 		
+		RDB=/jffs/scripts/spdstats_rrd.rrd
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
 		
@@ -445,26 +611,36 @@ ScriptHeader(){
 	clear
 	
 	printf "\\n"
-	printf "\\e[1m###########################################################\\e[0m\\n"
-	printf "\\e[1m##                   _  __  __              _  _         ##\\e[0m\\n"
-	printf "\\e[1m##                  | ||  \/  |            | |(_)        ##\\e[0m\\n"
-	printf "\\e[1m##   ___  _ __    __| || \  / |  ___  _ __ | | _  _ __   ##\\e[0m\\n"
-	printf "\\e[1m##  / __|| '_ \  / _  || |\/| | / _ \| '__|| || || '_ \  ##\\e[0m\\n"
-	printf "\\e[1m##  \__ \| |_) || (_| || |  | ||  __/| |   | || || | | | ##\\e[0m\\n"
-	printf "\\e[1m##  |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_| ##\\e[0m\\n"
-	printf "\\e[1m##      | |                                              ##\\e[0m\\n"
-	printf "\\e[1m##      |_|                                              ##\\e[0m\\n"
-	printf "\\e[1m##                                                       ##\\e[0m\\n"
-	printf "\\e[1m##                 %s on %-9s                   ##\\e[0m\\n" "$SPD_VERSION" "$ROUTER_MODEL"
-	printf "\\e[1m##                                                       ##\\e[0m\\n"
-	printf "\\e[1m##        https://github.com/jackyaz/spdMerlin           ##\\e[0m\\n"
-	printf "\\e[1m##                                                       ##\\e[0m\\n"
-	printf "\\e[1m###########################################################\\e[0m\\n"
+	printf "\\e[1m############################################################\\e[0m\\n"
+	printf "\\e[1m##                   _  __  __              _  _          ##\\e[0m\\n"
+	printf "\\e[1m##                  | ||  \/  |            | |(_)         ##\\e[0m\\n"
+	printf "\\e[1m##   ___  _ __    __| || \  / |  ___  _ __ | | _  _ __    ##\\e[0m\\n"
+	printf "\\e[1m##  / __|| '_ \  / _  || |\/| | / _ \| '__|| || || '_ \   ##\\e[0m\\n"
+	printf "\\e[1m##  \__ \| |_) || (_| || |  | ||  __/| |   | || || | | |  ##\\e[0m\\n"
+	printf "\\e[1m##  |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_|  ##\\e[0m\\n"
+	printf "\\e[1m##      | |                                               ##\\e[0m\\n"
+	printf "\\e[1m##      |_|                                               ##\\e[0m\\n"
+	printf "\\e[1m##                                                        ##\\e[0m\\n"
+	printf "\\e[1m##                 %s on %-9s                    ##\\e[0m\\n" "$SPD_VERSION" "$ROUTER_MODEL"
+	printf "\\e[1m##                                                        ##\\e[0m\\n"
+	printf "\\e[1m##        https://github.com/jackyaz/spdMerlin            ##\\e[0m\\n"
+	printf "\\e[1m##                                                        ##\\e[0m\\n"
+	printf "\\e[1m############################################################\\e[0m\\n"
 	printf "\\n"
 }
 
 MainMenu(){
-	printf "1.    Run a speedtest now\\n\\n"
+	PREFERREDSERVER_ENABLED=""
+	SINGLEMODE_ENABLED=""
+	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
+	if SingleMode check; then SINGLEMODE_ENABLED="Enabled"; else SINGLEMODE_ENABLED="Disabled"; fi
+	
+	printf "1.    Run a speedtest now (auto select server)\\n"
+	printf "2.    Run a speedtest now (use preferred server)\\n"
+	printf "3.    Run a speedtest (select a server)\\n\\n"
+	printf "4.    Choose a preferred server(for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
+	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
+	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -479,8 +655,36 @@ MainMenu(){
 		case "$menu" in
 			1)
 				printf "\\n"
-				Menu_GenerateStats
+				Menu_GenerateStats "auto"
 				PressEnter
+				break
+			;;
+			2)
+				printf "\\n"
+				Menu_GenerateStats "user"
+				PressEnter
+				break
+			;;
+			3)
+				printf "\\n"
+				Menu_GenerateStats "onetime"
+				PressEnter
+				break
+			;;
+			4)
+				printf "\\n"
+				PreferredServer "update"
+				PressEnter
+				break
+			;;
+			5)
+				printf "\\n"
+				Menu_TogglePreferred
+				break
+			;;
+			6)
+				printf "\\n"
+				Menu_ToggleSingle
 				break
 			;;
 			u)
@@ -564,13 +768,12 @@ Menu_Install(){
 		exit 1
 	fi
 	
-	#curl -fsL --retry 3 "http://bin.entware.net/armv7sf-k2.6/libbz2_1.0.6-5a_armv7-2.6.ipk" -o /tmp/libbz.ipk
-	#opkg install /tmp/libbz.ipk
-	#rm -f /tmp/libbz.ipk
 	opkg update
 	opkg install python
 	opkg install rrdtool
 	opkg install ca-certificates
+	
+	Conf_Exists
 	
 	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
 	chmod 0755 /jffs/scripts/spdcli.py
@@ -583,7 +786,7 @@ Menu_Install(){
 	
 	Shortcut_spdMerlin create
 	
-	Generate_SPDStats
+	Menu_GenerateStats "auto"
 }
 
 Menu_Startup(){
@@ -599,7 +802,27 @@ Menu_Startup(){
 
 Menu_GenerateStats(){
 	Check_Lock
-	Generate_SPDStats
+	Generate_SPDStats "$1"
+	Clear_Lock
+}
+
+Menu_TogglePreferred(){
+	Check_Lock
+	if PreferredServer check; then
+		PreferredServer disable
+	else
+		PreferredServer enable
+	fi
+	Clear_Lock
+}
+
+Menu_ToggleSingle(){
+	Check_Lock
+	if SingleMode check; then
+		SingleMode disable
+	else
+		SingleMode enable
+	fi
 	Clear_Lock
 }
 
@@ -660,6 +883,7 @@ if [ -z "$1" ]; then
 	Auto_Cron create 2>/dev/null
 	Shortcut_spdMerlin create
 	Clear_Lock
+	Conf_Exists
 	ScriptHeader
 	MainMenu
 	exit 0
@@ -675,7 +899,7 @@ case "$1" in
 		exit 0
 	;;
 	generate)
-		Menu_GenerateStats
+		Menu_GenerateStats "schedule"
 		exit 0
 	;;
 	update)
