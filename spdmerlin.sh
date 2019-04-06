@@ -84,11 +84,7 @@ Clear_Lock(){
 }
 
 Check_Swap () {
-	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then
-		return 0
-	else
-		return 1
-	fi
+	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then return 0; else return 1; fi
 }
 
 Update_Version(){
@@ -382,11 +378,7 @@ PreferredServer(){
 		;;
 		check)
 			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
-			if [ "$USEPREFERRED" = "true" ]; then
-				return 0
-			else
-				return 1
-			fi
+			if [ "$USEPREFERRED" = "true" ]; then return 0; else return 1; fi
 		;;
 		list)
 			PREFERREDSERVER=$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=")
@@ -612,11 +604,10 @@ ScriptHeader(){
 
 MainMenu(){
 	PREFERREDSERVER_ENABLED=""
-	if PreferredServer check; then
-		PREFERREDSERVER_ENABLED="Enabled"
-	else
-		PREFERREDSERVER_ENABLED="Disabled"
-	fi
+	SINGLEMODE_ENABLED=""
+	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
+	if SingleMode check; then SINGLEMODE_ENABLED="Enabled"; else SINGLEMODE_ENABLED="Disabled"; fi
+	
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server)\\n"
 	printf "3.    Run a speedtest (select a server)\\n\\n"
