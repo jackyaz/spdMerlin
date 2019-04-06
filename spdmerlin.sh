@@ -466,10 +466,10 @@ Generate_SPDStats(){
 			fi
 			
 			if SingleMode check; then
-				Print_Output "true" "Starting speedtest using $speedtestservername  in single connection mode" "$PASS"
+				Print_Output "true" "Starting speedtest using $speedtestservername in single connection mode" "$PASS"
 				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 			else
-				Print_Output "true" "Starting speedtest using $speedtestservername  in multi-connection mode" "$PASS"
+				Print_Output "true" "Starting speedtest using $speedtestservername in multi-connection mode" "$PASS"
 				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 			fi
 		fi
