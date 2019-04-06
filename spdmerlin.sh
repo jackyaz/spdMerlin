@@ -367,7 +367,18 @@ GenerateServerList(){
 PreferredServer(){
 	case "$1" in
 		update)
-		
+			GenerateServerList
+			if [ "$serverno" != "exit" ]; then
+				sed -i 's/^PREFERREDSERVER.*$/PREFERREDSERVER='"$serverno""|""$servername"'/' "$SPD_CONF"
+			else
+				return 1
+			fi
+		;;
+		enable)
+			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=true/' "$SPD_CONF"
+		;;
+		disable)
+			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=false/' "$SPD_CONF"
 		;;
 		check)
 			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
@@ -609,7 +620,8 @@ MainMenu(){
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server)\\n"
 	printf "3.    Run a speedtest (select a server)\\n\\n"
-	printf "4.    Toggle preferred server for automatic tests\\n      (currently %s)\\n      Server: %s\\n\\n" "$PREFERREDSERVER_ENABLED" "$(PreferredServer list | cut -f2 -d"|")"
+	printf "4.    Choose a preferred server(for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
+	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -638,6 +650,17 @@ MainMenu(){
 				printf "\\n"
 				Menu_GenerateStats "onetime"
 				PressEnter
+				break
+			;;
+			4)
+				printf "\\n"
+				PreferredServer "update"
+				PressEnter
+				break
+			;;
+			5)
+				printf "\\n"
+				Menu_TogglePreferred
 				break
 			;;
 			u)
@@ -721,9 +744,6 @@ Menu_Install(){
 		exit 1
 	fi
 	
-	#curl -fsL --retry 3 "http://bin.entware.net/armv7sf-k2.6/libbz2_1.0.6-5a_armv7-2.6.ipk" -o /tmp/libbz.ipk
-	#opkg install /tmp/libbz.ipk
-	#rm -f /tmp/libbz.ipk
 	opkg update
 	opkg install python
 	opkg install rrdtool
@@ -759,6 +779,16 @@ Menu_Startup(){
 Menu_GenerateStats(){
 	Check_Lock
 	Generate_SPDStats "$1"
+	Clear_Lock
+}
+
+Menu_TogglePreferred(){
+	Check_Lock
+	if PreferredServer check; then
+		PreferredServer disable
+	else
+		PreferredServer enable
+	fi
 	Clear_Lock
 }
 
@@ -819,6 +849,7 @@ if [ -z "$1" ]; then
 	Auto_Cron create 2>/dev/null
 	Shortcut_spdMerlin create
 	Clear_Lock
+	Conf_Exists
 	ScriptHeader
 	MainMenu
 	exit 0
