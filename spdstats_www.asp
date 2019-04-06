@@ -23,6 +23,8 @@ font-weight: bolder;
 <script language="JavaScript" type="text/javascript" src="/tmhist.js"></script>
 <script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
+<script language="JavaScript" type="text/javascript" src="/validator.js"></script>
+<script language="JavaSCript" type="text/javascript" src="/js/jquery.js"></script>
 <script>
 function initial(){
 show_menu();
@@ -51,6 +53,11 @@ document.getElementById("fwver").innerHTML = buildno + '_' + extendno;
 function reload() {
 location.reload(true);
 }
+function applyRule() {
+var action_script_tmp = "restart_dummysvc";
+document.form.action_script.value = action_script_tmp;
+document.form.submit();
+}
 </script>
 </head>
 <body onload="initial();" onunLoad="return unload_body();">
@@ -58,11 +65,11 @@ location.reload(true);
 <div id="Loading" class="popup_bg"></div>
 <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
 <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
-<input type="hidden" name="current_page" value="Tools_Sysinfo.asp">
-<input type="hidden" name="next_page" value="Tools_Sysinfo.asp">
+<input type="hidden" name="action_script" value="restart_dummysvc">
+<input type="hidden" name="current_page" value="Advanced_Feedback.asp">
+<input type="hidden" name="next_page" value="Advanced_Feedback.asp">
 <input type="hidden" name="modified" value="0">
-<input type="hidden" name="action_mode" value="">
-<input type="hidden" name="action_script" value="">
+<input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_wait" value="5">
 <input type="hidden" name="first_time" value="">
 <input type="hidden" name="SystemCmd" value="">
@@ -86,6 +93,11 @@ location.reload(true);
 <div>&nbsp;</div>
 <div class="formfonttitle">Tools - New Internet Speedtest Stats</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
+<tr class="apply_gen" valign="top" height="35px">
+<td>
+<input type="button" onClick="applyRule();" value="Refresh" class="button_gen" name="button">
+</td>
+</tr>
 <thead>
 <tr>
 <td colspan="2">Last 24 Hours</td>
@@ -113,11 +125,6 @@ location.reload(true);
 </td>
 </tr>
 </table>
-</td>
-</tr>
-<tr class="apply_gen" valign="top" height="95px">
-<td>
-<input type="button" onClick=reload() value="Refresh" class="button_gen">
 </td>
 </tr>
 </tbody>
