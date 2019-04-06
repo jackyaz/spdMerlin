@@ -184,6 +184,7 @@ Conf_Exists(){
 	else
 		echo "PREFERREDSERVER=0|None configured" > "$SPD_CONF"
 		echo "USEPREFERRED=false" >> "$SPD_CONF"
+		echo "USESINGLE=false" >> "$SPD_CONF"
 		return 1
 	fi
 }
@@ -398,6 +399,21 @@ PreferredServer(){
 	esac
 }
 
+SingleMode(){
+	case "$1" in
+		enable)
+			sed -i 's/^USESINGLE.*$/USESINGLE=true/' "$SPD_CONF"
+		;;
+		disable)
+			sed -i 's/^USESINGLE.*$/USESINGLE=false/' "$SPD_CONF"
+		;;
+		check)
+			USESINGLE=$(grep "USESINGLE" "$SPD_CONF" | cut -f2 -d"=")
+			if [ "$USESINGLE" = "true" ]; then return 0; else return 1; fi
+		;;
+	esac
+}
+
 Generate_SPDStats(){
 	# This script is adapted from http://www.wraith.sf.ca.us/ntp
 	# This function originally written by kvic, further adapted by JGrana
@@ -435,7 +451,11 @@ Generate_SPDStats(){
 		
 		if [ "$mode" = "auto" ]; then
 			Print_Output "true" "Starting speedtest using auto-selected server" "$PASS"
-			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure >> /tmp/spd-rrdstats.$$
+			if SingleMode check; then
+				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --single >> /tmp/spd-rrdstats.$$
+			else
+				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
+			fi
 		else
 			if [ "$mode" != "onetime" ]; then
 				if ! PreferredServer validate; then
@@ -444,7 +464,11 @@ Generate_SPDStats(){
 				fi
 			fi
 			Print_Output "true" "Starting speedtest using $speedtestservername" "$PASS"
-			/jffs/scripts/spdcli.py --simple --no-pre-allocate --secure --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+			if SingleMode check; then
+				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+			else
+				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+			fi
 		fi
 		
 		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
@@ -613,6 +637,7 @@ MainMenu(){
 	printf "3.    Run a speedtest (select a server)\\n\\n"
 	printf "4.    Choose a preferred server(for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
 	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
+	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -652,6 +677,11 @@ MainMenu(){
 			5)
 				printf "\\n"
 				Menu_TogglePreferred
+				break
+			;;
+			6)
+				printf "\\n"
+				Menu_ToggleSingle
 				break
 			;;
 			u)
@@ -779,6 +809,16 @@ Menu_TogglePreferred(){
 		PreferredServer disable
 	else
 		PreferredServer enable
+	fi
+	Clear_Lock
+}
+
+Menu_ToggleSingle(){
+	Check_Lock
+	if SingleMode check; then
+		SingleMode disable
+	else
+		SingleMode enable
 	fi
 	Clear_Lock
 }
