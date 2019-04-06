@@ -264,6 +264,7 @@ Mount_SPD_WebUI(){
 }
 
 Modify_WebUI_File(){
+	### menuTree.js ###
 	umount /www/require/modules/menuTree.js 2>/dev/null
 	sleep 1
 	tmpfile=/tmp/menuTree.js
@@ -283,7 +284,9 @@ Modify_WebUI_File(){
 	rm -f "$tmpfile"
 	
 	mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
+	### ###
 	
+	### state.js ###
 	umount /www/state.js 2>/dev/null
 	sleep 1
 	tmpfile=/tmp/state.js
@@ -301,6 +304,27 @@ Modify_WebUI_File(){
 	rm -f "$tmpfile"
 	
 	mount -o bind /jffs/scripts/custom_state.js /www/state.js
+	### ###
+	
+	### start_apply.htm ###
+	umount /www/start_apply.htm 2>/dev/null
+	sleep 1
+	tmpfile=/tmp/start_apply.htm
+	cp "/www/start_apply.htm" "$tmpfile"
+	sed -i -e 's/setTimeout("parent.redirect();", action_wait\*1000);/parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time\*1000);/' "$tmpfile"
+
+	if [ ! -f /jffs/scripts/custom_start_apply.htm ]; then
+		cp "/www/start_apply.htm" "/jffs/scripts/custom_start_apply.htm"
+	fi
+	
+	if ! diff -q "$tmpfile" "/jffs/scripts/custom_start_apply.htm" >/dev/null 2>&1; then
+		cp "$tmpfile" "/jffs/scripts/custom_start_apply.htm"
+	fi
+	
+	rm -f "$tmpfile"
+	
+	mount -o bind /jffs/scripts/custom_start_apply.htm /www/start_apply.htm
+	### ###
 }
 
 CacheGraphImages(){
