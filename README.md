@@ -14,14 +14,13 @@ spdMerlin uses [speedtest-cli](https://github.com/sivel/speedtest-cli)
 This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/), which was adapted from [ntpMerlin](https://github.com/jackyaz/ntpMerlin)
 Permission received from JGrana to publish this!
 
-![Menu UI](https://puu.sh/D9Fez/3c84de3f66.png)
+![Menu UI](https://puu.sh/DaS7M/7b1a0f1bc5.png)
 
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
 [**PayPal donation**](https://paypal.me/jackyaz21)
 
 ## Supported Models
-### Models
 All modes supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Models confirmed to work are below:
 *   RT-AC86U
 
