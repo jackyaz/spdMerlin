@@ -16,6 +16,10 @@ Permission received from JGrana to publish this!
 
 ![Menu UI](https://puu.sh/D9Fez/3c84de3f66.png)
 
+#### Supporting development
+Love the script and want to support future development? Any and all donations gratefully received!
+[**PayPal donation**](https://paypal.me/jackyaz21)
+
 ## Supported Models
 ### Models
 All modes supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Models confirmed to work are below:
