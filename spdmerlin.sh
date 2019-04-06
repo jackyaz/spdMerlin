@@ -324,7 +324,7 @@ CacheGraphImages(){
 
 GenerateServerList(){
 	printf "Generating list of 25 closest servers...\\n\\n"
-	serverlist="$(/jffs/scripts/spdcli.py --list | sed '1d' | head -n 25)"
+	serverlist="$(/jffs/scripts/spdcli.py --secure --list | sed '1d' | head -n 25)"
 	COUNTER=1
 	until [ $COUNTER -gt 25 ]; do
 		serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
@@ -386,7 +386,7 @@ PreferredServer(){
 		;;
 		validate)
 			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
-			/jffs/scripts/spdcli.py --list > /tmp/spdServers.txt
+			/jffs/scripts/spdcli.py --secure --list > /tmp/spdServers.txt
 			sed -i -e 's/^[ \t]*//;s/[ \t]*$//' /tmp/spdServers.txt
 			if grep -q "^$PREFERREDSERVERNO)" /tmp/spdServers.txt; then
 				rm -f /tmp/spdServers.txt
