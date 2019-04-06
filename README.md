@@ -16,7 +16,7 @@ Permission received from JGrana to publish this!
 
 ![Menu UI](https://puu.sh/D9Fez/3c84de3f66.png)
 
-#### Supporting development
+### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
 [**PayPal donation**](https://paypal.me/jackyaz21)
 
