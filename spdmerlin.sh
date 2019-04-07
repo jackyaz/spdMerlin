@@ -255,7 +255,6 @@ RRD_Initialise(){
 
 Mount_SPD_WebUI(){
 	umount /www/Advanced_Feedback.asp 2>/dev/null
-	sleep 1
 	if [ ! -f /jffs/scripts/spdstats_www.asp ]; then
 		Download_File "$SPD_REPO/spdstats_www.asp" "/jffs/scripts/spdstats_www.asp"
 	fi
@@ -266,7 +265,6 @@ Mount_SPD_WebUI(){
 Modify_WebUI_File(){
 	### menuTree.js ###
 	umount /www/require/modules/menuTree.js 2>/dev/null
-	sleep 1
 	tmpfile=/tmp/menuTree.js
 	cp "/www/require/modules/menuTree.js" "$tmpfile"
 	
@@ -288,7 +286,6 @@ Modify_WebUI_File(){
 	
 	### state.js ###
 	umount /www/state.js 2>/dev/null
-	sleep 1
 	tmpfile=/tmp/state.js
 	cp "/www/state.js" "$tmpfile"
 	sed -i -e '/else if(location.pathname == "\/Advanced_Feedback.asp") {/,+4d' "$tmpfile"
@@ -308,7 +305,6 @@ Modify_WebUI_File(){
 	
 	### start_apply.htm ###
 	umount /www/start_apply.htm 2>/dev/null
-	sleep 1
 	tmpfile=/tmp/start_apply.htm
 	cp "/www/start_apply.htm" "$tmpfile"
 	sed -i -e 's/setTimeout("parent.redirect();", action_wait\*1000);/parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time\*1000);/' "$tmpfile"
@@ -852,14 +848,12 @@ Menu_ToggleSingle(){
 
 Menu_Update(){
 	Check_Lock
-	sleep 1
 	Update_Version
 	Clear_Lock
 }
 
 Menu_ForceUpdate(){
 	Check_Lock
-	sleep 1
 	Update_Version force
 	Clear_Lock
 }
