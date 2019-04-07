@@ -8,7 +8,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>Tools - Internet Speedtest</title>
+<title><#705#> - Internet Speedtest</title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <style>
@@ -91,7 +91,7 @@ document.form.submit();
 <tr bgcolor="#4D595D">
 <td valign="top">
 <div>&nbsp;</div>
-<div class="formfonttitle">Tools - New Internet Speedtest Stats</div>
+<div class="formfonttitle">Internet Speedtest Stats</div>
 <div class="formfonttitle" id="spdtestresult">Previous speedtest results will display here</div>
 <script language="JavaScript" type="text/javascript" src="/ext/spdtestresult.js"></script>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
