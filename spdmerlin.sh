@@ -499,9 +499,9 @@ Generate_SPDStats(){
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		
-		spdtestresult="Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
+		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
 		echo "$spdtestresult" > /www/ext/spdtestresult.txt
-		Print_Output "true" "$spdtestresult" "$PASS"
+		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
