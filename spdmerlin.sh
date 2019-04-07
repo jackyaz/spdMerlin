@@ -156,7 +156,7 @@ Update_File(){
 		if ! diff -q "$tmpfile" "/jffs/scripts/$1" >/dev/null 2>&1; then
 			Print_Output "true" "New version of $1 downloaded" "$PASS"
 			rm -f "/jffs/scripts/$1"
-			Mount_NTPD_WebUI
+			Mount_SPD_WebUI
 		fi
 		rm -f "$tmpfile"
 	else
