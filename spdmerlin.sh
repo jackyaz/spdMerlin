@@ -442,6 +442,7 @@ Generate_SPDStats(){
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	Conf_Exists
+	mkdir -p "$(readlink /www/ext)"
 	
 	mode="$1"
 	speedtestserverno=""
@@ -498,7 +499,9 @@ Generate_SPDStats(){
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		
-		Print_Output "true" "Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)" "$PASS"
+		spdtestresult="Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
+		echo "$spdtestresult" > /www/ext/spdtestresult.txt
+		Print_Output "true" "$spdtestresult" "$PASS"
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
@@ -512,8 +515,6 @@ Generate_SPDStats(){
 		
 		D_COMMON='--start -86400 --x-grid MINUTE:20:HOUR:2:HOUR:2:0:%H:%M'
 		W_COMMON='--start -604800 --x-grid HOUR:3:DAY:1:DAY:1:0:%Y-%m-%d'
-		
-		mkdir -p "$(readlink /www/ext)"
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-speed-ping.png \
