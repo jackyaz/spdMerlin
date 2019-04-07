@@ -500,7 +500,7 @@ Generate_SPDStats(){
 		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		
 		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
-		echo "document.getElementById(spdtestresult).innerHTML=$spdtestresult" > /www/ext/spdtestresult.js
+		echo 'document.getElementById(spdtestresult).innerHTML="'"$spdtestresult"'"' > /www/ext/spdtestresult.js
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
