@@ -24,7 +24,7 @@ font-weight: bolder;
 <script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script language="JavaSCript" type="text/javascript" src="/js/jquery.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script>
 function initial(){
 show_menu();
@@ -92,6 +92,8 @@ document.form.submit();
 <td valign="top">
 <div>&nbsp;</div>
 <div class="formfonttitle">Tools - New Internet Speedtest Stats</div>
+<pre id="spdtestresult">Previous speedtest results will display here</pre>
+<script language="JavaScript" type="text/javascript" src="/www/ext/spdtestresult.js"></script>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 <tr class="apply_gen" valign="top" height="35px">
 <td>
