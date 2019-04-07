@@ -110,6 +110,8 @@ Update_Version(){
 		fi
 		
 		Update_File "spdcli.py"
+		Update_File "spdstats_www.asp"
+		Modify_WebUI_File
 		
 		if [ "$doupdate" != "false" ]; then
 			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
@@ -127,6 +129,8 @@ Update_Version(){
 			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" | grep "SPD_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 			Print_Output "true" "Downloading latest version ($serverver) of $SPD_NAME" "$PASS"
 			Update_File "spdcli.py"
+			Update_File "spdstats_www.asp"
+			Modify_WebUI_File
 			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SPD_NAME_LOWER"
 			Clear_Lock
@@ -144,6 +148,15 @@ Update_File(){
 			Download_File "$SPD_REPO/$1" "/jffs/scripts/$1"
 			chmod 0755 /jffs/scripts/"$1"
 			Print_Output "true" "New version of $1 downloaded to /jffs/scripts/$1" "$PASS"
+		fi
+		rm -f "$tmpfile"
+	elif [ "$1" = "spdstats_www.asp" ]; then
+		tmpfile="/tmp/$1"
+		Download_File "$SPD_REPO/$1" "$tmpfile"
+		if ! diff -q "$tmpfile" "/jffs/scripts/$1" >/dev/null 2>&1; then
+			Print_Output "true" "New version of $1 downloaded" "$PASS"
+			rm -f "/jffs/scripts/$1"
+			Mount_NTPD_WebUI
 		fi
 		rm -f "$tmpfile"
 	else
@@ -500,7 +513,7 @@ Generate_SPDStats(){
 		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		
 		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
-		echo 'document.getElementById(spdtestresult).innerHTML="'"$spdtestresult"'"' > /www/ext/spdtestresult.js
+		echo 'document.getElementById("spdtestresult").innerHTML="'"$spdtestresult"'"' > /www/ext/spdtestresult.js
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
