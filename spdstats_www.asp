@@ -93,7 +93,7 @@ document.form.submit();
 <div>&nbsp;</div>
 <div class="formfonttitle">Tools - New Internet Speedtest Stats</div>
 <pre id="spdtestresult">Previous speedtest results will display here</pre>
-<script language="JavaScript" type="text/javascript" src="/www/ext/spdtestresult.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/spdtestresult.js"></script>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 <tr class="apply_gen" valign="top" height="35px">
 <td>
