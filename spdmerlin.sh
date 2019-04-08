@@ -512,17 +512,18 @@ Generate_SPDStats(){
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		
+		TZ=$(cat /etc/TZ)
+		export TZ
+		DATE=$(date "+%a %b %e %H:%M %Y")
+		DATE_TEST=$(date "+%Y-%m-%d")
+		
 		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
-		echo 'document.getElementById("spdtestresult").innerHTML="'"$spdtestresult"'"' > /www/ext/spdtestresult.js
+		echo 'document.getElementById("spdtestresult").innerHTML="'"$DATE_TEST - $spdtestresult"'"' > /www/ext/spdtestresult.js
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
-		
-		TZ=$(cat /etc/TZ)
-		export TZ
-		DATE=$(date "+%a %b %e %H:%M %Y")
 		
 		COMMON="-c SHADEA#475A5F -c SHADEB#475A5F -c BACK#475A5F -c CANVAS#92A0A520 -c AXIS#92a0a520 -c FONT#ffffff -c ARROW#475A5F -n TITLE:9 -n AXIS:8 -n LEGEND:9 -w 650 -h 200"
 		
