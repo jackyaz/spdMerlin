@@ -541,7 +541,7 @@ Generate_SPDStats(){
 			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
 			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
 			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:dowdownloadnld:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
+			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-speed-upld.png \
