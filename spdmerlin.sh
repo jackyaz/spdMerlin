@@ -517,8 +517,8 @@ Generate_SPDStats(){
 		DATE=$(date "+%a %b %e %H:%M %Y")
 		DATE_TEST=$(date "+%Y-%m-%d")
 		
-		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)"
-		echo 'document.getElementById("spdtestresult").innerHTML="'"$DATE_TEST - $spdtestresult"'"' > /www/ext/spdtestresult.js
+		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$)"
+		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > /www/ext/spdtestresult.js
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
@@ -531,80 +531,56 @@ Generate_SPDStats(){
 		W_COMMON='--start -604800 --x-grid HOUR:3:DAY:1:DAY:1:0:%Y-%m-%d'
 		
 		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG /www/ext/nstats-speed-ping.png \
-			$COMMON $D_COMMON \
-			--title "Ping - $DATE" \
-			--vertical-label "mSec" \
-			DEF:ping="$RDB":ping:LAST \
-			CDEF:nping=ping,1000,/ \
-			LINE1.5:ping#fc8500:"ping" \
-			GPRINT:ping:MIN:"WAN Min\: %3.2lf %s" \
-			GPRINT:ping:MAX:"WAN Max\: %3.2lf %s" \
-			GPRINT:ping:LAST:"WAN Curr\: %3.2lf %s\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-speed-downld.png \
 			$COMMON $D_COMMON \
 			--title "Download - $DATE" \
-			--vertical-label "Mbits/sec" \
+			--vertical-label "Mbps" \
 			DEF:download="$RDB":download:LAST \
 			CDEF:ndownld=download,1000,/ \
-			AREA:ndownld#c4fd3d:"download" \
-			GPRINT:ndownld:MIN:"Min\: %3.2lf %s" \
-			GPRINT:ndownld:MAX:"Max\: %3.2lf %s" \
-			GPRINT:ndownld:AVERAGE:"Avg\: %3.2lf %s" \
-			GPRINT:ndownld:LAST:"Curr\: %3.2lf %s\n" >/dev/null 2>&1
+			AREA:download#c4fd3d:"download" \
+			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
+			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
+			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
+			GPRINT:dowdownloadnld:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-speed-upld.png \
 			$COMMON $D_COMMON \
 			--title "Upload - $DATE" \
-			--vertical-label "Mbits/sec" \
+			--vertical-label "Mbps" \
 			DEF:upload="$RDB":upload:LAST \
 			CDEF:nupld=upload,1000,/ \
-			AREA:nupld#96e78a:"upload" \
-			GPRINT:nupld:MIN:"Min\: %3.2lf %s" \
-			GPRINT:nupld:MAX:"Max\: %3.2lf %s" \
-			GPRINT:nupld:AVERAGE:"Avg\: %3.2lf %s" \
-			GPRINT:nupld:LAST:"Curr\: %3.2lf %s\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-ping.png \
-			$COMMON $W_COMMON \
-			--title "Ping - $DATE" \
-			--vertical-label "mSec" \
-			DEF:ping="$RDB":ping:LAST \
-			CDEF:nping=ping,1000,/ \
-			LINE1.5:nping#fc8500:"ping" \
-			GPRINT:nping:MIN:"WAN Min\: %3.1lf %s" \
-			GPRINT:nping:MAX:"WAN Max\: %3.1lf %s" \
-			GPRINT:nping:LAST:"WAN Curr\: %3.1lf %s\n" >/dev/null 2>&1
+			AREA:upload#96e78a:"upload" \
+			GPRINT:upload:MIN:"Min\: %3.2lf Mbps" \
+			GPRINT:upload:MAX:"Max\: %3.2lf Mbps" \
+			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
+			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-downld.png \
 			$COMMON $W_COMMON --alt-autoscale-max \
 			--title "Download - $DATE" \
-			--vertical-label "Mbits/sec" \
+			--vertical-label "Mbps" \
 			DEF:download="$RDB":download:LAST \
 			CDEF:ndownlad=download,1000,/ \
-			AREA:ndownlad#c4fd3d:"download" \
-			GPRINT:ndownlad:MIN:"Min\: %3.1lf %s" \
-			GPRINT:ndownlad:MAX:"Max\: %3.1lf %s" \
-			GPRINT:ndownlad:AVERAGE:"Avg\: %3.1lf %s" \
-			GPRINT:ndownlad:LAST:"Curr\: %3.1lf %s\n" >/dev/null 2>&1
+			AREA:download#c4fd3d:"download" \
+			GPRINT:download:MIN:"Min\: %3.1lf Mbps" \
+			GPRINT:download:MAX:"Max\: %3.1lf Mbps" \
+			GPRINT:download:AVERAGE:"Avg\: %3.1lf Mbps" \
+			GPRINT:download:LAST:"Curr\: %3.1lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-upld.png \
 			$COMMON $W_COMMON --alt-autoscale-max \
 			--title "Upload - $DATE" \
-			--vertical-label "Mbits/sec" \
+			--vertical-label "Mbps" \
 			DEF:upload="$RDB":upload:LAST \
 			CDEF:nupld=upload,1000,/ \
-			AREA:nupld#96e78a:"uplad" \
-			GPRINT:nupld:MIN:"Min\: %3.1lf %s" \
-			GPRINT:nupld:MAX:"Max\: %3.1lf %s" \
-			GPRINT:nupld:AVERAGE:"Avg\: %3.1lf %s" \
-			GPRINT:nupld:LAST:"Curr\: %3.1lf %s\n" >/dev/null 2>&1
+			AREA:upload#96e78a:"uplad" \
+			GPRINT:upload:MIN:"Min\: %3.1lf Mbps" \
+			GPRINT:upload:MAX:"Max\: %3.1lf Mbps" \
+			GPRINT:upload:AVERAGE:"Avg\: %3.1lf Mbps" \
+			GPRINT:upload:LAST:"Curr\: %3.1lf Mbps\n" >/dev/null 2>&1
 			
 			CacheGraphImages cache 2>/dev/null
 	else
