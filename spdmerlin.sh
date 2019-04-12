@@ -241,7 +241,7 @@ Auto_Cron(){
 			STARTUPLINECOUNT=$(cru l | grep -c "$SPD_NAME")
 			
 			if [ "$STARTUPLINECOUNT" -eq 0 ]; then
-				cru a "$SPD_NAME" "10,40 * * * * /jffs/scripts/$SPD_NAME_LOWER generate"
+				cru a "$SPD_NAME" "12,42 * * * * /jffs/scripts/$SPD_NAME_LOWER generate"
 			fi
 		;;
 		delete)
