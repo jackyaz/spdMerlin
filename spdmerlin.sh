@@ -859,12 +859,15 @@ Menu_Uninstall(){
 	opkg remove --autoremove python
 	umount /www/Advanced_Feedback.asp 2>/dev/null
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: "SpeedTest"}/d' "/jffs/scripts/custom_menuTree.js"
-	umount /www/require/modules/menuTree.js 2>/dev/null
-	if [ ! -f "/jffs/scripts/ntpmerlin" ]; then
+	umount /www/require/modules/menuTree.js 2>/dev/null	
+	umount /www/start_apply.htm 2>/dev/null
+	if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
 		opkg remove --autoremove rrdtool
 		rm -f "/jffs/scripts/custom_menuTree.js" 2>/dev/null
+		rm -f "/jffs/scripts/custom_start_apply.htm" 2>/dev/null
 	else
 		mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
+		mount -o bind "/jffs/scripts/custom_start_apply.htm" "/www/start_apply.htm"
 	fi
 	rm -f "/jffs/scripts/custom_state.js" 2>/dev/null
 	rm -f "/jffs/scripts/spdstats_www.asp" 2>/dev/null
