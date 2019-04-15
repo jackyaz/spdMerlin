@@ -176,18 +176,6 @@ Validate_Number(){
 	fi
 }
 
-Validate_TrueFalse(){
-	case "$2" in
-		true|TRUE|false|FALSE)
-			return 0
-		;;
-		*)
-			Print_Output "false" "$1 - $2 - must be either true or false" "$ERR"
-			return 1
-		;;
-	esac
-}
-
 Conf_Exists(){
 	if [ -f "$SPD_CONF" ]; then
 		dos2unix "$SPD_CONF"
