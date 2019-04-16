@@ -19,7 +19,7 @@ readonly SPD_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
-readonly SPD_VERSION="v1.1.0"
+readonly SPD_VERSION="v1.1.1"
 readonly SPD_BRANCH="master"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
 readonly SPD_CONF="/jffs/configs/$SPD_NAME_LOWER.config"
@@ -110,6 +110,8 @@ Update_Version(){
 		fi
 		
 		Update_File "spdcli.py"
+		Update_File "spdstats_www.asp"
+		Modify_WebUI_File
 		
 		if [ "$doupdate" != "false" ]; then
 			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
@@ -127,6 +129,8 @@ Update_Version(){
 			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" | grep "SPD_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 			Print_Output "true" "Downloading latest version ($serverver) of $SPD_NAME" "$PASS"
 			Update_File "spdcli.py"
+			Update_File "spdstats_www.asp"
+			Modify_WebUI_File
 			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SPD_NAME_LOWER"
 			Clear_Lock
@@ -146,6 +150,15 @@ Update_File(){
 			Print_Output "true" "New version of $1 downloaded to /jffs/scripts/$1" "$PASS"
 		fi
 		rm -f "$tmpfile"
+	elif [ "$1" = "spdstats_www.asp" ]; then
+		tmpfile="/tmp/$1"
+		Download_File "$SPD_REPO/$1" "$tmpfile"
+		if ! diff -q "$tmpfile" "/jffs/scripts/$1" >/dev/null 2>&1; then
+			Print_Output "true" "New version of $1 downloaded" "$PASS"
+			rm -f "/jffs/scripts/$1"
+			Mount_SPD_WebUI
+		fi
+		rm -f "$tmpfile"
 	else
 		return 1
 	fi
@@ -163,18 +176,6 @@ Validate_Number(){
 	fi
 }
 
-Validate_TrueFalse(){
-	case "$2" in
-		true|TRUE|false|FALSE)
-			return 0
-		;;
-		*)
-			Print_Output "false" "$1 - $2 - must be either true or false" "$ERR"
-			return 1
-		;;
-	esac
-}
-
 Conf_Exists(){
 	if [ -f "$SPD_CONF" ]; then
 		dos2unix "$SPD_CONF"
@@ -187,6 +188,42 @@ Conf_Exists(){
 		echo "USESINGLE=false" >> "$SPD_CONF"
 		return 1
 	fi
+}
+
+Auto_ServiceEvent(){
+	case $1 in
+		create)
+			if [ -f /jffs/scripts/service-event ]; then
+				STARTUPLINECOUNT=$(grep -c '# '"$SPD_NAME" /jffs/scripts/service-event)
+				# shellcheck disable=SC2016
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" /jffs/scripts/service-event)
+				
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+					sed -i -e '/# '"$SPD_NAME"'/d' /jffs/scripts/service-event
+				fi
+				
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+					# shellcheck disable=SC2016
+					echo "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" >> /jffs/scripts/service-event
+				fi
+			else
+				echo "#!/bin/sh" > /jffs/scripts/service-event
+				echo "" >> /jffs/scripts/service-event
+				# shellcheck disable=SC2016
+				echo "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" >> /jffs/scripts/service-event
+				chmod 0755 /jffs/scripts/service-event
+			fi
+		;;
+		delete)
+			if [ -f /jffs/scripts/service-event ]; then
+				STARTUPLINECOUNT=$(grep -c '# '"$SPD_NAME" /jffs/scripts/service-event)
+				
+				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+					sed -i -e '/# '"$SPD_NAME"'/d' /jffs/scripts/service-event
+				fi
+			fi
+		;;
+	esac
 }
 
 Auto_Startup(){
@@ -225,11 +262,8 @@ Auto_Startup(){
 Auto_Cron(){
 	case $1 in
 		create)
-			STARTUPLINECOUNT=$(cru l | grep -c "$SPD_NAME")
-			
-			if [ "$STARTUPLINECOUNT" -eq 0 ]; then
-				cru a "$SPD_NAME" "10,40 * * * * /jffs/scripts/$SPD_NAME_LOWER generate"
-			fi
+			Auto_Cron delete 2>/dev/null
+			cru a "$SPD_NAME" "12,42 * * * * /jffs/scripts/$SPD_NAME_LOWER generate"
 		;;
 		delete)
 			STARTUPLINECOUNT=$(cru l | grep -c "$SPD_NAME")
@@ -255,7 +289,6 @@ RRD_Initialise(){
 
 Mount_SPD_WebUI(){
 	umount /www/Advanced_Feedback.asp 2>/dev/null
-	sleep 1
 	if [ ! -f /jffs/scripts/spdstats_www.asp ]; then
 		Download_File "$SPD_REPO/spdstats_www.asp" "/jffs/scripts/spdstats_www.asp"
 	fi
@@ -264,14 +297,21 @@ Mount_SPD_WebUI(){
 }
 
 Modify_WebUI_File(){
+	### menuTree.js ###
 	umount /www/require/modules/menuTree.js 2>/dev/null
-	sleep 1
 	tmpfile=/tmp/menuTree.js
 	cp "/www/require/modules/menuTree.js" "$tmpfile"
+	
+	if [ -f "/jffs/scripts/connmon" ]; then
+		sed -i '/{url: "AdaptiveQoS_ROG.asp", tabName: /d' "$tmpfile"
+		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "AdaptiveQoS_ROG.asp", tabName: "Uptime Monitoring"},' "$tmpfile"
+		sed -i '/retArray.push("AdaptiveQoS_ROG.asp");/d' "$tmpfile"
+	fi
 	
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: /d' "$tmpfile"
 	sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_Feedback.asp", tabName: "SpeedTest"},' "$tmpfile"
 	sed -i '/retArray.push("Advanced_Feedback.asp");/d' "$tmpfile"
+	
 	if [ -f "/jffs/scripts/ntpmerlin" ]; then
 		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "NTP Daemon"},' "$tmpfile"
 	fi
@@ -283,9 +323,10 @@ Modify_WebUI_File(){
 	rm -f "$tmpfile"
 	
 	mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
+	### ###
 	
+	### state.js ###
 	umount /www/state.js 2>/dev/null
-	sleep 1
 	tmpfile=/tmp/state.js
 	cp "/www/state.js" "$tmpfile"
 	sed -i -e '/else if(location.pathname == "\/Advanced_Feedback.asp") {/,+4d' "$tmpfile"
@@ -301,6 +342,26 @@ Modify_WebUI_File(){
 	rm -f "$tmpfile"
 	
 	mount -o bind /jffs/scripts/custom_state.js /www/state.js
+	### ###
+	
+	### start_apply.htm ###
+	umount /www/start_apply.htm 2>/dev/null
+	tmpfile=/tmp/start_apply.htm
+	cp "/www/start_apply.htm" "$tmpfile"
+	sed -i -e 's/setTimeout("parent.redirect();", action_wait\*1000);/parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time\*1000);/' "$tmpfile"
+
+	if [ ! -f /jffs/scripts/custom_start_apply.htm ]; then
+		cp "/www/start_apply.htm" "/jffs/scripts/custom_start_apply.htm"
+	fi
+	
+	if ! diff -q "$tmpfile" "/jffs/scripts/custom_start_apply.htm" >/dev/null 2>&1; then
+		cp "$tmpfile" "/jffs/scripts/custom_start_apply.htm"
+	fi
+	
+	rm -f "$tmpfile"
+	
+	mount -o bind /jffs/scripts/custom_start_apply.htm /www/start_apply.htm
+	### ###
 }
 
 CacheGraphImages(){
@@ -421,7 +482,9 @@ Generate_SPDStats(){
 	# The original is part of a set of scripts written by Steven Bjork.
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
 	Conf_Exists
+	mkdir -p "$(readlink /www/ext)"
 	
 	mode="$1"
 	speedtestserverno=""
@@ -478,98 +541,75 @@ Generate_SPDStats(){
 		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
 		
-		Print_Output "true" "Speedtest results -  $(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$) - $(grep Ping /tmp/spd-rrdstats.$$)" "$PASS"
+		TZ=$(cat /etc/TZ)
+		export TZ
+		DATE=$(date "+%a %b %e %H:%M %Y")
+		DATE_TEST=$(date "+%Y-%m-%d")
+		
+		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$)"
+		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > /www/ext/spdtestresult.js
+		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		RDB=/jffs/scripts/spdstats_rrd.rrd
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
-		
-		TZ=$(cat /etc/TZ)
-		export TZ
-		DATE=$(date "+%a %b %e %H:%M %Y")
 		
 		COMMON="-c SHADEA#475A5F -c SHADEB#475A5F -c BACK#475A5F -c CANVAS#92A0A520 -c AXIS#92a0a520 -c FONT#ffffff -c ARROW#475A5F -n TITLE:9 -n AXIS:8 -n LEGEND:9 -w 650 -h 200"
 		
 		D_COMMON='--start -86400 --x-grid MINUTE:20:HOUR:2:HOUR:2:0:%H:%M'
 		W_COMMON='--start -604800 --x-grid HOUR:3:DAY:1:DAY:1:0:%Y-%m-%d'
 		
-		mkdir -p "$(readlink /www/ext)"
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG /www/ext/nstats-speed-ping.png \
-			$COMMON $D_COMMON \
-			--title "Ping - $DATE" \
-			--vertical-label "mSec" \
-			DEF:ping="$RDB":ping:LAST \
-			CDEF:nping=ping,1000,/ \
-			LINE1.5:ping#fc8500:"ping" \
-			GPRINT:ping:MIN:"WAN Min\: %3.2lf %s" \
-			GPRINT:ping:MAX:"WAN Max\: %3.2lf %s" \
-			GPRINT:ping:LAST:"WAN Curr\: %3.2lf %s\n" >/dev/null 2>&1
-		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-speed-downld.png \
 			$COMMON $D_COMMON \
 			--title "Download - $DATE" \
-			--vertical-label "Mbits/sec" \
+			--vertical-label "Mbps" \
 			DEF:download="$RDB":download:LAST \
 			CDEF:ndownld=download,1000,/ \
-			AREA:ndownld#c4fd3d:"download" \
-			GPRINT:ndownld:MIN:"Min\: %3.2lf %s" \
-			GPRINT:ndownld:MAX:"Max\: %3.2lf %s" \
-			GPRINT:ndownld:AVERAGE:"Avg\: %3.2lf %s" \
-			GPRINT:ndownld:LAST:"Curr\: %3.2lf %s\n" >/dev/null 2>&1
+			AREA:download#c4fd3d:"download" \
+			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
+			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
+			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
+			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-speed-upld.png \
 			$COMMON $D_COMMON \
 			--title "Upload - $DATE" \
-			--vertical-label "Mbits/sec" \
+			--vertical-label "Mbps" \
 			DEF:upload="$RDB":upload:LAST \
 			CDEF:nupld=upload,1000,/ \
-			AREA:nupld#96e78a:"upload" \
-			GPRINT:nupld:MIN:"Min\: %3.2lf %s" \
-			GPRINT:nupld:MAX:"Max\: %3.2lf %s" \
-			GPRINT:nupld:AVERAGE:"Avg\: %3.2lf %s" \
-			GPRINT:nupld:LAST:"Curr\: %3.2lf %s\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-ping.png \
-			$COMMON $W_COMMON \
-			--title "Ping - $DATE" \
-			--vertical-label "mSec" \
-			DEF:ping="$RDB":ping:LAST \
-			CDEF:nping=ping,1000,/ \
-			LINE1.5:nping#fc8500:"ping" \
-			GPRINT:nping:MIN:"WAN Min\: %3.1lf %s" \
-			GPRINT:nping:MAX:"WAN Max\: %3.1lf %s" \
-			GPRINT:nping:LAST:"WAN Curr\: %3.1lf %s\n" >/dev/null 2>&1
+			AREA:upload#96e78a:"upload" \
+			GPRINT:upload:MIN:"Min\: %3.2lf Mbps" \
+			GPRINT:upload:MAX:"Max\: %3.2lf Mbps" \
+			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
+			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-downld.png \
 			$COMMON $W_COMMON --alt-autoscale-max \
 			--title "Download - $DATE" \
-			--vertical-label "Mbits/sec" \
+			--vertical-label "Mbps" \
 			DEF:download="$RDB":download:LAST \
 			CDEF:ndownlad=download,1000,/ \
-			AREA:ndownlad#c4fd3d:"download" \
-			GPRINT:ndownlad:MIN:"Min\: %3.1lf %s" \
-			GPRINT:ndownlad:MAX:"Max\: %3.1lf %s" \
-			GPRINT:ndownlad:AVERAGE:"Avg\: %3.1lf %s" \
-			GPRINT:ndownlad:LAST:"Curr\: %3.1lf %s\n" >/dev/null 2>&1
+			AREA:download#c4fd3d:"download" \
+			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
+			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
+			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
+			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-upld.png \
 			$COMMON $W_COMMON --alt-autoscale-max \
 			--title "Upload - $DATE" \
-			--vertical-label "Mbits/sec" \
+			--vertical-label "Mbps" \
 			DEF:upload="$RDB":upload:LAST \
 			CDEF:nupld=upload,1000,/ \
-			AREA:nupld#96e78a:"uplad" \
-			GPRINT:nupld:MIN:"Min\: %3.1lf %s" \
-			GPRINT:nupld:MAX:"Max\: %3.1lf %s" \
-			GPRINT:nupld:AVERAGE:"Avg\: %3.1lf %s" \
-			GPRINT:nupld:LAST:"Curr\: %3.1lf %s\n" >/dev/null 2>&1
+			AREA:upload#96e78a:"uplad" \
+			GPRINT:upload:MIN:"Min\: %3.2lf Mbps" \
+			GPRINT:upload:MAX:"Max\: %3.2lf Mbps" \
+			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
+			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 			
 			CacheGraphImages cache 2>/dev/null
 	else
@@ -793,6 +833,7 @@ Menu_Startup(){
 	Check_Lock
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	RRD_Initialise
@@ -828,14 +869,12 @@ Menu_ToggleSingle(){
 
 Menu_Update(){
 	Check_Lock
-	sleep 1
 	Update_Version
 	Clear_Lock
 }
 
 Menu_ForceUpdate(){
 	Check_Lock
-	sleep 1
 	Update_Version force
 	Clear_Lock
 }
@@ -845,6 +884,7 @@ Menu_Uninstall(){
 	Print_Output "true" "Removing $SPD_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
+	Auto_ServiceEvent delete 2>/dev/null
 	while true; do
 		printf "\\n\\e[1mDo you want to delete %s stats? (y/n)\\e[0m\\n" "$SPD_NAME"
 		read -r "confirm"
@@ -863,11 +903,14 @@ Menu_Uninstall(){
 	umount /www/Advanced_Feedback.asp 2>/dev/null
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: "SpeedTest"}/d' "/jffs/scripts/custom_menuTree.js"
 	umount /www/require/modules/menuTree.js 2>/dev/null
-	if [ ! -f "/jffs/scripts/ntpmerlin" ]; then
+	umount /www/start_apply.htm 2>/dev/null
+	if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
 		opkg remove --autoremove rrdtool
 		rm -f "/jffs/scripts/custom_menuTree.js" 2>/dev/null
+		rm -f "/jffs/scripts/custom_start_apply.htm" 2>/dev/null
 	else
 		mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
+		mount -o bind "/jffs/scripts/custom_start_apply.htm" "/www/start_apply.htm"
 	fi
 	rm -f "/jffs/scripts/custom_state.js" 2>/dev/null
 	rm -f "/jffs/scripts/spdstats_www.asp" 2>/dev/null
@@ -881,6 +924,7 @@ if [ -z "$1" ]; then
 	Check_Lock
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Clear_Lock
 	Conf_Exists
