@@ -593,10 +593,10 @@ Generate_SPDStats(){
 			DEF:download="$RDB":download:LAST \
 			CDEF:ndownlad=download,1000,/ \
 			AREA:download#c4fd3d:"download" \
-			GPRINT:download:MIN:"Min\: %3.1lf Mbps" \
-			GPRINT:download:MAX:"Max\: %3.1lf Mbps" \
-			GPRINT:download:AVERAGE:"Avg\: %3.1lf Mbps" \
-			GPRINT:download:LAST:"Curr\: %3.1lf Mbps\n" >/dev/null 2>&1
+			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
+			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
+			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
+			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
 		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-upld.png \
@@ -606,10 +606,10 @@ Generate_SPDStats(){
 			DEF:upload="$RDB":upload:LAST \
 			CDEF:nupld=upload,1000,/ \
 			AREA:upload#96e78a:"uplad" \
-			GPRINT:upload:MIN:"Min\: %3.1lf Mbps" \
-			GPRINT:upload:MAX:"Max\: %3.1lf Mbps" \
-			GPRINT:upload:AVERAGE:"Avg\: %3.1lf Mbps" \
-			GPRINT:upload:LAST:"Curr\: %3.1lf Mbps\n" >/dev/null 2>&1
+			GPRINT:upload:MIN:"Min\: %3.2lf Mbps" \
+			GPRINT:upload:MAX:"Max\: %3.2lf Mbps" \
+			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
+			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 			
 			CacheGraphImages cache 2>/dev/null
 	else
