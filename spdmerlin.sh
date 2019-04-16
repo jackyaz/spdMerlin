@@ -20,7 +20,7 @@ readonly SPD_NAME="spdMerlin"
 #shellcheck disable=SC2018
 readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
 readonly SPD_VERSION="v1.1.1"
-readonly SPD_BRANCH="develop"
+readonly SPD_BRANCH="master"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
 readonly SPD_CONF="/jffs/configs/$SPD_NAME_LOWER.config"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
@@ -190,6 +190,42 @@ Conf_Exists(){
 	fi
 }
 
+Auto_ServiceEvent(){
+	case $1 in
+		create)
+			if [ -f /jffs/scripts/service-event ]; then
+				STARTUPLINECOUNT=$(grep -c '# '"$SPD_NAME" /jffs/scripts/service-event)
+				# shellcheck disable=SC2016
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" /jffs/scripts/service-event)
+				
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+					sed -i -e '/# '"$SPD_NAME"'/d' /jffs/scripts/service-event
+				fi
+				
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+					# shellcheck disable=SC2016
+					echo "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" >> /jffs/scripts/service-event
+				fi
+			else
+				echo "#!/bin/sh" > /jffs/scripts/service-event
+				echo "" >> /jffs/scripts/service-event
+				# shellcheck disable=SC2016
+				echo "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" >> /jffs/scripts/service-event
+				chmod 0755 /jffs/scripts/service-event
+			fi
+		;;
+		delete)
+			if [ -f /jffs/scripts/service-event ]; then
+				STARTUPLINECOUNT=$(grep -c '# '"$SPD_NAME" /jffs/scripts/service-event)
+				
+				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+					sed -i -e '/# '"$SPD_NAME"'/d' /jffs/scripts/service-event
+				fi
+			fi
+		;;
+	esac
+}
+
 Auto_Startup(){
 	case $1 in
 		create)
@@ -269,9 +305,16 @@ Modify_WebUI_File(){
 	tmpfile=/tmp/menuTree.js
 	cp "/www/require/modules/menuTree.js" "$tmpfile"
 	
+	if [ -f "/jffs/scripts/connmon" ]; then
+		sed -i '/{url: "AdaptiveQoS_ROG.asp", tabName: /d' "$tmpfile"
+		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "AdaptiveQoS_ROG.asp", tabName: "Uptime Monitoring"},' "$tmpfile"
+		sed -i '/retArray.push("AdaptiveQoS_ROG.asp");/d' "$tmpfile"
+	fi
+	
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: /d' "$tmpfile"
 	sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_Feedback.asp", tabName: "SpeedTest"},' "$tmpfile"
 	sed -i '/retArray.push("Advanced_Feedback.asp");/d' "$tmpfile"
+	
 	if [ -f "/jffs/scripts/ntpmerlin" ]; then
 		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "NTP Daemon"},' "$tmpfile"
 	fi
@@ -442,6 +485,7 @@ Generate_SPDStats(){
 	# The original is part of a set of scripts written by Steven Bjork.
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
 	Conf_Exists
 	mkdir -p "$(readlink /www/ext)"
 	
@@ -792,6 +836,7 @@ Menu_Startup(){
 	Check_Lock
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	RRD_Initialise
@@ -842,6 +887,7 @@ Menu_Uninstall(){
 	Print_Output "true" "Removing $SPD_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
+	Auto_ServiceEvent delete 2>/dev/null
 	while true; do
 		printf "\\n\\e[1mDo you want to delete %s stats? (y/n)\\e[0m\\n" "$SPD_NAME"
 		read -r "confirm"
@@ -859,7 +905,7 @@ Menu_Uninstall(){
 	opkg remove --autoremove python
 	umount /www/Advanced_Feedback.asp 2>/dev/null
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: "SpeedTest"}/d' "/jffs/scripts/custom_menuTree.js"
-	umount /www/require/modules/menuTree.js 2>/dev/null	
+	umount /www/require/modules/menuTree.js 2>/dev/null
 	umount /www/start_apply.htm 2>/dev/null
 	if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
 		opkg remove --autoremove rrdtool
@@ -881,6 +927,7 @@ if [ -z "$1" ]; then
 	Check_Lock
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Clear_Lock
 	Conf_Exists
