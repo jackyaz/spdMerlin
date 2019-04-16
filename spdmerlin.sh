@@ -348,8 +348,8 @@ Modify_WebUI_File(){
 	umount /www/start_apply.htm 2>/dev/null
 	tmpfile=/tmp/start_apply.htm
 	cp "/www/start_apply.htm" "$tmpfile"
-	sed -i -e 's/setTimeout("parent.redirect();", action_wait\*1000);/parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time\*1000);/' "$tmpfile"
-
+	sed -i -e 's/setTimeout("parent.redirect();", action_wait\*1000);/parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time\*1000);/' "$tmpfile"
+	
 	if [ ! -f /jffs/scripts/custom_start_apply.htm ]; then
 		cp "/www/start_apply.htm" "/jffs/scripts/custom_start_apply.htm"
 	fi
