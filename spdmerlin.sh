@@ -544,7 +544,7 @@ Generate_SPDStats(){
 		TZ=$(cat /etc/TZ)
 		export TZ
 		DATE=$(date "+%a %b %e %H:%M %Y")
-		DATE_TEST=$(date "+%Y-%m-%d")
+		DATE_TEST=$(date "+%Y-%m-%d %H:%M")
 		
 		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$)"
 		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > /www/ext/spdtestresult.js
