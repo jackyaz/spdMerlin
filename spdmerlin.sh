@@ -943,7 +943,11 @@ case "$1" in
 		exit 0
 	;;
 	generate)
-		Menu_GenerateStats "schedule"
+		if [ -z "$2" ] && [ -z "$3" ]; then
+			Menu_GenerateStats "schedule"
+		elif [ "$2" = "start" ] && [ "$3" = "$SPD_NAME_LOWER" ]; then
+			Menu_GenerateStats "schedule"
+		fi
 		exit 0
 	;;
 	update)
