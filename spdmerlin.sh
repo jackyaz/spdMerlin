@@ -66,11 +66,11 @@ Check_Lock(){
 			return 0
 		else
 			Print_Output "true" "Lock file found (age: $ageoflock seconds) - stopping to prevent duplicate runs" "$ERR"
-			#if [ -z "$1" ]; then
+			if [ -z "$1" ]; then
 				exit 1
-			#else
-			#	return 1
-			#fi
+			else
+				return 1
+			fi
 		fi
 	else
 		echo "$$" > "/tmp/$SPD_NAME.lock"
@@ -483,6 +483,7 @@ Generate_SPDStats(){
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
+	Shortcut_spdMerlin create
 	Conf_Exists
 	mkdir -p "$(readlink /www/ext)"
 	
@@ -505,6 +506,7 @@ Generate_SPDStats(){
 				speedtestserverno="$serverno"
 				speedtestservername="$servername"
 			else
+				Clear_Lock
 				return 1
 			fi
 		elif [ "$mode" = "user" ]; then
@@ -524,6 +526,7 @@ Generate_SPDStats(){
 			if [ "$mode" != "onetime" ]; then
 				if ! PreferredServer validate; then
 					Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
+					Clear_Lock
 					return 1
 				fi
 			fi
@@ -611,9 +614,11 @@ Generate_SPDStats(){
 			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
 			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 			
-			CacheGraphImages cache 2>/dev/null
+		CacheGraphImages cache 2>/dev/null
+		Clear_Lock
 	else
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
+		Clear_Lock
 		return 1
 	fi
 }
@@ -695,19 +700,25 @@ MainMenu(){
 		case "$menu" in
 			1)
 				printf "\\n"
-				Menu_GenerateStats "auto"
+				if Check_Lock "menu"; then
+					Menu_GenerateStats "auto"
+				fi
 				PressEnter
 				break
 			;;
 			2)
 				printf "\\n"
-				Menu_GenerateStats "user"
+				if Check_Lock "menu"; then
+					Menu_GenerateStats "user"
+				fi
 				PressEnter
 				break
 			;;
 			3)
 				printf "\\n"
-				Menu_GenerateStats "onetime"
+				if Check_Lock "menu"; then
+					Menu_GenerateStats "onetime"
+				fi
 				PressEnter
 				break
 			;;
@@ -729,13 +740,17 @@ MainMenu(){
 			;;
 			u)
 				printf "\\n"
-				Menu_Update
+				if Check_Lock "menu"; then
+					Menu_Update
+				fi
 				PressEnter
 				break
 			;;
 			uf)
 				printf "\\n"
-				Menu_ForceUpdate
+				if Check_Lock "menu"; then
+					Menu_ForceUpdate
+				fi
 				PressEnter
 				break
 			;;
@@ -813,27 +828,28 @@ Menu_Install(){
 	opkg install rrdtool
 	opkg install ca-certificates
 	
-	Conf_Exists
-	
 	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
 	chmod 0755 /jffs/scripts/spdcli.py
 	
-	Mount_SPD_WebUI
-	
-	Modify_WebUI_File
-	
-	RRD_Initialise
-	
-	Shortcut_spdMerlin create
-	
-	Menu_GenerateStats "auto"
-}
-
-Menu_Startup(){
-	Check_Lock
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
+	Shortcut_spdMerlin create
+	Conf_Exists
+	
+	Mount_SPD_WebUI
+	Modify_WebUI_File
+	RRD_Initialise
+	
+	Menu_GenerateStats "auto"
+	Clear_Lock
+}
+
+Menu_Startup(){
+	Auto_Startup create 2>/dev/null
+	Auto_Cron create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
+	Shortcut_spdMerlin create
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	RRD_Initialise
@@ -842,45 +858,37 @@ Menu_Startup(){
 }
 
 Menu_GenerateStats(){
-	Check_Lock
 	Generate_SPDStats "$1"
 	Clear_Lock
 }
 
 Menu_TogglePreferred(){
-	Check_Lock
 	if PreferredServer check; then
 		PreferredServer disable
 	else
 		PreferredServer enable
 	fi
-	Clear_Lock
 }
 
 Menu_ToggleSingle(){
-	Check_Lock
 	if SingleMode check; then
 		SingleMode disable
 	else
 		SingleMode enable
 	fi
-	Clear_Lock
 }
 
 Menu_Update(){
-	Check_Lock
 	Update_Version
 	Clear_Lock
 }
 
 Menu_ForceUpdate(){
-	Check_Lock
 	Update_Version force
 	Clear_Lock
 }
 
 Menu_Uninstall(){
-	Check_Lock
 	Print_Output "true" "Removing $SPD_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
@@ -921,13 +929,6 @@ Menu_Uninstall(){
 }
 
 if [ -z "$1" ]; then
-	Check_Lock
-	Auto_Startup create 2>/dev/null
-	Auto_Cron create 2>/dev/null
-	Auto_ServiceEvent create 2>/dev/null
-	Shortcut_spdMerlin create
-	Clear_Lock
-	Conf_Exists
 	ScriptHeader
 	MainMenu
 	exit 0
@@ -935,30 +936,37 @@ fi
 
 case "$1" in
 	install)
+		Check_Lock
 		Menu_Install
 		exit 0
 	;;
 	startup)
+		Check_Lock
 		Menu_Startup
 		exit 0
 	;;
 	generate)
 		if [ -z "$2" ] && [ -z "$3" ]; then
+			Check_Lock
 			Menu_GenerateStats "schedule"
 		elif [ "$2" = "start" ] && [ "$3" = "$SPD_NAME_LOWER" ]; then
+			Check_Lock
 			Menu_GenerateStats "schedule"
 		fi
 		exit 0
 	;;
 	update)
+		Check_Lock
 		Menu_Update
 		exit 0
 	;;
 	forceupdate)
+		Check_Lock
 		Menu_ForceUpdate
 		exit 0
 	;;
 	uninstall)
+		Check_Lock
 		Menu_Uninstall
 		exit 0
 	;;
