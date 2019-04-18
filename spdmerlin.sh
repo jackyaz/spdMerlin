@@ -813,9 +813,24 @@ Check_Requirements(){
 Menu_Install(){
 	Print_Output "true" "Welcome to $SPD_NAME $SPD_VERSION, a script by JackYaz"
 	sleep 1
-
+	
+	Print_Output "true" "WARNING: Using $SPD_NAME with Internet speeds over 250Mbps can cause router memory/stability issues" "$WARN"
+	
+	while true; do
+		printf "\\n\\e[1mDo you want to continue? (y/n)\\e[0m\\n"
+		read -r "confirm"
+		case "$confirm" in
+			y|Y)
+				break
+			;;
+			*)
+				exit 1
+			;;
+		esac
+	done
+	
 	Print_Output "true" "Checking your router meets the requirements for $SPD_NAME"
-
+	
 	if ! Check_Requirements; then
 		Print_Output "true" "Requirements for $SPD_NAME not met, please see above for the reason(s)" "$CRIT"
 		PressEnter
