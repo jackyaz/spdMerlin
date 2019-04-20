@@ -492,9 +492,11 @@ AutomaticMode(){
 	case "$1" in
 		enable)
 			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SPD_CONF"
+			Auto_Cron create 2>/dev/null
 		;;
 		disable)
 			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SPD_CONF"
+			Auto_Cron delete 2>/dev/null
 		;;
 		check)
 			AUTOMATED=$(grep "AUTOMATED" "$SPD_CONF" | cut -f2 -d"=")
@@ -509,7 +511,7 @@ Generate_SPDStats(){
 	# to display Internet Speedtest results and maintained by Jack Yaz
 	# The original is part of a set of scripts written by Steven Bjork.
 	Auto_Startup create 2>/dev/null
-	Auto_Cron create 2>/dev/null
+	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Conf_Exists
@@ -706,7 +708,7 @@ MainMenu(){
 	PREFERREDSERVER_ENABLED=""
 	SINGLEMODE_ENABLED=""
 	AUTOMATIC_ENABLED=""
-	TEST_SCHEDULE=""
+	#TEST_SCHEDULE=""
 	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
 	if SingleMode check; then SINGLEMODE_ENABLED="Enabled"; else SINGLEMODE_ENABLED="Disabled"; fi
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
@@ -718,7 +720,7 @@ MainMenu(){
 	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
 	printf "7.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "8.    Configure schedule for automatic tests\\n      Currently %s\\n\\n" "$TEST_SCHEDULE"
+	#printf "8.    Configure schedule for automatic tests\\n      Currently %s\\n\\n" "$TEST_SCHEDULE"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -885,7 +887,7 @@ Menu_Install(){
 	chmod 0755 /jffs/scripts/spdcli.py
 	
 	Auto_Startup create 2>/dev/null
-	Auto_Cron create 2>/dev/null
+	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Conf_Exists
@@ -911,7 +913,7 @@ Menu_Install(){
 
 Menu_Startup(){
 	Auto_Startup create 2>/dev/null
-	Auto_Cron create 2>/dev/null
+	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Mount_SPD_WebUI
