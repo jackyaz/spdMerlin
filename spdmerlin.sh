@@ -186,6 +186,9 @@ Conf_Exists(){
 		echo "PREFERREDSERVER=0|None configured" > "$SPD_CONF"
 		echo "USEPREFERRED=false" >> "$SPD_CONF"
 		echo "USESINGLE=false" >> "$SPD_CONF"
+		echo "AUTOMATED=true" >> "$SPD_CONF"
+		echo "SCHEDULEMIN=*" >> "$SPD_CONF"
+		echo "SCHEDULEHOUR=*" >> "$SPD_CONF"
 		return 1
 	fi
 }
@@ -479,6 +482,21 @@ SingleMode(){
 	esac
 }
 
+AutomaticMode(){
+	case "$1" in
+		enable)
+			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SPD_CONF"
+		;;
+		disable)
+			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SPD_CONF"
+		;;
+		check)
+			USESINGLE=$(grep "AUTOMATED" "$SPD_CONF" | cut -f2 -d"=")
+			if [ "$AUTOMATED" = "true" ]; then return 0; else return 1; fi
+		;;
+	esac
+}
+
 Generate_SPDStats(){
 	# This script is adapted from http://www.wraith.sf.ca.us/ntp
 	# This function originally written by kvic, further adapted by JGrana
@@ -681,8 +699,11 @@ ScriptHeader(){
 MainMenu(){
 	PREFERREDSERVER_ENABLED=""
 	SINGLEMODE_ENABLED=""
+	AUTOMATIC_ENABLED=""
+	TEST_SCHEDULE=""
 	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
 	if SingleMode check; then SINGLEMODE_ENABLED="Enabled"; else SINGLEMODE_ENABLED="Disabled"; fi
+	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server)\\n"
@@ -690,6 +711,8 @@ MainMenu(){
 	printf "4.    Choose a preferred server(for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
 	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
+	printf "7.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
+	printf "8.    Configure schedule for automatic tests\\n      Currently %s\\n\\n" "$TEST_SCHEDULE"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -740,6 +763,11 @@ MainMenu(){
 			6)
 				printf "\\n"
 				Menu_ToggleSingle
+				break
+			;;
+			7)
+				printf "\\n"
+				Menu_ToggleAutomated
 				break
 			;;
 			u)
@@ -894,6 +922,14 @@ Menu_ToggleSingle(){
 		SingleMode disable
 	else
 		SingleMode enable
+	fi
+}
+
+Menu_ToggleAutomated(){
+	if AutomaticMode check; then
+		AutomaticMode disable
+	else
+		AutomaticMode enable
 	fi
 }
 
