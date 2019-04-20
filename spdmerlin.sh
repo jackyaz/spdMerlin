@@ -19,7 +19,7 @@ readonly SPD_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
-readonly SPD_VERSION="v1.1.1"
+readonly SPD_VERSION="v1.1.2"
 readonly SPD_BRANCH="master"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
 readonly SPD_CONF="/jffs/configs/$SPD_NAME_LOWER.config"
@@ -66,11 +66,11 @@ Check_Lock(){
 			return 0
 		else
 			Print_Output "true" "Lock file found (age: $ageoflock seconds) - stopping to prevent duplicate runs" "$ERR"
-			#if [ -z "$1" ]; then
+			if [ -z "$1" ]; then
 				exit 1
-			#else
-			#	return 1
-			#fi
+			else
+				return 1
+			fi
 		fi
 	else
 		echo "$$" > "/tmp/$SPD_NAME.lock"
@@ -181,11 +181,12 @@ Conf_Exists(){
 		dos2unix "$SPD_CONF"
 		chmod 0644 "$SPD_CONF"
 		sed -i -e 's/"//g' "$SPD_CONF"
+		if [ "$(wc -l < "$SPD_CONF")" -lt 6 ]; then
+			{ echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SPD_CONF"
+		fi
 		return 0
 	else
-		echo "PREFERREDSERVER=0|None configured" > "$SPD_CONF"
-		echo "USEPREFERRED=false" >> "$SPD_CONF"
-		echo "USESINGLE=false" >> "$SPD_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SPD_CONF"
 		return 1
 	fi
 }
@@ -287,6 +288,14 @@ RRD_Initialise(){
 	fi
 }
 
+Get_CONNMON_UI(){
+	if [ -f /www/AdaptiveQoS_ROG.asp ]; then
+		echo "AdaptiveQoS_ROG.asp"
+	else
+		echo "AiMesh_Node_FirmwareUpgrade.asp"
+	fi
+}
+
 Mount_SPD_WebUI(){
 	umount /www/Advanced_Feedback.asp 2>/dev/null
 	if [ ! -f /jffs/scripts/spdstats_www.asp ]; then
@@ -303,9 +312,9 @@ Modify_WebUI_File(){
 	cp "/www/require/modules/menuTree.js" "$tmpfile"
 	
 	if [ -f "/jffs/scripts/connmon" ]; then
-		sed -i '/{url: "AdaptiveQoS_ROG.asp", tabName: /d' "$tmpfile"
-		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "AdaptiveQoS_ROG.asp", tabName: "Uptime Monitoring"},' "$tmpfile"
-		sed -i '/retArray.push("AdaptiveQoS_ROG.asp");/d' "$tmpfile"
+		sed -i '/{url: "'"$(Get_CONNMON_UI)"'", tabName: /d' "$tmpfile"
+		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "'"$(Get_CONNMON_UI)"'", tabName: "Uptime Monitoring"},' "$tmpfile"
+		sed -i '/retArray.push("'"$(Get_CONNMON_UI)"'");/d' "$tmpfile"
 	fi
 	
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: /d' "$tmpfile"
@@ -349,6 +358,10 @@ Modify_WebUI_File(){
 	tmpfile=/tmp/start_apply.htm
 	cp "/www/start_apply.htm" "$tmpfile"
 	sed -i -e 's/setTimeout("parent.redirect();", action_wait\*1000);/parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time\*1000);/' "$tmpfile"
+	
+	if [ -f /jffs/scripts/connmon ]; then
+		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("'"$(Get_CONNMON_UI)"'") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
+	fi
 	
 	if [ ! -f /jffs/scripts/custom_start_apply.htm ]; then
 		cp "/www/start_apply.htm" "/jffs/scripts/custom_start_apply.htm"
@@ -475,14 +488,32 @@ SingleMode(){
 	esac
 }
 
+AutomaticMode(){
+	case "$1" in
+		enable)
+			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SPD_CONF"
+			Auto_Cron create 2>/dev/null
+		;;
+		disable)
+			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SPD_CONF"
+			Auto_Cron delete 2>/dev/null
+		;;
+		check)
+			AUTOMATED=$(grep "AUTOMATED" "$SPD_CONF" | cut -f2 -d"=")
+			if [ "$AUTOMATED" = "true" ]; then return 0; else return 1; fi
+		;;
+	esac
+}
+
 Generate_SPDStats(){
 	# This script is adapted from http://www.wraith.sf.ca.us/ntp
 	# This function originally written by kvic, further adapted by JGrana
 	# to display Internet Speedtest results and maintained by Jack Yaz
 	# The original is part of a set of scripts written by Steven Bjork.
 	Auto_Startup create 2>/dev/null
-	Auto_Cron create 2>/dev/null
+	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
+	Shortcut_spdMerlin create
 	Conf_Exists
 	mkdir -p "$(readlink /www/ext)"
 	
@@ -505,6 +536,7 @@ Generate_SPDStats(){
 				speedtestserverno="$serverno"
 				speedtestservername="$servername"
 			else
+				Clear_Lock
 				return 1
 			fi
 		elif [ "$mode" = "user" ]; then
@@ -524,6 +556,7 @@ Generate_SPDStats(){
 			if [ "$mode" != "onetime" ]; then
 				if ! PreferredServer validate; then
 					Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
+					Clear_Lock
 					return 1
 				fi
 			fi
@@ -611,9 +644,11 @@ Generate_SPDStats(){
 			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
 			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 			
-			CacheGraphImages cache 2>/dev/null
+		CacheGraphImages cache 2>/dev/null
+		Clear_Lock
 	else
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
+		Clear_Lock
 		return 1
 	fi
 }
@@ -672,8 +707,11 @@ ScriptHeader(){
 MainMenu(){
 	PREFERREDSERVER_ENABLED=""
 	SINGLEMODE_ENABLED=""
+	AUTOMATIC_ENABLED=""
+	#TEST_SCHEDULE=""
 	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
 	if SingleMode check; then SINGLEMODE_ENABLED="Enabled"; else SINGLEMODE_ENABLED="Disabled"; fi
+	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server)\\n"
@@ -681,6 +719,8 @@ MainMenu(){
 	printf "4.    Choose a preferred server(for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
 	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
+	printf "7.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
+	#printf "8.    Configure schedule for automatic tests\\n      Currently %s\\n\\n" "$TEST_SCHEDULE"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
@@ -695,19 +735,25 @@ MainMenu(){
 		case "$menu" in
 			1)
 				printf "\\n"
-				Menu_GenerateStats "auto"
+				if Check_Lock "menu"; then
+					Menu_GenerateStats "auto"
+				fi
 				PressEnter
 				break
 			;;
 			2)
 				printf "\\n"
-				Menu_GenerateStats "user"
+				if Check_Lock "menu"; then
+					Menu_GenerateStats "user"
+				fi
 				PressEnter
 				break
 			;;
 			3)
 				printf "\\n"
-				Menu_GenerateStats "onetime"
+				if Check_Lock "menu"; then
+					Menu_GenerateStats "onetime"
+				fi
 				PressEnter
 				break
 			;;
@@ -727,15 +773,24 @@ MainMenu(){
 				Menu_ToggleSingle
 				break
 			;;
+			7)
+				printf "\\n"
+				Menu_ToggleAutomated
+				break
+			;;
 			u)
 				printf "\\n"
-				Menu_Update
+				if Check_Lock "menu"; then
+					Menu_Update
+				fi
 				PressEnter
 				break
 			;;
 			uf)
 				printf "\\n"
-				Menu_ForceUpdate
+				if Check_Lock "menu"; then
+					Menu_ForceUpdate
+				fi
 				PressEnter
 				break
 			;;
@@ -798,9 +853,24 @@ Check_Requirements(){
 Menu_Install(){
 	Print_Output "true" "Welcome to $SPD_NAME $SPD_VERSION, a script by JackYaz"
 	sleep 1
-
+	
+	Print_Output "true" "WARNING: Using $SPD_NAME with Internet speeds over 250Mbps can cause router memory/stability issues" "$WARN"
+	
+	while true; do
+		printf "\\n\\e[1mDo you want to continue? (y/n)\\e[0m\\n"
+		read -r "confirm"
+		case "$confirm" in
+			y|Y)
+				break
+			;;
+			*)
+				exit 1
+			;;
+		esac
+	done
+	
 	Print_Output "true" "Checking your router meets the requirements for $SPD_NAME"
-
+	
 	if ! Check_Requirements; then
 		Print_Output "true" "Requirements for $SPD_NAME not met, please see above for the reason(s)" "$CRIT"
 		PressEnter
@@ -813,27 +883,39 @@ Menu_Install(){
 	opkg install rrdtool
 	opkg install ca-certificates
 	
-	Conf_Exists
-	
 	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
 	chmod 0755 /jffs/scripts/spdcli.py
 	
+	Auto_Startup create 2>/dev/null
+	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
+	Auto_ServiceEvent create 2>/dev/null
+	Shortcut_spdMerlin create
+	Conf_Exists
+	
 	Mount_SPD_WebUI
-	
 	Modify_WebUI_File
-	
 	RRD_Initialise
 	
-	Shortcut_spdMerlin create
-	
-	Menu_GenerateStats "auto"
+	while true; do
+		printf "\\n\\e[1mWould you like to run a speedtest now? (y/n)\\e[0m\\n"
+		read -r "confirm"
+		case "$confirm" in
+			y|Y)
+				Menu_GenerateStats "auto"
+			;;
+			*)
+				break
+			;;
+		esac
+	done
+	Clear_Lock
 }
 
 Menu_Startup(){
-	Check_Lock
 	Auto_Startup create 2>/dev/null
-	Auto_Cron create 2>/dev/null
+	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
+	Shortcut_spdMerlin create
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	RRD_Initialise
@@ -842,45 +924,45 @@ Menu_Startup(){
 }
 
 Menu_GenerateStats(){
-	Check_Lock
 	Generate_SPDStats "$1"
 	Clear_Lock
 }
 
 Menu_TogglePreferred(){
-	Check_Lock
 	if PreferredServer check; then
 		PreferredServer disable
 	else
 		PreferredServer enable
 	fi
-	Clear_Lock
 }
 
 Menu_ToggleSingle(){
-	Check_Lock
 	if SingleMode check; then
 		SingleMode disable
 	else
 		SingleMode enable
 	fi
-	Clear_Lock
+}
+
+Menu_ToggleAutomated(){
+	if AutomaticMode check; then
+		AutomaticMode disable
+	else
+		AutomaticMode enable
+	fi
 }
 
 Menu_Update(){
-	Check_Lock
 	Update_Version
 	Clear_Lock
 }
 
 Menu_ForceUpdate(){
-	Check_Lock
 	Update_Version force
 	Clear_Lock
 }
 
 Menu_Uninstall(){
-	Check_Lock
 	Print_Output "true" "Removing $SPD_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
@@ -921,12 +1003,6 @@ Menu_Uninstall(){
 }
 
 if [ -z "$1" ]; then
-	Check_Lock
-	Auto_Startup create 2>/dev/null
-	Auto_Cron create 2>/dev/null
-	Auto_ServiceEvent create 2>/dev/null
-	Shortcut_spdMerlin create
-	Clear_Lock
 	Conf_Exists
 	ScriptHeader
 	MainMenu
@@ -935,30 +1011,37 @@ fi
 
 case "$1" in
 	install)
+		Check_Lock
 		Menu_Install
 		exit 0
 	;;
 	startup)
+		Check_Lock
 		Menu_Startup
 		exit 0
 	;;
 	generate)
 		if [ -z "$2" ] && [ -z "$3" ]; then
+			Check_Lock
 			Menu_GenerateStats "schedule"
 		elif [ "$2" = "start" ] && [ "$3" = "$SPD_NAME_LOWER" ]; then
+			Check_Lock
 			Menu_GenerateStats "schedule"
 		fi
 		exit 0
 	;;
 	update)
+		Check_Lock
 		Menu_Update
 		exit 0
 	;;
 	forceupdate)
+		Check_Lock
 		Menu_ForceUpdate
 		exit 0
 	;;
 	uninstall)
+		Check_Lock
 		Menu_Uninstall
 		exit 0
 	;;
