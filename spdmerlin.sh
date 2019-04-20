@@ -19,8 +19,8 @@ readonly SPD_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
-readonly SPD_VERSION="v1.1.2"
-readonly SPD_BRANCH="master"
+readonly SPD_VERSION="v1.1.3"
+readonly SPD_BRANCH="develop"
 readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
 readonly SPD_CONF="/jffs/configs/$SPD_NAME_LOWER.config"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
