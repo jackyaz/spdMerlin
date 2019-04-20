@@ -496,7 +496,7 @@ AutomaticMode(){
 			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SPD_CONF"
 		;;
 		check)
-			USESINGLE=$(grep "AUTOMATED" "$SPD_CONF" | cut -f2 -d"=")
+			AUTOMATED=$(grep "AUTOMATED" "$SPD_CONF" | cut -f2 -d"=")
 			if [ "$AUTOMATED" = "true" ]; then return 0; else return 1; fi
 		;;
 	esac
