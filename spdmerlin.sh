@@ -182,18 +182,11 @@ Conf_Exists(){
 		chmod 0644 "$SPD_CONF"
 		sed -i -e 's/"//g' "$SPD_CONF"
 		if [ "$(wc -l < "$SPD_CONF")" -lt 6 ]; then
-			echo "AUTOMATED=true" >> "$SPD_CONF"
-			echo "SCHEDULEMIN=*" >> "$SPD_CONF"
-			echo "SCHEDULEHOUR=*" >> "$SPD_CONF"
+			{ echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SPD_CONF"
 		fi
 		return 0
 	else
-		echo "PREFERREDSERVER=0|None configured" > "$SPD_CONF"
-		echo "USEPREFERRED=false" >> "$SPD_CONF"
-		echo "USESINGLE=false" >> "$SPD_CONF"
-		echo "AUTOMATED=true" >> "$SPD_CONF"
-		echo "SCHEDULEMIN=*" >> "$SPD_CONF"
-		echo "SCHEDULEHOUR=*" >> "$SPD_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SPD_CONF"
 		return 1
 	fi
 }
