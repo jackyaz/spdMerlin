@@ -893,7 +893,18 @@ Menu_Install(){
 	Modify_WebUI_File
 	RRD_Initialise
 	
-	Menu_GenerateStats "auto"
+	while true; do
+		printf "\\n\\e[1mWould you like to run a speedtest now? (y/n)\\e[0m\\n"
+		read -r "confirm"
+		case "$confirm" in
+			y|Y)
+				Menu_GenerateStats "auto"
+			;;
+			*)
+				break
+			;;
+		esac
+	done
 	Clear_Lock
 }
 
@@ -989,6 +1000,7 @@ Menu_Uninstall(){
 }
 
 if [ -z "$1" ]; then
+	Conf_Exists
 	ScriptHeader
 	MainMenu
 	exit 0
