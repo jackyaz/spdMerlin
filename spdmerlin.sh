@@ -288,6 +288,14 @@ RRD_Initialise(){
 	fi
 }
 
+Get_CONNMON_UI(){
+	if [ -f /www/AdaptiveQoS_ROG.asp ]; then
+		echo "AdaptiveQoS_ROG.asp"
+	else
+		echo "AiMesh_Node_FirmwareUpgrade.asp"
+	fi
+}
+
 Mount_SPD_WebUI(){
 	umount /www/Advanced_Feedback.asp 2>/dev/null
 	if [ ! -f /jffs/scripts/spdstats_www.asp ]; then
@@ -304,9 +312,9 @@ Modify_WebUI_File(){
 	cp "/www/require/modules/menuTree.js" "$tmpfile"
 	
 	if [ -f "/jffs/scripts/connmon" ]; then
-		sed -i '/{url: "AdaptiveQoS_ROG.asp", tabName: /d' "$tmpfile"
-		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "AdaptiveQoS_ROG.asp", tabName: "Uptime Monitoring"},' "$tmpfile"
-		sed -i '/retArray.push("AdaptiveQoS_ROG.asp");/d' "$tmpfile"
+		sed -i '/{url: "'"$(Get_CONNMON_UI)"'", tabName: /d' "$tmpfile"
+		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "'"$(Get_CONNMON_UI)"'", tabName: "Uptime Monitoring"},' "$tmpfile"
+		sed -i '/retArray.push("'"$(Get_CONNMON_UI)"'");/d' "$tmpfile"
 	fi
 	
 	sed -i '/{url: "Advanced_Feedback.asp", tabName: /d' "$tmpfile"
@@ -352,7 +360,7 @@ Modify_WebUI_File(){
 	sed -i -e 's/setTimeout("parent.redirect();", action_wait\*1000);/parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time\*1000);/' "$tmpfile"
 	
 	if [ -f /jffs/scripts/connmon ]; then
-		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("ROG") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
+		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("'"$(Get_CONNMON_UI)"'") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
 	fi
 	
 	if [ ! -f /jffs/scripts/custom_start_apply.htm ]; then
