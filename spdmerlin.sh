@@ -726,7 +726,7 @@ MainMenu(){
 	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
 	printf "z.    Uninstall %s\\n" "$SPD_NAME"
 	printf "\\n"
-	printf "\\e[1m##########################################################\\e[0m\\n"
+	printf "\\e[1m############################################################\\e[0m\\n"
 	printf "\\n"
 	
 	while true; do
