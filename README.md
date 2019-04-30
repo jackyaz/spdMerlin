@@ -22,7 +22,9 @@ Love the script and want to support future development? Any and all donations gr
 
 ## Supported Models
 All modes supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Models confirmed to work are below:
+*   RT-AC68U
 *   RT-AC86U
+*   RT-AC3100
 
 ## Installation
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:
