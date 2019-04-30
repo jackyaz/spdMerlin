@@ -1002,6 +1002,7 @@ Menu_Uninstall(){
 	rm -f "/jffs/scripts/custom_state.js" 2>/dev/null
 	rm -f "/jffs/scripts/spdstats_www.asp" 2>/dev/null
 	rm -f "/jffs/scripts/spdcli.py" 2>/dev/null
+	rm -f "/jffs/scripts/spdmerlin_images.tar.gz" 2>/dev/null
 	rm -f "/jffs/scripts/$SPD_NAME_LOWER" 2>/dev/null
 	Clear_Lock
 	Print_Output "true" "Uninstall completed" "$PASS"
