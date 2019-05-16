@@ -463,7 +463,7 @@ CacheGraphImages(){
 
 GenerateServerList(){
 	printf "Generating list of 25 closest servers...\\n\\n"
-	serverlist="$($SCRIPT_NAME/spdcli.py --secure --list | sed '1d' | head -n 25)"
+	serverlist="$($SCRIPT_DIR/spdcli.py --secure --list | sed '1d' | head -n 25)"
 	COUNTER=1
 	until [ $COUNTER -gt 25 ]; do
 		serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
@@ -525,7 +525,7 @@ PreferredServer(){
 		;;
 		validate)
 			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
-			"$SCRIPT_NAME"/spdcli.py --secure --list > /tmp/spdServers.txt
+			"$SCRIPT_DIR"/spdcli.py --secure --list > /tmp/spdServers.txt
 			sed -i -e 's/^[ \t]*//;s/[ \t]*$//' /tmp/spdServers.txt
 			if grep -q "^$PREFERREDSERVERNO)" /tmp/spdServers.txt; then
 				rm -f /tmp/spdServers.txt
@@ -612,10 +612,10 @@ Generate_SPDStats(){
 		if [ "$mode" = "auto" ]; then
 			if SingleMode check; then
 				Print_Output "true" "Starting speedtest using auto-selected server in single connection mode" "$PASS"
-				"$SCRIPT_NAME"/spdcli.py --secure --simple --no-pre-allocate --single >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single >> /tmp/spd-rrdstats.$$
 			else
 				Print_Output "true" "Starting speedtest using auto-selected server in multi-connection mode" "$PASS"
-				"$SCRIPT_NAME"/spdcli.py --secure --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
 			fi
 		else
 			if [ "$mode" != "onetime" ]; then
@@ -628,10 +628,10 @@ Generate_SPDStats(){
 			
 			if SingleMode check; then
 				Print_Output "true" "Starting speedtest using $speedtestservername in single connection mode" "$PASS"
-				"$SCRIPT_NAME"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 			else
 				Print_Output "true" "Starting speedtest using $speedtestservername in multi-connection mode" "$PASS"
-				"$SCRIPT_NAME"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 			fi
 		fi
 		
@@ -648,7 +648,7 @@ Generate_SPDStats(){
 		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > "$SCRIPT_WEB_DIR"/spdtestresult.js
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
-		RDB="$SCRIPT_NAME/spdstats_rrd.rrd"
+		RDB="$SCRIPT_DIR/spdstats_rrd.rrd"
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
 		
