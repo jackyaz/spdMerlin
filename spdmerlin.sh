@@ -15,14 +15,18 @@
 ############################################################
 
 ### Start of script variables ###
-readonly SPD_NAME="spdMerlin"
+readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
-readonly SPD_NAME_LOWER=$(echo $SPD_NAME | tr 'A-Z' 'a-z')
-readonly SPD_VERSION="v1.1.3"
-readonly SPD_BRANCH="develop"
-readonly SPD_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SPD_BRANCH"
-readonly SPD_CONF="/jffs/configs/$SPD_NAME_LOWER.config"
+readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
+readonly SCRIPT_VERSION="v1.2.0"
+readonly SPD_VERSION="v1.2.0"
+readonly SCRIPT_BRANCH="develop"
+readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
+readonly SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
+readonly SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
+readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
+readonly SHARED_DIR="/jffs/scripts/shared-jy"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 ### End of script variables ###
 
@@ -41,10 +45,10 @@ servername=""
 # $1 = print to syslog, $2 = message to print, $3 = log level
 Print_Output(){
 	if [ "$1" = "true" ]; then
-		logger -t "$SPD_NAME" "$2"
-		printf "\\e[1m$3%s: $2\\e[0m\\n\\n" "$SPD_NAME"
+		logger -t "$SCRIPT_NAME" "$2"
+		printf "\\e[1m$3%s: $2\\e[0m\\n\\n" "$SCRIPT_NAME"
 	else
-		printf "\\e[1m$3%s: $2\\e[0m\\n\\n" "$SPD_NAME"
+		printf "\\e[1m$3%s: $2\\e[0m\\n\\n" "$SCRIPT_NAME"
 	fi
 }
 
@@ -56,13 +60,13 @@ Firmware_Version_Check(){
 
 ### Code for these functions inspired by https://github.com/Adamm00 - credit to @Adamm ###
 Check_Lock(){
-	if [ -f "/tmp/$SPD_NAME.lock" ]; then
-		ageoflock=$(($(date +%s) - $(date +%s -r /tmp/$SPD_NAME.lock)))
+	if [ -f "/tmp/$SCRIPT_NAME.lock" ]; then
+		ageoflock=$(($(date +%s) - $(date +%s -r /tmp/$SCRIPT_NAME.lock)))
 		if [ "$ageoflock" -gt 120 ]; then
 			Print_Output "true" "Stale lock file found (>120 seconds old) - purging lock" "$ERR"
-			kill "$(sed -n '1p' /tmp/$SPD_NAME.lock)" >/dev/null 2>&1
+			kill "$(sed -n '1p' /tmp/$SCRIPT_NAME.lock)" >/dev/null 2>&1
 			Clear_Lock
-			echo "$$" > "/tmp/$SPD_NAME.lock"
+			echo "$$" > "/tmp/$SCRIPT_NAME.lock"
 			return 0
 		else
 			Print_Output "true" "Lock file found (age: $ageoflock seconds) - stopping to prevent duplicate runs" "$ERR"
@@ -73,13 +77,13 @@ Check_Lock(){
 			fi
 		fi
 	else
-		echo "$$" > "/tmp/$SPD_NAME.lock"
+		echo "$$" > "/tmp/$SCRIPT_NAME.lock"
 		return 0
 	fi
 }
 
 Clear_Lock(){
-	rm -f "/tmp/$SPD_NAME.lock" 2>/dev/null
+	rm -f "/tmp/$SCRIPT_NAME.lock" 2>/dev/null
 	return 0
 }
 
@@ -90,23 +94,23 @@ Check_Swap () {
 Update_Version(){
 	if [ -z "$1" ]; then
 		doupdate="false"
-		localver=$(grep "SPD_VERSION=" /jffs/scripts/"$SPD_NAME_LOWER" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
-		/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" | grep -qF "jackyaz" || { Print_Output "true" "404 error detected - stopping update" "$ERR"; return 1; }
-		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" | grep "SPD_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+		localver=$(grep "SCRIPT_VERSION=" /jffs/scripts/"$SCRIPT_NAME_LOWER" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep -qF "jackyaz" || { Print_Output "true" "404 error detected - stopping update" "$ERR"; return 1; }
+		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 		if [ "$localver" != "$serverver" ]; then
 			doupdate="version"
 		else
-			localmd5="$(md5sum "/jffs/scripts/$SPD_NAME_LOWER" | awk '{print $1}')"
-			remotemd5="$(curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" | md5sum | awk '{print $1}')"
+			localmd5="$(md5sum "/jffs/scripts/$SCRIPT_NAME_LOWER" | awk '{print $1}')"
+			remotemd5="$(curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | md5sum | awk '{print $1}')"
 			if [ "$localmd5" != "$remotemd5" ]; then
 				doupdate="md5"
 			fi
 		fi
 		
 		if [ "$doupdate" = "version" ]; then
-			Print_Output "true" "New version of $SPD_NAME available - updating to $serverver" "$PASS"
+			Print_Output "true" "New version of $SCRIPT_NAME available - updating to $serverver" "$PASS"
 		elif [ "$doupdate" = "md5" ]; then
-			Print_Output "true" "MD5 hash of $SPD_NAME does not match - downloading updated $serverver" "$PASS"
+			Print_Output "true" "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
 		fi
 		
 		Update_File "spdcli.py"
@@ -114,8 +118,8 @@ Update_Version(){
 		Modify_WebUI_File
 		
 		if [ "$doupdate" != "false" ]; then
-			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
-			chmod 0755 /jffs/scripts/"$SPD_NAME_LOWER"
+			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
+			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
 			exit 0
 		else
@@ -126,13 +130,13 @@ Update_Version(){
 	
 	case "$1" in
 		force)
-			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" | grep "SPD_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
-			Print_Output "true" "Downloading latest version ($serverver) of $SPD_NAME" "$PASS"
+			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 			Update_File "spdcli.py"
 			Update_File "spdstats_www.asp"
 			Modify_WebUI_File
-			/usr/sbin/curl -fsL --retry 3 "$SPD_REPO/$SPD_NAME_LOWER.sh" -o "/jffs/scripts/$SPD_NAME_LOWER" && Print_Output "true" "$SPD_NAME successfully updated"
-			chmod 0755 /jffs/scripts/"$SPD_NAME_LOWER"
+			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
+			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
 			exit 0
 		;;
@@ -143,19 +147,25 @@ Update_Version(){
 Update_File(){
 	if [ "$1" = "spdcli.py" ]; then
 		tmpfile="/tmp/$1"
-		Download_File "$SPD_REPO/$1" "$tmpfile"
-		if ! diff -q "$tmpfile" "/jffs/scripts/$1" >/dev/null 2>&1; then
-			Download_File "$SPD_REPO/$1" "/jffs/scripts/$1"
-			chmod 0755 /jffs/scripts/"$1"
-			Print_Output "true" "New version of $1 downloaded to /jffs/scripts/$1" "$PASS"
+		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
+		if [ -f "/jffs/scripts/$1" ]; then
+			mv "/jffs/scripts/$1" "$SCRIPT_DIR/$1"
+		fi
+		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
+			Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
+			chmod 0755 "$SCRIPT_DIR/$1"
+			Print_Output "true" "New version of $1 downloaded to $SCRIPT_DIR/$1" "$PASS"
 		fi
 		rm -f "$tmpfile"
 	elif [ "$1" = "spdstats_www.asp" ]; then
 		tmpfile="/tmp/$1"
-		Download_File "$SPD_REPO/$1" "$tmpfile"
-		if ! diff -q "$tmpfile" "/jffs/scripts/$1" >/dev/null 2>&1; then
+		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
+		if [ -f "/jffs/scripts/$1" ]; then
+			mv "/jffs/scripts/$1" "$SCRIPT_DIR/$1"
+		fi
+		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
 			Print_Output "true" "New version of $1 downloaded" "$PASS"
-			rm -f "/jffs/scripts/$1"
+			rm -f "$SCRIPT_DIR/$1"
 			Mount_SPD_WebUI
 		fi
 		rm -f "$tmpfile"
@@ -176,17 +186,31 @@ Validate_Number(){
 	fi
 }
 
+Create_Dirs(){
+	if [ ! -d "$SCRIPT_DIR" ]; then
+		mkdir -p "$SCRIPT_DIR"
+	fi
+	
+	if [ ! -d "$SHARED_DIR" ]; then
+		mkdir -p "$SHARED_DIR"
+	fi
+	
+	if [ ! -d "$SCRIPT_WEB_DIR" ]; then
+		mkdir -p "$SCRIPT_WEB_DIR"
+	fi
+}
+
 Conf_Exists(){
-	if [ -f "$SPD_CONF" ]; then
-		dos2unix "$SPD_CONF"
-		chmod 0644 "$SPD_CONF"
-		sed -i -e 's/"//g' "$SPD_CONF"
-		if [ "$(wc -l < "$SPD_CONF")" -lt 6 ]; then
-			{ echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SPD_CONF"
+	if [ -f "$SCRIPT_CONF" ]; then
+		dos2unix "$SCRIPT_CONF"
+		chmod 0644 "$SCRIPT_CONF"
+		sed -i -e 's/"//g' "$SCRIPT_CONF"
+		if [ "$(wc -l < "$SCRIPT_CONF")" -lt 6 ]; then
+			{ echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SCRIPT_CONF"
 		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SPD_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -195,32 +219,32 @@ Auto_ServiceEvent(){
 	case $1 in
 		create)
 			if [ -f /jffs/scripts/service-event ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SPD_NAME" /jffs/scripts/service-event)
+				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				# shellcheck disable=SC2016
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" /jffs/scripts/service-event)
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER generate"' "$1" "$2" &'' # '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
-					sed -i -e '/# '"$SPD_NAME"'/d' /jffs/scripts/service-event
+					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
 				fi
 				
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
 					# shellcheck disable=SC2016
-					echo "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" >> /jffs/scripts/service-event
+					echo "/jffs/scripts/$SCRIPT_NAME_LOWER generate"' "$1" "$2" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event
 				echo "" >> /jffs/scripts/service-event
 				# shellcheck disable=SC2016
-				echo "/jffs/scripts/$SPD_NAME_LOWER generate"' "$1" "$2" &'' # '"$SPD_NAME" >> /jffs/scripts/service-event
+				echo "/jffs/scripts/$SCRIPT_NAME_LOWER generate"' "$1" "$2" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				chmod 0755 /jffs/scripts/service-event
 			fi
 		;;
 		delete)
 			if [ -f /jffs/scripts/service-event ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SPD_NAME" /jffs/scripts/service-event)
+				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				
 				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
-					sed -i -e '/# '"$SPD_NAME"'/d' /jffs/scripts/service-event
+					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
 				fi
 			fi
 		;;
@@ -231,29 +255,29 @@ Auto_Startup(){
 	case $1 in
 		create)
 			if [ -f /jffs/scripts/services-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SPD_NAME" /jffs/scripts/services-start)
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SPD_NAME_LOWER startup"' # '"$SPD_NAME" /jffs/scripts/services-start)
+				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' # '"$SCRIPT_NAME" /jffs/scripts/services-start)
 				
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
-					sed -i -e '/# '"$SPD_NAME"'/d' /jffs/scripts/services-start
+					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
 				
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
-					echo "/jffs/scripts/$SPD_NAME_LOWER startup"' # '"$SPD_NAME" >> /jffs/scripts/services-start
+					echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' # '"$SCRIPT_NAME" >> /jffs/scripts/services-start
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/services-start
 				echo "" >> /jffs/scripts/services-start
-				echo "/jffs/scripts/$SPD_NAME_LOWER startup"' # '"$SPD_NAME" >> /jffs/scripts/services-start
+				echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' # '"$SCRIPT_NAME" >> /jffs/scripts/services-start
 				chmod 0755 /jffs/scripts/services-start
 			fi
 		;;
 		delete)
 			if [ -f /jffs/scripts/services-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SPD_NAME" /jffs/scripts/services-start)
+				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
 				
 				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
-					sed -i -e '/# '"$SPD_NAME"'/d' /jffs/scripts/services-start
+					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
 			fi
 		;;
@@ -264,13 +288,13 @@ Auto_Cron(){
 	case $1 in
 		create)
 			Auto_Cron delete 2>/dev/null
-			cru a "$SPD_NAME" "12,42 * * * * /jffs/scripts/$SPD_NAME_LOWER generate"
+			cru a "$SCRIPT_NAME" "12,42 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 		;;
 		delete)
-			STARTUPLINECOUNT=$(cru l | grep -c "$SPD_NAME")
+			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
 			
 			if [ "$STARTUPLINECOUNT" -gt 0 ]; then
-				cru d "$SPD_NAME"
+				cru d "$SCRIPT_NAME"
 			fi
 		;;
 	esac
@@ -281,10 +305,14 @@ Download_File(){
 }
 
 RRD_Initialise(){
-	if [ ! -f /jffs/scripts/spdstats_rrd.rrd ]; then
-		Download_File "$SPD_REPO/spdstats_xml.xml" "/jffs/scripts/spdstats_xml.xml"
-		rrdtool restore -f /jffs/scripts/spdstats_xml.xml /jffs/scripts/spdstats_rrd.rrd
-		rm -f /jffs/scripts/spdstats_xml.xml
+	if [ -f "/jffs/scripts/spdstats_rrd.rrd" ]; then
+		mv "/jffs/scripts/spdstats_rrd.rrd" "$SCRIPT_DIR/spdstats_rrd.rrd"
+	fi
+	
+	if [ ! -f "$SCRIPT_DIR/spdstats_rrd.rrd" ]; then
+		Download_File "$SCRIPT_REPO/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_xml.xml"
+		rrdtool restore -f "$SCRIPT_DIR/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_xml.rrd"
+		rm -f "$SCRIPT_DIR/spdstats_xml.xml"
 	fi
 }
 
@@ -298,11 +326,16 @@ Get_CONNMON_UI(){
 
 Mount_SPD_WebUI(){
 	umount /www/Advanced_Feedback.asp 2>/dev/null
-	if [ ! -f /jffs/scripts/spdstats_www.asp ]; then
-		Download_File "$SPD_REPO/spdstats_www.asp" "/jffs/scripts/spdstats_www.asp"
+	
+	if [ -f "/jffs/scripts/spdstats_www.asp" ]; then
+		mv "/jffs/scripts/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
 	fi
 	
-	mount -o bind /jffs/scripts/spdstats_www.asp /www/Advanced_Feedback.asp
+	if [ ! -f "$SCRIPT_DIR/spdstats_www.asp" ]; then
+		Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
+	fi
+	
+	mount -o bind "$SCRIPT_DIR/spdstats_www.asp" /www/Advanced_Feedback.asp
 }
 
 Modify_WebUI_File(){
@@ -310,6 +343,12 @@ Modify_WebUI_File(){
 	umount /www/require/modules/menuTree.js 2>/dev/null
 	tmpfile=/tmp/menuTree.js
 	cp "/www/require/modules/menuTree.js" "$tmpfile"
+	
+	if [ -f "/jffs/scripts/uiDivStats" ]; then
+		sed -i '/{url: "Advanced_MultiSubnet_Content.asp", tabName: /d' "$tmpfile"
+		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_MultiSubnet_Content.asp", tabName: "Diversion Statistics"},' "$tmpfile"
+		sed -i '/retArray.push("Advanced_MultiSubnet_Content.asp");/d' "$tmpfile"
+	fi
 	
 	if [ -f "/jffs/scripts/connmon" ]; then
 		sed -i '/{url: "'"$(Get_CONNMON_UI)"'", tabName: /d' "$tmpfile"
@@ -325,13 +364,21 @@ Modify_WebUI_File(){
 		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "NTP Daemon"},' "$tmpfile"
 	fi
 	
-	if ! diff -q "$tmpfile" "/jffs/scripts/custom_menuTree.js" >/dev/null 2>&1; then
-		cp "$tmpfile" "/jffs/scripts/custom_menuTree.js"
+	if [ -f /jffs/scripts/custom_menuTree.js ]; then
+		mv /jffs/scripts/custom_menuTree.js "$SHARED_DIR/custom_menuTree.js"
+	fi
+	
+	if [ ! -f "$SHARED_DIR/custom_menuTree.js" ]; then
+		cp "$tmpfile" "$SHARED_DIR/custom_menuTree.js"
+	fi
+	
+	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_menuTree.js" >/dev/null 2>&1; then
+		cp "$tmpfile" "$SHARED_DIR/custom_menuTree.js"
 	fi
 	
 	rm -f "$tmpfile"
 	
-	mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
+	mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
 	### ###
 	
 	### state.js ###
@@ -340,63 +387,75 @@ Modify_WebUI_File(){
 	cp "/www/state.js" "$tmpfile"
 	sed -i -e '/else if(location.pathname == "\/Advanced_Feedback.asp") {/,+4d' "$tmpfile"
 	
-	if [ ! -f /jffs/scripts/custom_state.js ]; then
-		cp "/www/state.js" "/jffs/scripts/custom_state.js"
+	if [ -f /jffs/scripts/custom_state.js ]; then
+		mv /jffs/scripts/custom_state.js "$SHARED_DIR/custom_state.js"
 	fi
 	
-	if ! diff -q "$tmpfile" "/jffs/scripts/custom_state.js" >/dev/null 2>&1; then
-		cp "$tmpfile" "/jffs/scripts/custom_state.js"
+	if [ ! -f "$SHARED_DIR/custom_state.js" ]; then
+		cp "$tmpfile" "$SHARED_DIR/custom_state.js"
+	fi
+	
+	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_state.js" >/dev/null 2>&1; then
+		cp "$tmpfile" "$SHARED_DIR/custom_state.js"
 	fi
 	
 	rm -f "$tmpfile"
 	
-	mount -o bind /jffs/scripts/custom_state.js /www/state.js
+	mount -o bind "$SHARED_DIR/custom_state.js" /www/state.js
 	### ###
 	
 	### start_apply.htm ###
 	umount /www/start_apply.htm 2>/dev/null
 	tmpfile=/tmp/start_apply.htm
 	cp "/www/start_apply.htm" "$tmpfile"
-	#sed -i -e 's/setTimeout("parent.redirect();", action_wait\*1000);/parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time\*1000);/' "$tmpfile"
-	sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Advanced_Feedback.asp") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
 	
-	if [ -f /jffs/scripts/ntpmerlin ]; then
-		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Feedback_Info.asp") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
+	if [ -f "/jffs/scripts/uiDivStats" ]; then
+		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Advanced_MultiSubnet_Content.asp") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
 	fi
 	
 	if [ -f /jffs/scripts/connmon ]; then
 		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("'"$(Get_CONNMON_UI)"'") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
 	fi
 	
-	if [ ! -f /jffs/scripts/custom_start_apply.htm ]; then
-		cp "/www/start_apply.htm" "/jffs/scripts/custom_start_apply.htm"
+	if [ -f /jffs/scripts/ntpmerlin ]; then
+		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Feedback_Info.asp") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
 	fi
 	
-	if ! diff -q "$tmpfile" "/jffs/scripts/custom_start_apply.htm" >/dev/null 2>&1; then
-		cp "$tmpfile" "/jffs/scripts/custom_start_apply.htm"
+	sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Advanced_Feedback.asp") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect(); alert("Please force-reload this page (e.g. Ctrl+F5)");}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
+	
+	if [ -f /jffs/scripts/custom_start_apply.htm ]; then
+		mv /jffs/scripts/custom_start_apply.htm "$SHARED_DIR/custom_start_apply.htm"
+	fi
+	
+	if [ ! -f "$SHARED_DIR/custom_start_apply.htm" ]; then
+		cp "/www/start_apply.htm" "$SHARED_DIR/custom_start_apply.htm"
+	fi
+	
+	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_start_apply.htm" >/dev/null 2>&1; then
+		cp "$tmpfile" "$SHARED_DIR/custom_start_apply.htm"
 	fi
 	
 	rm -f "$tmpfile"
 	
-	mount -o bind /jffs/scripts/custom_start_apply.htm /www/start_apply.htm
+	mount -o bind "$SHARED_DIR/custom_start_apply.htm" /www/start_apply.htm
 	### ###
 }
 
 CacheGraphImages(){
 	case "$1" in
 		cache)
-			if [ "$(/usr/bin/find /www/ext/*speed*.png 2>/dev/null | wc -l)" -ge "1" ]; then
-				DIAGPATH="/tmp/""$SPD_NAME_LOWER""Diag"
-				mkdir -p "$DIAGPATH"
-				cp /www/ext/*speed*.png "$DIAGPATH"
-				rm -f "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz" 2>/dev/null
-				tar -czf "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz" -C "$DIAGPATH" .
-				rm -rf "$DIAGPATH" 2>/dev/null
+			if [ "$(ls "$SCRIPT_WEB_DIR" 2>/dev/null | wc -l)" -ge "1" ]; then
+				CACHEPATH="/tmp/""$SCRIPT_NAME""Cache"
+				mkdir -p "$CACHEPATH"
+				cp "$SCRIPT_WEB_DIR"/* "$CACHEPATH"
+				rm -f "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" 2>/dev/null
+				tar -czf "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" -C "$CACHEPATH" .
+				rm -rf "$CACHEPATH" 2>/dev/null
 			fi
 		;;
 		extract)
-			if [ -f "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz" ] && [ "$(/usr/bin/find /www/ext/*speed*.png 2>/dev/null | wc -l)" -eq "0" ]; then
-				tar -C /www/ext/ -xzf "/jffs/scripts/""$SPD_NAME_LOWER""_images.tar.gz"
+			if [ -f "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" ] && [ "$(ls "$SCRIPT_WEB_DIR" 2>/dev/null | wc -l)" -lt "3" ]; then
+				tar -C "$SCRIPT_WEB_DIR" -xzf "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz"
 			fi
 		;;
 	esac
@@ -404,7 +463,7 @@ CacheGraphImages(){
 
 GenerateServerList(){
 	printf "Generating list of 25 closest servers...\\n\\n"
-	serverlist="$(/jffs/scripts/spdcli.py --secure --list | sed '1d' | head -n 25)"
+	serverlist="$($SCRIPT_NAME/spdcli.py --secure --list | sed '1d' | head -n 25)"
 	COUNTER=1
 	until [ $COUNTER -gt 25 ]; do
 		serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
@@ -445,28 +504,28 @@ PreferredServer(){
 		update)
 			GenerateServerList
 			if [ "$serverno" != "exit" ]; then
-				sed -i 's/^PREFERREDSERVER.*$/PREFERREDSERVER='"$serverno""|""$servername"'/' "$SPD_CONF"
+				sed -i 's/^PREFERREDSERVER.*$/PREFERREDSERVER='"$serverno""|""$servername"'/' "$SCRIPT_CONF"
 			else
 				return 1
 			fi
 		;;
 		enable)
-			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=true/' "$SPD_CONF"
+			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=true/' "$SCRIPT_CONF"
 		;;
 		disable)
-			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=false/' "$SPD_CONF"
+			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=false/' "$SCRIPT_CONF"
 		;;
 		check)
-			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
+			USEPREFERRED=$(grep "USEPREFERRED" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if [ "$USEPREFERRED" = "true" ]; then return 0; else return 1; fi
 		;;
 		list)
-			PREFERREDSERVER=$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=")
+			PREFERREDSERVER=$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=")
 			echo "$PREFERREDSERVER"
 		;;
 		validate)
-			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SPD_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
-			/jffs/scripts/spdcli.py --secure --list > /tmp/spdServers.txt
+			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
+			"$SCRIPT_NAME"/spdcli.py --secure --list > /tmp/spdServers.txt
 			sed -i -e 's/^[ \t]*//;s/[ \t]*$//' /tmp/spdServers.txt
 			if grep -q "^$PREFERREDSERVERNO)" /tmp/spdServers.txt; then
 				rm -f /tmp/spdServers.txt
@@ -481,13 +540,13 @@ PreferredServer(){
 SingleMode(){
 	case "$1" in
 		enable)
-			sed -i 's/^USESINGLE.*$/USESINGLE=true/' "$SPD_CONF"
+			sed -i 's/^USESINGLE.*$/USESINGLE=true/' "$SCRIPT_CONF"
 		;;
 		disable)
-			sed -i 's/^USESINGLE.*$/USESINGLE=false/' "$SPD_CONF"
+			sed -i 's/^USESINGLE.*$/USESINGLE=false/' "$SCRIPT_CONF"
 		;;
 		check)
-			USESINGLE=$(grep "USESINGLE" "$SPD_CONF" | cut -f2 -d"=")
+			USESINGLE=$(grep "USESINGLE" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if [ "$USESINGLE" = "true" ]; then return 0; else return 1; fi
 		;;
 	esac
@@ -496,15 +555,15 @@ SingleMode(){
 AutomaticMode(){
 	case "$1" in
 		enable)
-			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SPD_CONF"
+			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SCRIPT_CONF"
 			Auto_Cron create 2>/dev/null
 		;;
 		disable)
-			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SPD_CONF"
+			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 		;;
 		check)
-			AUTOMATED=$(grep "AUTOMATED" "$SPD_CONF" | cut -f2 -d"=")
+			AUTOMATED=$(grep "AUTOMATED" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if [ "$AUTOMATED" = "true" ]; then return 0; else return 1; fi
 		;;
 	esac
@@ -519,6 +578,7 @@ Generate_SPDStats(){
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
+	Create_Dirs
 	Conf_Exists
 	mkdir -p "$(readlink /www/ext)"
 	
@@ -528,7 +588,7 @@ Generate_SPDStats(){
 	
 	if Check_Swap ; then
 		if [ "$mode" = "schedule" ]; then
-			USEPREFERRED=$(grep "USEPREFERRED" "$SPD_CONF" | cut -f2 -d"=")
+			USEPREFERRED=$(grep "USEPREFERRED" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if PreferredServer check; then
 				speedtestserverno="$(PreferredServer list | cut -f1 -d"|")"
 				speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
@@ -552,10 +612,10 @@ Generate_SPDStats(){
 		if [ "$mode" = "auto" ]; then
 			if SingleMode check; then
 				Print_Output "true" "Starting speedtest using auto-selected server in single connection mode" "$PASS"
-				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --single >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_NAME"/spdcli.py --secure --simple --no-pre-allocate --single >> /tmp/spd-rrdstats.$$
 			else
 				Print_Output "true" "Starting speedtest using auto-selected server in multi-connection mode" "$PASS"
-				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_NAME"/spdcli.py --secure --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
 			fi
 		else
 			if [ "$mode" != "onetime" ]; then
@@ -568,10 +628,10 @@ Generate_SPDStats(){
 			
 			if SingleMode check; then
 				Print_Output "true" "Starting speedtest using $speedtestservername in single connection mode" "$PASS"
-				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_NAME"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 			else
 				Print_Output "true" "Starting speedtest using $speedtestservername in multi-connection mode" "$PASS"
-				/jffs/scripts/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_NAME"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
 			fi
 		fi
 		
@@ -585,10 +645,10 @@ Generate_SPDStats(){
 		DATE_TEST=$(date "+%Y-%m-%d %H:%M")
 		
 		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$)"
-		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > /www/ext/spdtestresult.js
+		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > "$SCRIPT_WEB_DIR"/spdtestresult.js
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
-		RDB=/jffs/scripts/spdstats_rrd.rrd
+		RDB="$SCRIPT_NAME/spdstats_rrd.rrd"
 		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
 		
@@ -598,7 +658,7 @@ Generate_SPDStats(){
 		W_COMMON='--start -604800 --x-grid HOUR:3:DAY:1:DAY:1:0:%Y-%m-%d'
 		
 		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG /www/ext/nstats-speed-downld.png \
+		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/downld.png" \
 			$COMMON $D_COMMON \
 			--title "Download - $DATE" \
 			--vertical-label "Mbps" \
@@ -611,7 +671,7 @@ Generate_SPDStats(){
 			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG /www/ext/nstats-speed-upld.png \
+		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/upld.png" \
 			$COMMON $D_COMMON \
 			--title "Upload - $DATE" \
 			--vertical-label "Mbps" \
@@ -624,7 +684,7 @@ Generate_SPDStats(){
 			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-downld.png \
+		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/week-downld.png" \
 			$COMMON $W_COMMON --alt-autoscale-max \
 			--title "Download - $DATE" \
 			--vertical-label "Mbps" \
@@ -637,7 +697,7 @@ Generate_SPDStats(){
 			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
 		
 		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG /www/ext/nstats-week-speed-upld.png \
+		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/week-upld.png" \
 			$COMMON $W_COMMON --alt-autoscale-max \
 			--title "Upload - $DATE" \
 			--vertical-label "Mbps" \
@@ -661,14 +721,14 @@ Generate_SPDStats(){
 Shortcut_spdMerlin(){
 	case $1 in
 		create)
-			if [ -d "/opt/bin" ] && [ ! -f "/opt/bin/$SPD_NAME_LOWER" ] && [ -f "/jffs/scripts/$SPD_NAME_LOWER" ]; then
-				ln -s /jffs/scripts/"$SPD_NAME_LOWER" /opt/bin
-				chmod 0755 /opt/bin/"$SPD_NAME_LOWER"
+			if [ -d "/opt/bin" ] && [ ! -f "/opt/bin/$SCRIPT_NAME_LOWER" ] && [ -f "/jffs/scripts/$SCRIPT_NAME_LOWER" ]; then
+				ln -s /jffs/scripts/"$SCRIPT_NAME_LOWER" /opt/bin
+				chmod 0755 /opt/bin/"$SCRIPT_NAME_LOWER"
 			fi
 		;;
 		delete)
-			if [ -f "/opt/bin/$SPD_NAME_LOWER" ]; then
-				rm -f /opt/bin/"$SPD_NAME_LOWER"
+			if [ -f "/opt/bin/$SCRIPT_NAME_LOWER" ]; then
+				rm -f /opt/bin/"$SCRIPT_NAME_LOWER"
 			fi
 		;;
 	esac
@@ -701,7 +761,7 @@ ScriptHeader(){
 	printf "\\e[1m##      | |                                               ##\\e[0m\\n"
 	printf "\\e[1m##      |_|                                               ##\\e[0m\\n"
 	printf "\\e[1m##                                                        ##\\e[0m\\n"
-	printf "\\e[1m##                 %s on %-9s                    ##\\e[0m\\n" "$SPD_VERSION" "$ROUTER_MODEL"
+	printf "\\e[1m##                 %s on %-9s                    ##\\e[0m\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
 	printf "\\e[1m##                                                        ##\\e[0m\\n"
 	printf "\\e[1m##        https://github.com/jackyaz/spdMerlin            ##\\e[0m\\n"
 	printf "\\e[1m##                                                        ##\\e[0m\\n"
@@ -727,9 +787,9 @@ MainMenu(){
 	printf "7.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
 	#printf "8.    Configure schedule for automatic tests\\n      Currently %s\\n\\n" "$TEST_SCHEDULE"
 	printf "u.    Check for updates\\n"
-	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SPD_NAME"
-	printf "e.    Exit %s\\n\\n" "$SPD_NAME"
-	printf "z.    Uninstall %s\\n" "$SPD_NAME"
+	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
+	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
+	printf "z.    Uninstall %s\\n" "$SCRIPT_NAME"
 	printf "\\n"
 	printf "\\e[1m############################################################\\e[0m\\n"
 	printf "\\n"
@@ -801,12 +861,12 @@ MainMenu(){
 			;;
 			e)
 				ScriptHeader
-				printf "\\n\\e[1mThanks for using %s!\\e[0m\\n\\n\\n" "$SPD_NAME"
+				printf "\\n\\e[1mThanks for using %s!\\e[0m\\n\\n\\n" "$SCRIPT_NAME"
 				exit 0
 			;;
 			z)
 				while true; do
-					printf "\\n\\e[1mAre you sure you want to uninstall %s? (y/n)\\e[0m\\n" "$SPD_NAME"
+					printf "\\n\\e[1mAre you sure you want to uninstall %s? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
 					read -r "confirm"
 					case "$confirm" in
 						y|Y)
@@ -856,10 +916,10 @@ Check_Requirements(){
 }
 
 Menu_Install(){
-	Print_Output "true" "Welcome to $SPD_NAME $SPD_VERSION, a script by JackYaz"
+	Print_Output "true" "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
 	sleep 1
 	
-	Print_Output "true" "WARNING: Using $SPD_NAME with Internet speeds over 250Mbps can cause router memory/stability issues" "$WARN"
+	Print_Output "true" "WARNING: Using $SCRIPT_NAME with Internet speeds over 250Mbps can cause router memory/stability issues" "$WARN"
 	
 	while true; do
 		printf "\\n\\e[1mDo you want to continue? (y/n)\\e[0m\\n"
@@ -874,12 +934,13 @@ Menu_Install(){
 		esac
 	done
 	
-	Print_Output "true" "Checking your router meets the requirements for $SPD_NAME"
+	Print_Output "true" "Checking your router meets the requirements for $SCRIPT_NAME"
 	
 	if ! Check_Requirements; then
-		Print_Output "true" "Requirements for $SPD_NAME not met, please see above for the reason(s)" "$CRIT"
+		Print_Output "true" "Requirements for $SCRIPT_NAME not met, please see above for the reason(s)" "$CRIT"
 		PressEnter
 		Clear_Lock
+		rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 		exit 1
 	fi
 	
@@ -888,8 +949,10 @@ Menu_Install(){
 	opkg install rrdtool
 	opkg install ca-certificates
 	
-	Download_File "$SPD_REPO/spdcli.py" "/jffs/scripts/spdcli.py"
-	chmod 0755 /jffs/scripts/spdcli.py
+	Create_Dirs
+	
+	Download_File "$SCRIPT_REPO/spdcli.py" "$SCRIPT_DIR/spdcli.py"
+	chmod 0755 "$SCRIPT_DIR"/spdcli.py
 	
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
@@ -921,6 +984,7 @@ Menu_Startup(){
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
+	Create_Dirs
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	RRD_Initialise
@@ -968,16 +1032,16 @@ Menu_ForceUpdate(){
 }
 
 Menu_Uninstall(){
-	Print_Output "true" "Removing $SPD_NAME..." "$PASS"
+	Print_Output "true" "Removing $SCRIPT_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
 	Auto_ServiceEvent delete 2>/dev/null
 	while true; do
-		printf "\\n\\e[1mDo you want to delete %s stats? (y/n)\\e[0m\\n" "$SPD_NAME"
+		printf "\\n\\e[1mDo you want to delete %s stats? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
 		read -r "confirm"
 		case "$confirm" in
 			y|Y)
-				rm -f "/jffs/scripts/spdstats_rrd.rrd" 2>/dev/null
+				rm -f "$SCRIPT_DIR/spdstats_rrd.rrd" 2>/dev/null
 				break
 			;;
 			*)
@@ -988,27 +1052,32 @@ Menu_Uninstall(){
 	Shortcut_spdMerlin delete
 	opkg remove --autoremove python
 	umount /www/Advanced_Feedback.asp 2>/dev/null
-	sed -i '/{url: "Advanced_Feedback.asp", tabName: "SpeedTest"}/d' "/jffs/scripts/custom_menuTree.js"
+	sed -i '/{url: "Advanced_Feedback.asp", tabName: "SpeedTest"}/d' "$SHARED_DIR/custom_menuTree.js"
 	umount /www/require/modules/menuTree.js 2>/dev/null
 	umount /www/start_apply.htm 2>/dev/null
 	if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
 		opkg remove --autoremove rrdtool
-		rm -f "/jffs/scripts/custom_menuTree.js" 2>/dev/null
-		rm -f "/jffs/scripts/custom_start_apply.htm" 2>/dev/null
+		rm -f "$SHARED_DIR/custom_menuTree.js" 2>/dev/null
+		rm -f "$SHARED_DIR/custom_start_apply.htm" 2>/dev/null
 	else
-		mount -o bind "/jffs/scripts/custom_menuTree.js" "/www/require/modules/menuTree.js"
-		mount -o bind "/jffs/scripts/custom_start_apply.htm" "/www/start_apply.htm"
+		mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
+		mount -o bind "$SHARED_DIR/custom_start_apply.htm" "/www/start_apply.htm"
 	fi
-	rm -f "/jffs/scripts/custom_state.js" 2>/dev/null
-	rm -f "/jffs/scripts/spdstats_www.asp" 2>/dev/null
-	rm -f "/jffs/scripts/spdcli.py" 2>/dev/null
-	rm -f "/jffs/scripts/spdmerlin_images.tar.gz" 2>/dev/null
-	rm -f "/jffs/scripts/$SPD_NAME_LOWER" 2>/dev/null
+	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
+	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
+	rm -f "$SCRIPT_DIR/spdcli.py" 2>/dev/null
+	rm -f "$SCRIPT_DIR/spdmerlin_images.tar.gz" 2>/dev/null
+	rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 	Clear_Lock
 	Print_Output "true" "Uninstall completed" "$PASS"
 }
 
 if [ -z "$1" ]; then
+	Create_Dirs
+	Auto_Startup create 2>/dev/null
+	Auto_Cron create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
+	Shortcut_spdMerlin create
 	Conf_Exists
 	ScriptHeader
 	MainMenu
@@ -1030,7 +1099,7 @@ case "$1" in
 		if [ -z "$2" ] && [ -z "$3" ]; then
 			Check_Lock
 			Menu_GenerateStats "schedule"
-		elif [ "$2" = "start" ] && [ "$3" = "$SPD_NAME_LOWER" ]; then
+		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
 			Check_Lock
 			Menu_GenerateStats "schedule"
 		fi
