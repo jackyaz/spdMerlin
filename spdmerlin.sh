@@ -441,6 +441,7 @@ Modify_WebUI_File(){
 	### ###
 }
 
+# shellcheck disable=SC2012
 CacheGraphImages(){
 	case "$1" in
 		cache)
@@ -463,7 +464,7 @@ CacheGraphImages(){
 
 GenerateServerList(){
 	printf "Generating list of 25 closest servers...\\n\\n"
-	serverlist="$($SCRIPT_DIR/spdcli.py --secure --list | sed '1d' | head -n 25)"
+	serverlist="$("$SCRIPT_DIR"/spdcli.py --secure --list | sed '1d' | head -n 25)"
 	COUNTER=1
 	until [ $COUNTER -gt 25 ]; do
 		serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
@@ -649,7 +650,7 @@ Generate_SPDStats(){
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		RDB="$SCRIPT_DIR/spdstats_rrd.rrd"
-		rrdtool update $RDB N:"$NPING":"$NDOWNLD":"$NUPLD"
+		rrdtool update "$RDB" N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
 		
 		COMMON="-c SHADEA#475A5F -c SHADEB#475A5F -c BACK#475A5F -c CANVAS#92A0A520 -c AXIS#92a0a520 -c FONT#ffffff -c ARROW#475A5F -n TITLE:9 -n AXIS:8 -n LEGEND:9 -w 650 -h 200"
