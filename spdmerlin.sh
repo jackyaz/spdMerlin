@@ -580,7 +580,7 @@ Generate_SPDStats(){
 	Shortcut_spdMerlin create
 	Create_Dirs
 	Conf_Exists
-	mkdir -p "$(readlink /www/ext)"
+	RRD_Initialise
 	
 	mode="$1"
 	speedtestserverno=""
