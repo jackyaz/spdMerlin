@@ -863,6 +863,14 @@ MainMenu(){
 				Menu_ToggleAutomated
 				break
 			;;
+			8)
+				printf "\\n"
+				if Check_Lock "menu"; then
+					Menu_EditSchedule
+				fi
+				PressEnter
+				break
+			;;
 			u)
 				printf "\\n"
 				if Check_Lock "menu"; then
@@ -1039,6 +1047,47 @@ Menu_ToggleAutomated(){
 	else
 		AutomaticMode enable
 	fi
+}
+
+Menu_EditSchedule(){
+	exitmenu="false"
+	selectedoption=""
+	changesmade="false"
+	
+	ScriptHeader
+	
+	printf "\\n\\e[1mPlease select an option:\\e[0m\\n\\n"
+	printf "1.    Set Hour(s)\\n"
+	printf "2.    Set Minute(s)\\n"
+	printf "\\ne.    Go back\\n"
+	
+	while true; do
+		selectedoption=""
+		printf "\\n\\e[1mChoose an option:\\e[0m    "
+		read -r "selectedtime"
+			
+			case "$selectedtime" in
+				1)
+					selectedtime="hour"
+				;;
+				2)
+					selectedtime="minute"
+				;;
+				e)
+					exitmenu="true"
+					break
+				;;
+				*)
+					printf "\\nPlease choose a valid option\\n\\n"
+				;;
+			esac
+	done
+	
+	if [ "$exitmenu" != "true" ]; then
+		: #do stuff
+	fi
+	
+	Clear_Lock
 }
 
 Menu_Update(){
