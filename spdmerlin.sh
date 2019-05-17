@@ -1051,8 +1051,8 @@ Menu_ToggleAutomated(){
 
 Menu_EditSchedule(){
 	exitmenu="false"
-	selectedoption=""
-	changesmade="false"
+	selectedtime=""
+	#changesmade="false"
 	
 	ScriptHeader
 	
@@ -1062,11 +1062,11 @@ Menu_EditSchedule(){
 	printf "\\ne.    Go back\\n"
 	
 	while true; do
-		selectedoption=""
+		selectedtime=""
 		printf "\\n\\e[1mChoose an option:\\e[0m    "
-		read -r "selectedtime"
+		read -r "selectedoption"
 			
-			case "$selectedtime" in
+			case "$selectedoption" in
 				1)
 					selectedtime="hour"
 					break
@@ -1086,7 +1086,7 @@ Menu_EditSchedule(){
 	done
 	
 	if [ "$exitmenu" != "true" ]; then
-		: #do stuff
+		echo "$selectedtime"
 	fi
 	
 	Clear_Lock
