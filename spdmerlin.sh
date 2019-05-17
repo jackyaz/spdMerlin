@@ -1069,9 +1069,11 @@ Menu_EditSchedule(){
 			case "$selectedtime" in
 				1)
 					selectedtime="hour"
+					break
 				;;
 				2)
 					selectedtime="minute"
+					break
 				;;
 				e)
 					exitmenu="true"
