@@ -292,7 +292,15 @@ Auto_Cron(){
 	case $1 in
 		create)
 			Auto_Cron delete 2>/dev/null
-			cru a "$SCRIPT_NAME" "12 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
+			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
+			if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+				cru a "$SCRIPT_NAME" "12 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+			else
+				if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+					cru a "$SCRIPT_NAME" "12 ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+				fi
+			fi
 		;;
 		delete)
 			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
