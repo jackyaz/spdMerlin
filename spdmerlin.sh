@@ -295,12 +295,12 @@ Auto_Cron(){
 			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
 			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-				cru a "$SCRIPT_NAME" "12 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+				cru a "$SCRIPT_NAME" "12,42 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 			else
 				if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-					cru a "$SCRIPT_NAME" "12 ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 				else
-					cru a "$SCRIPT_NAME" "12 ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 				fi
 			fi
 		;;
