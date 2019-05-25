@@ -206,11 +206,13 @@ Conf_Exists(){
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
 		if [ "$(wc -l < "$SCRIPT_CONF")" -lt 6 ]; then
-			{ echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SCRIPT_CONF"
+			{ echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; } >> "$SCRIPT_CONF"
 		fi
+		sed -i -e 's/SCHEDULEMIN/SCHEDULESTART/' "$SCRIPT_CONF"
+		sed -i -e 's/SCHEDULEHOUR/SCHEDULEEND/' "$SCRIPT_CONF"
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULEMIN=*" ; echo "SCHEDULEHOUR=*"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -581,9 +583,9 @@ TestSchedule(){
 			Auto_Cron delete 2>/dev/null
 		;;
 		check)
-			SCHEDULEHOUR=$(grep "SCHEDULEHOUR" "$SCRIPT_CONF" | cut -f2 -d"=")
-			SCHEDULEMIN=$(grep "SCHEDULEMIN" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$SCHEDULEHOUR" != "*" ] && [ "$SCHEDULEMIN" != "*" ]; then return 0; else return 1; fi
+			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
+			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
+			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ]; then return 0; else return 1; fi
 		;;
 	esac
 }
