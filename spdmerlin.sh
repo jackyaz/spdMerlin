@@ -1108,11 +1108,7 @@ Menu_EditSchedule(){
 	fi
 	
 	if [ "$exitmenu" != "exit" ]; then
-		if [ "$starthour" -gt "$endhour" ]; then
-			TestSchedule "update" "$endhour" "$starthour"
-		elif [ "$starthour" -lt "$endhour" ]; then
-			TestSchedule "update" "$starthour" "$endhour"
-		fi
+		TestSchedule "update" "$starthour" "$endhour"
 	fi
 	
 	Clear_Lock
