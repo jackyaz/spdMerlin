@@ -288,7 +288,7 @@ Auto_Cron(){
 	case $1 in
 		create)
 			Auto_Cron delete 2>/dev/null
-			cru a "$SCRIPT_NAME" "12,42 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+			cru a "$SCRIPT_NAME" "12 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 		;;
 		delete)
 			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
