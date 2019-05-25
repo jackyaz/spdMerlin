@@ -2,8 +2,8 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
-## v1.1.2
-### Updated on 2019-04-20
+## v1.2.0
+### Updated on 2019-05-25
 ## About
 Run automated speedtests for your Internet on your router. Graphs available for speedtest results on the Tools page of the WebUI.
 
@@ -22,7 +22,9 @@ Love the script and want to support future development? Any and all donations gr
 
 ## Supported Models
 All modes supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Models confirmed to work are below:
+*   RT-AC68U
 *   RT-AC86U
+*   RT-AC3100
 
 ## Installation
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:
