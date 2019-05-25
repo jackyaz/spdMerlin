@@ -325,7 +325,7 @@ RRD_Initialise(){
 	
 	if [ ! -f "$SCRIPT_DIR/spdstats_rrd.rrd" ]; then
 		Download_File "$SCRIPT_REPO/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_xml.xml"
-		rrdtool restore -f "$SCRIPT_DIR/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_xml.rrd"
+		rrdtool restore -f "$SCRIPT_DIR/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_rrd.rrd"
 		rm -f "$SCRIPT_DIR/spdstats_xml.xml"
 	fi
 }
