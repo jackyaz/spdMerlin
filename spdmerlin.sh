@@ -1062,42 +1062,57 @@ Menu_ToggleAutomated(){
 
 Menu_EditSchedule(){
 	exitmenu="false"
-	selectedtime=""
-	#changesmade="false"
-	
+	starthour=""
 	ScriptHeader
 	
-	printf "\\n\\e[1mPlease select an option:\\e[0m\\n\\n"
-	printf "1.    Set Hour(s)\\n"
-	printf "2.    Set Minute(s)\\n"
-	printf "\\ne.    Go back\\n"
-	
 	while true; do
-		selectedtime=""
-		printf "\\n\\e[1mChoose an option:\\e[0m    "
-		read -r "selectedoption"
-			
-			case "$selectedoption" in
-				1)
-					selectedtime="hour"
-					break
-				;;
-				2)
-					selectedtime="minute"
-					break
-				;;
-				e)
-					exitmenu="true"
-					break
-				;;
-				*)
-					printf "\\nPlease choose a valid option\\n\\n"
-				;;
-			esac
+		printf "\\n\\e[1mPlease enter a start hour (0-23):\\e[0m\\n"
+		read -r "hour"
+		
+		if [ "$hour" = "e" ]; then
+			exitmenu="exit"
+			break
+		elif ! Validate_Number "" "$hour" "silent"; then
+			printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+		else
+			if [ "$hour" -lt 0 ] || [ "$hour" -gt 23 ]; then
+				printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
+			else
+				starthour="$hour"
+				printf "\\n"
+				break
+			fi
+		fi
 	done
 	
-	if [ "$exitmenu" != "true" ]; then
-		echo "$selectedtime"
+	if [ "$exitmenu" != "exit" ]; then
+		while true; do
+			printf "\\n\\e[1mPlease enter an end hour (0-23):\\e[0m\\n"
+			read -r "hour"
+			
+			if [ "$hour" = "e" ]; then
+				exitmenu="exit"
+				break
+			elif ! Validate_Number "" "$hour" "silent"; then
+				printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+			else
+				if [ "$hour" -lt 0 ] || [ "$hour" -gt 23 ]; then
+					printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
+				else
+					endhour="$hour"
+					printf "\\n"
+					break
+				fi
+			fi
+		done
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		if [ "$starthour" -gt "$endhour" ]; then
+			TestSchedule "update" "$endhour" "$starthour"
+		elif [ "$starthour" -lt "$endhour" ]; then
+			TestSchedule "update" "$starthour" "$endhour"
+		fi
 	fi
 	
 	Clear_Lock
