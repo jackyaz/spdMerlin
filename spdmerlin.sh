@@ -350,7 +350,7 @@ Mount_SPD_WebUI(){
 		Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
 	fi
 	
-	mount -o bind "$SCRIPT_DIR/spdstats_www.asp" "$(Get_spdMerlin_UI)"
+	mount -o bind "$SCRIPT_DIR/spdstats_www.asp" /www/"$(Get_spdMerlin_UI)"
 }
 
 Modify_WebUI_File(){
