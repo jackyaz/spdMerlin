@@ -45,6 +45,7 @@ serverno=""
 servername=""
 schedulestart=""
 scheduleend=""
+minutestart=""
 ### End of Speedtest Server Variables ###
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
@@ -329,13 +330,20 @@ Auto_Cron(){
 		if [ "$STARTUPLINECOUNT" -eq 0 ]; then
 				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
 				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
+				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+				if [ "$MINUTESTART" = "*" ]; then
+					MINUTESTART=12
+				fi
+				MINUTEEND=$(($MINUTESTART + 30))
+				[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$(($MINUTEEND - 60))
+				
 				if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-					cru a "$SCRIPT_NAME" "12,42 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 				else
 					if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-						cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 					else
-						cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 					fi
 				fi
 			fi
@@ -593,15 +601,18 @@ TestSchedule(){
 		update)
 			sed -i 's/^'"SCHEDULESTART"'.*$/SCHEDULESTART='"$2"'/' "$SCRIPT_CONF"
 			sed -i 's/^'"SCHEDULEEND"'.*$/SCHEDULEEND='"$3"'/' "$SCRIPT_CONF"
+			sed -i 's/^'"MINUTE"'.*$/MINUTE='"$4"'/' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
 		check)
 			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
 			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ]; then
+			MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ] && [ "$MINUTESTART" != "*" ]; then
 				schedulestart="$SCHEDULESTART"
 				scheduleend="$SCHEDULEEND"
+				minutestart="$MINUTESTART"
 				return 0
 			else
 				return 1
@@ -834,8 +845,16 @@ MainMenu(){
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
+		minuteend=$(($minutestart + 30))
+		[ "$minuteend" -gt 60 ] && minuteend=$(($minuteend - 60))
+		if [ "$minutestart" -lt "$minuteend" ]; then
+			TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
+		else
+			TEST_SCHEDULE2="Tests will run at $minuteend and $minutestart past the hour"
+		fi
 	else
 		TEST_SCHEDULE="No defined schedule - tests run every hour"
+		TEST_SCHEDULE2="Tests will run at 12 and 42 past the hour"
 	fi
 	
 	printf "1.    Run a speedtest now (auto select server)\\n"
@@ -845,7 +864,7 @@ MainMenu(){
 	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
 	printf "7.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "8.    Configure schedule for automatic tests\\n      %s\\n\\n" "$TEST_SCHEDULE"
+	printf "8.    Configure schedule for automatic tests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
@@ -1103,6 +1122,7 @@ Menu_ToggleAutomated(){
 Menu_EditSchedule(){
 	exitmenu="false"
 	starthour=""
+	startminute=""
 	ScriptHeader
 	
 	while true; do
@@ -1148,7 +1168,30 @@ Menu_EditSchedule(){
 	fi
 	
 	if [ "$exitmenu" != "exit" ]; then
-		TestSchedule "update" "$starthour" "$endhour"
+		while true; do
+			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m"
+			printf "\\n\\e[1mN.B. the test will run at half hour intervals\\e[0m\\n"
+			read -r "minute"
+			
+			if [ "$minute" = "e" ]; then
+				exitmenu="exit"
+				break
+			elif ! Validate_Number "" "$minute" "silent"; then
+				printf "\\n\\e[31mPlease enter a valid number (0-59)\\e[0m\\n"
+			else
+				if [ "$minute" -lt 0 ] || [ "$minute" -gt 59 ]; then
+					printf "\\n\\e[31mPlease enter a number between 0 and 59\\e[0m\\n"
+				else
+					startminute="$minute"
+					printf "\\n"
+					break
+				fi
+			fi
+		done
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		TestSchedule "update" "$starthour" "$endhour" "$startminute"
 	fi
 	
 	Clear_Lock
