@@ -723,8 +723,18 @@ Generate_SPDStats(){
 		{
 		echo "CREATE TABLE IF NOT EXISTS [spdstats] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
 		echo "INSERT INTO spdstats ([Timestamp],[Download],[Upload]) values($(date '+%s'),$download,$upload);"
-	} > /tmp/spd-stats.sql
+		} > /tmp/spd-stats.sql
 
+		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+		
+		{
+			echo ".mode csv"
+			echo ".output /tmp/spd-downloaddaily.csv"
+			echo "select [Timestamp],[Download] from spdstats WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+			echo ".output /tmp/spd-uploaddaily.csv"
+			echo "select [Timestamp],[Upload] from spdstats WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+		} > /tmp/spd-stats.sql
+		
 		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 		
 		rm -f /tmp/spd-stats.sql
