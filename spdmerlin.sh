@@ -320,18 +320,6 @@ Download_File(){
 	/usr/sbin/curl -fsL --retry 3 "$1" -o "$2"
 }
 
-RRD_Initialise(){
-	if [ -f "/jffs/scripts/spdstats_rrd.rrd" ]; then
-		mv "/jffs/scripts/spdstats_rrd.rrd" "$SCRIPT_DIR/spdstats_rrd.rrd"
-	fi
-	
-	if [ ! -f "$SCRIPT_DIR/spdstats_rrd.rrd" ]; then
-		Download_File "$SCRIPT_REPO/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_xml.xml"
-		rrdtool restore -f "$SCRIPT_DIR/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_rrd.rrd"
-		rm -f "$SCRIPT_DIR/spdstats_xml.xml"
-	fi
-}
-
 Get_spdMerlin_UI(){
 	if [ -f /www/AdaptiveQoS_ROG.asp ]; then
 		echo "AdaptiveQoS_ROG.asp"
@@ -456,27 +444,6 @@ Modify_WebUI_File(){
 	
 	mount -o bind "$SHARED_DIR/custom_start_apply.htm" /www/start_apply.htm
 	### ###
-}
-
-# shellcheck disable=SC2012
-CacheGraphImages(){
-	case "$1" in
-		cache)
-			if [ "$(ls "$SCRIPT_WEB_DIR" 2>/dev/null | wc -l)" -ge "1" ]; then
-				CACHEPATH="/tmp/""$SCRIPT_NAME""Cache"
-				mkdir -p "$CACHEPATH"
-				cp "$SCRIPT_WEB_DIR"/* "$CACHEPATH"
-				rm -f "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" 2>/dev/null
-				tar -czf "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" -C "$CACHEPATH" .
-				rm -rf "$CACHEPATH" 2>/dev/null
-			fi
-		;;
-		extract)
-			if [ -f "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" ] && [ "$(ls "$SCRIPT_WEB_DIR" 2>/dev/null | wc -l)" -lt "3" ]; then
-				tar -C "$SCRIPT_WEB_DIR" -xzf "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz"
-			fi
-		;;
-	esac
 }
 
 GenerateServerList(){
@@ -619,7 +586,6 @@ Generate_SPDStats(){
 	Shortcut_spdMerlin create
 	Create_Dirs
 	Conf_Exists
-	RRD_Initialise
 	
 	mode="$1"
 	speedtestserverno=""
@@ -687,68 +653,8 @@ Generate_SPDStats(){
 		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > "$SCRIPT_WEB_DIR"/spdtestresult.js
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
-		RDB="$SCRIPT_DIR/spdstats_rrd.rrd"
-		rrdtool update "$RDB" N:"$NPING":"$NDOWNLD":"$NUPLD"
 		rm /tmp/spd-rrdstats.$$
 		
-		COMMON="-c SHADEA#475A5F -c SHADEB#475A5F -c BACK#475A5F -c CANVAS#92A0A520 -c AXIS#92a0a520 -c FONT#ffffff -c ARROW#475A5F -n TITLE:9 -n AXIS:8 -n LEGEND:9 -w 650 -h 200"
-		
-		D_COMMON='--start -86400 --x-grid MINUTE:20:HOUR:2:HOUR:2:0:%H:%M'
-		W_COMMON='--start -604800 --x-grid HOUR:3:DAY:1:DAY:1:0:%Y-%m-%d'
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/downld.png" \
-			$COMMON $D_COMMON \
-			--title "Download - $DATE" \
-			--vertical-label "Mbps" \
-			DEF:download="$RDB":download:LAST \
-			CDEF:ndownld=download,1000,/ \
-			AREA:download#c4fd3d:"download" \
-			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
-			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
-			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/upld.png" \
-			$COMMON $D_COMMON \
-			--title "Upload - $DATE" \
-			--vertical-label "Mbps" \
-			DEF:upload="$RDB":upload:LAST \
-			CDEF:nupld=upload,1000,/ \
-			AREA:upload#96e78a:"upload" \
-			GPRINT:upload:MIN:"Min\: %3.2lf Mbps" \
-			GPRINT:upload:MAX:"Max\: %3.2lf Mbps" \
-			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/week-downld.png" \
-			$COMMON $W_COMMON --alt-autoscale-max \
-			--title "Download - $DATE" \
-			--vertical-label "Mbps" \
-			DEF:download="$RDB":download:LAST \
-			CDEF:ndownlad=download,1000,/ \
-			AREA:download#c4fd3d:"download" \
-			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
-			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
-			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/week-upld.png" \
-			$COMMON $W_COMMON --alt-autoscale-max \
-			--title "Upload - $DATE" \
-			--vertical-label "Mbps" \
-			DEF:upload="$RDB":upload:LAST \
-			CDEF:nupld=upload,1000,/ \
-			AREA:upload#96e78a:"uplad" \
-			GPRINT:upload:MIN:"Min\: %3.2lf Mbps" \
-			GPRINT:upload:MAX:"Max\: %3.2lf Mbps" \
-			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
-			
-		CacheGraphImages cache 2>/dev/null
 		Clear_Lock
 	else
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
@@ -998,7 +904,6 @@ Menu_Install(){
 	
 	opkg update
 	opkg install python
-	opkg install rrdtool
 	opkg install ca-certificates
 	
 	Create_Dirs
@@ -1014,7 +919,6 @@ Menu_Install(){
 	
 	Mount_SPD_WebUI
 	Modify_WebUI_File
-	RRD_Initialise
 	
 	while true; do
 		printf "\\n\\e[1mWould you like to run a speedtest now? (y/n)\\e[0m\\n"
@@ -1039,8 +943,6 @@ Menu_Startup(){
 	Create_Dirs
 	Mount_SPD_WebUI
 	Modify_WebUI_File
-	RRD_Initialise
-	CacheGraphImages extract 2>/dev/null
 	Clear_Lock
 }
 
@@ -1147,7 +1049,7 @@ Menu_Uninstall(){
 		read -r "confirm"
 		case "$confirm" in
 			y|Y)
-				rm -f "$SCRIPT_DIR/spdstats_rrd.rrd" 2>/dev/null
+				rm -rf "$SCRIPT_DIR" 2>/dev/null
 				break
 			;;
 			*)
@@ -1163,7 +1065,6 @@ Menu_Uninstall(){
 	umount /www/require/modules/menuTree.js 2>/dev/null
 	umount /www/start_apply.htm 2>/dev/null
 	if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
-		opkg remove --autoremove rrdtool
 		rm -f "$SHARED_DIR/custom_menuTree.js" 2>/dev/null
 		rm -f "$SHARED_DIR/custom_start_apply.htm" 2>/dev/null
 	else
