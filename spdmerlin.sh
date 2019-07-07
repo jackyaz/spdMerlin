@@ -627,6 +627,7 @@ WriteData_ToJS(){
 	echo "$3 = [];"; } >> "$2"
 	contents="$3"'.unshift('
 	while IFS='' read -r line || [ -n "$line" ]; do
+		if echo "$line" | grep -q "NaN"; then continue; fi
 		datapoint="{ x: moment.unix(""$(echo "$line" | awk 'BEGIN{FS=","}{ print $1 }' | awk '{$1=$1};1')""), y: ""$(echo "$line" | awk 'BEGIN{FS=","}{ print $2 }' | awk '{$1=$1};1')"" }"
 		contents="$contents""$datapoint"","
 	done < "$1"
@@ -654,7 +655,7 @@ WriteSql_ToFile(){
 	COUNTER=0
 	timenow="$(date '+%s')"
 	until [ $COUNTER -gt "$((24*$4/$3))" ]; do
-		echo "select $timenow - ((60*60*$3)*($COUNTER)),IFNULL(avg([$1]),0) from $2 WHERE ([Timestamp] >= $timenow - ((60*60*$3)*($COUNTER+1))) AND ([Timestamp] <= $timenow - ((60*60*$3)*$COUNTER));" >> "$6"
+		echo "select $timenow - ((60*60*$3)*($COUNTER)),IFNULL(avg([$1]),'NaN') from $2 WHERE ([Timestamp] >= $timenow - ((60*60*$3)*($COUNTER+1))) AND ([Timestamp] <= $timenow - ((60*60*$3)*$COUNTER));" >> "$6"
 		COUNTER=$((COUNTER + 1))
 	done
 }
