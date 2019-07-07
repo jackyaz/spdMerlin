@@ -16,7 +16,7 @@ Permission received from JGrana to publish this!
 
 ### This script uses a large amount of RAM/memory when the speedtest is running, and as such a swap file is required
 
-![Menu UI](https://puu.sh/DaS7M/7b1a0f1bc5.png)
+![Menu UI](https://puu.sh/DPOBa/884ab7dbdc.png)
 
 ![Graph example](https://puu.sh/DPKCC/a314d9b1a4.png)
 
