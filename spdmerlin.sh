@@ -242,14 +242,12 @@ Conf_Exists(){
 		dos2unix "$SCRIPT_CONF"
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
-		if [ "$(wc -l < "$SCRIPT_CONF")" -lt 6 ]; then
-			{ echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; } >> "$SCRIPT_CONF"
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 6 ]; then
+			{ echo "MINUTE=*"; } >> "$SCRIPT_CONF"
 		fi
-		sed -i -e 's/SCHEDULEMIN/SCHEDULESTART/' "$SCRIPT_CONF"
-		sed -i -e 's/SCHEDULEHOUR/SCHEDULEEND/' "$SCRIPT_CONF"
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
