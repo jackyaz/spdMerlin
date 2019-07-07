@@ -19,14 +19,16 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v1.2.0"
-readonly SPD_VERSION="v1.2.0"
-readonly SCRIPT_BRANCH="master"
+readonly SCRIPT_VERSION="v2.0.0"
+readonly SPD_VERSION="v2.0.0"
+readonly SCRIPT_BRANCH="develop"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
 readonly SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
 readonly SHARED_DIR="/jffs/scripts/shared-jy"
+readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
+readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 ### End of script variables ###
 
