@@ -325,16 +325,19 @@ Auto_Startup(){
 Auto_Cron(){
 	case $1 in
 		create)
-			Auto_Cron delete 2>/dev/null
-			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
-			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-				cru a "$SCRIPT_NAME" "12,42 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-			else
-				if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-					cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+		STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
+		
+		if [ "$STARTUPLINECOUNT" -eq 0 ]; then
+				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
+				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
+				if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+					cru a "$SCRIPT_NAME" "12,42 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 				else
-					cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+						cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					else
+						cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					fi
 				fi
 			fi
 		;;
@@ -591,6 +594,7 @@ TestSchedule(){
 		update)
 			sed -i 's/^'"SCHEDULESTART"'.*$/SCHEDULESTART='"$2"'/' "$SCRIPT_CONF"
 			sed -i 's/^'"SCHEDULEEND"'.*$/SCHEDULEEND='"$3"'/' "$SCRIPT_CONF"
+			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
 		check)
