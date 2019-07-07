@@ -334,8 +334,8 @@ Auto_Cron(){
 				if [ "$MINUTESTART" = "*" ]; then
 					MINUTESTART=12
 				fi
-				MINUTEEND=$(($MINUTESTART + 30))
-				[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$(($MINUTEEND - 60))
+				MINUTEEND=$((MINUTESTART + 30))
+				[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
 				
 				if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
 					cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
@@ -845,8 +845,8 @@ MainMenu(){
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
-		minuteend=$(($minutestart + 30))
-		[ "$minuteend" -gt 60 ] && minuteend=$(($minuteend - 60))
+		minuteend=$((minutestart + 30))
+		[ "$minuteend" -gt 60 ] && minuteend=$((minuteend - 60))
 		if [ "$minutestart" -lt "$minuteend" ]; then
 			TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
 		else
