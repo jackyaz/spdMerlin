@@ -612,11 +612,45 @@ TestSchedule(){
 	esac
 }
 
+WriteData_ToJS(){
+	{
+	echo "var $3;"
+	echo "$3 = [];"; } >> "$2"
+	contents="$3"'.unshift('
+	while IFS='' read -r line || [ -n "$line" ]; do
+		datapoint="{ x: moment.unix(""$(echo "$line" | awk 'BEGIN{FS=","}{ print $1 }' | awk '{$1=$1};1')""), y: ""$(echo "$line" | awk 'BEGIN{FS=","}{ print $2 }' | awk '{$1=$1};1')"" }"
+		contents="$contents""$datapoint"","
+	done < "$1"
+	contents=$(echo "$contents" | sed 's/.$//')
+	contents="$contents"");"
+	printf "%s\\r\\n\\r\\n" "$contents" >> "$2"
+}
+
+WriteStats_ToJS(){
+	echo "function $3(){" > "$2"
+	html='document.getElementById("'"$4"'").innerHTML="'
+	while IFS='' read -r line || [ -n "$line" ]; do
+		html="$html""$line""\\r\\n"
+	done < "$1"
+	html="$html"'"'
+	printf "%s\\r\\n}\\r\\n" "$html" >> "$2"
+}
+
+#$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 sqlfile
+WriteSql_ToFile(){
+	{
+		echo ".mode csv"
+		echo ".output $5"
+	} >> "$6"
+	COUNTER=0
+	timenow="$(date '+%s')"
+	until [ $COUNTER -gt "$((24*$4/$3))" ]; do
+		echo "select $timenow - ((60*60*$3)*($COUNTER)),IFNULL(avg([$1]),0) from $2 WHERE ([Timestamp] >= $timenow - ((60*60*$3)*($COUNTER+1))) AND ([Timestamp] <= $timenow - ((60*60*$3)*$COUNTER));" >> "$6"
+		COUNTER=$((COUNTER + 1))
+	done
+}
+
 Generate_SPDStats(){
-	# This script is adapted from http://www.wraith.sf.ca.us/ntp
-	# This function originally written by kvic, further adapted by JGrana
-	# to display Internet Speedtest results and maintained by Jack Yaz
-	# The original is part of a set of scripts written by Steven Bjork.
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -628,6 +662,8 @@ Generate_SPDStats(){
 	mode="$1"
 	speedtestserverno=""
 	speedtestservername=""
+	
+	tmpfile=/tmp/spd-stats.txt
 	
 	if Check_Swap ; then
 		if [ "$mode" = "schedule" ]; then
@@ -655,10 +691,10 @@ Generate_SPDStats(){
 		if [ "$mode" = "auto" ]; then
 			if SingleMode check; then
 				Print_Output "true" "Starting speedtest using auto-selected server in single connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single >> "$tmpfile"
 			else
 				Print_Output "true" "Starting speedtest using auto-selected server in multi-connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate >> "$tmpfile"
 			fi
 		else
 			if [ "$mode" != "onetime" ]; then
@@ -671,27 +707,55 @@ Generate_SPDStats(){
 			
 			if SingleMode check; then
 				Print_Output "true" "Starting speedtest using $speedtestservername in single connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> "$tmpfile"
 			else
 				Print_Output "true" "Starting speedtest using $speedtestservername in multi-connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> "$tmpfile"
 			fi
 		fi
 		
-		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
-		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
-		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
-		
 		TZ=$(cat /etc/TZ)
 		export TZ
-		DATE=$(date "+%a %b %e %H:%M %Y")
-		DATE_TEST=$(date "+%Y-%m-%d %H:%M")
 		
-		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$)"
-		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > "$SCRIPT_WEB_DIR"/spdtestresult.js
+		download=$(grep Download "$tmpfile" | awk 'BEGIN{FS=" "}{print $2}')
+		upload=$(grep Upload "$tmpfile" | awk 'BEGIN{FS=" "}{print $2}')
+		
+		{
+		echo "CREATE TABLE IF NOT EXISTS [spdstats] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
+		echo "INSERT INTO spdstats ([Timestamp],[Download],[Upload]) values($(date '+%s'),$download,$upload);"
+	} > /tmp/spd-stats.sql
+
+		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+		
+		rm -f /tmp/spd-stats.sql
+		
+		WriteSql_ToFile "Download" "spdstats" 1 7 "/tmp/spd-downloadweekly.csv" "/tmp/spd-stats.sql"
+		WriteSql_ToFile "Upload" "spdstats" 1 7 "/tmp/spd-uploadweekly.csv" "/tmp/spd-stats.sql"
+		WriteSql_ToFile "Download" "spdstats" 3 30 "/tmp/spd-downloadmonthly.csv" "/tmp/spd-stats.sql"
+		WriteSql_ToFile "Upload" "spdstats" 3 30 "/tmp/spd-uploadmonthly.csv" "/tmp/spd-stats.sql"
+	
+		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+		
+		rm -f "$SCRIPT_DIR/spdstatsdata.js"
+		WriteData_ToJS "/tmp/spd-downloaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadDaily"
+		WriteData_ToJS "/tmp/spd-uploaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadDaily"
+
+		WriteData_ToJS "/tmp/spd-downloadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadWeekly"
+		WriteData_ToJS "/tmp/spd-uploadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadWeekly"
+
+		WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly"
+		WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly"
+		
+		spdtestresult="$(grep Download "$tmpfile") - $(grep Upload "$tmpfile")"
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
-		rm /tmp/spd-rrdstats.$$
+		echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
+		WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
+		
+		rm -f "$tmpfile"
+		rm -f "/tmp/spd-"*".csv"
+		rm -f "/tmp/spd-stats.sql"
+		rm -f "/tmp/spdstatstitle.txt"
 		
 		Clear_Lock
 	else
@@ -902,6 +966,18 @@ Check_Requirements(){
 	if [ ! -f "/opt/bin/opkg" ]; then
 		Print_Output "true" "Entware not detected!" "$ERR"
 		CHECKSFAILED="true"
+		return 1
+	fi
+	
+	if [ "$(Firmware_Version_Check "$(nvram get buildno)")" -lt "$(Firmware_Version_Check 384.11)" ] && [ "$(Firmware_Version_Check "$(nvram get buildno)")" -ne "$(Firmware_Version_Check 374.43)" ]; then
+		Print_Output "true" "Older Merlin firmware detected - $SCRIPT_NAME requires 384.11 or later for sqlite3 support" "$WARN"
+		Print_Output "true" "Installing sqlite3-cli from Entware..." "$WARN"
+		opkg update
+		opkg install sqlite3-cli
+	elif [ "$(Firmware_Version_Check "$(nvram get buildno)")" -eq "$(Firmware_Version_Check 374.43)" ]; then
+		Print_Output "true" "John's fork detected - unsupported" "$ERR"
+		CHECKSFAILED="true"
+	return 1
 	fi
 	
 	if [ "$CHECKSFAILED" = "false" ]; then
@@ -925,6 +1001,7 @@ Menu_Install(){
 				break
 			;;
 			*)
+				rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 				exit 1
 			;;
 		esac
