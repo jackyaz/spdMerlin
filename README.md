@@ -18,7 +18,7 @@ Permission received from JGrana to publish this!
 
 ![Menu UI](https://puu.sh/DPOBa/884ab7dbdc.png)
 
-![Graph example](https://puu.sh/DPKCC/a314d9b1a4.png)
+![Graph example](https://puu.sh/DQ8cX/612747873c.png)
 
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
