@@ -2,29 +2,38 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
-## v1.2.0
-### Updated on 2019-05-25
+## v2.0.0
+### Updated on 2019-07-08
 ## About
-Run automated speedtests for your Internet on your router. Graphs available for speedtest results on the Tools page of the WebUI.
+Run automated speedtests for your Internet on your router with graphs available on the Tools page of the WebUI.
 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
 spdMerlin uses [speedtest-cli](https://github.com/sivel/speedtest-cli)
 
-This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/), which was adapted from [ntpMerlin](https://github.com/jackyaz/ntpMerlin)
+This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
 Permission received from JGrana to publish this!
 
-![Menu UI](https://puu.sh/DaS7M/7b1a0f1bc5.png)
+### This script uses a large amount of RAM/memory when the speedtest is running, and as such a swap file is required
+### The speedtest is scheduled to run at 12 past and 42 past the hour, every hour, by default
+
+![Menu UI](https://puu.sh/DPOBa/884ab7dbdc.png)
+
+![Graph example](https://puu.sh/DQ8cX/612747873c.png)
 
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
 [**PayPal donation**](https://paypal.me/jackyaz21)
 
 ## Supported Models
+### Models
 All modes supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Models confirmed to work are below:
 *   RT-AC68U
 *   RT-AC86U
 *   RT-AC3100
+
+### Firmware versions
+You must be running firmware no earlier than 384.XX [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/)
 
 ## Installation
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:

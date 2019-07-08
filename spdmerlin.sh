@@ -19,15 +19,18 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v1.2.0"
-readonly SPD_VERSION="v1.2.0"
+readonly SCRIPT_VERSION="v2.0.0"
+readonly SPD_VERSION="v2.0.0"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
 readonly SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
 readonly SHARED_DIR="/jffs/scripts/shared-jy"
+readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
+readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
+[ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 ### End of script variables ###
 
 ### Start of output format variables ###
@@ -42,6 +45,7 @@ serverno=""
 servername=""
 schedulestart=""
 scheduleend=""
+minutestart=""
 ### End of Speedtest Server Variables ###
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
@@ -117,6 +121,10 @@ Update_Version(){
 		
 		Update_File "spdcli.py"
 		Update_File "spdstats_www.asp"
+		Update_File "chartjs-plugin-zoom.js"
+		Update_File "chartjs-plugin-annotation.js"
+		Update_File "hammerjs.js"
+		Update_File "moment.js"
 		Modify_WebUI_File
 		
 		if [ "$doupdate" != "false" ]; then
@@ -136,6 +144,10 @@ Update_Version(){
 			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 			Update_File "spdcli.py"
 			Update_File "spdstats_www.asp"
+			Update_File "chartjs-plugin-zoom.js"
+			Update_File "chartjs-plugin-annotation.js"
+			Update_File "hammerjs.js"
+			Update_File "moment.js"
 			Modify_WebUI_File
 			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
@@ -162,13 +174,21 @@ Update_File(){
 	elif [ "$1" = "spdstats_www.asp" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
-		if [ -f "/jffs/scripts/$1" ]; then
-			mv "/jffs/scripts/$1" "$SCRIPT_DIR/$1"
-		fi
 		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
 			Print_Output "true" "New version of $1 downloaded" "$PASS"
-			rm -f "$SCRIPT_DIR/$1"
+			mv "$SCRIPT_DIR/$1" "$SCRIPT_DIR/$1.old"
 			Mount_SPD_WebUI
+		fi
+		rm -f "$tmpfile"
+	elif [ "$1" = "chartjs-plugin-zoom.js" ] || [ "$1" = "chartjs-plugin-annotation.js" ] || [ "$1" = "moment.js" ] || [ "$1" =  "hammerjs.js" ]; then
+		tmpfile="/tmp/$1"
+		Download_File "$SHARED_REPO/$1" "$tmpfile"
+		if [ ! -f "$SHARED_DIR/$1" ]; then
+			touch "$SHARED_DIR/$1"
+		fi
+		if ! diff -q "$tmpfile" "$SHARED_DIR/$1" >/dev/null 2>&1; then
+			Print_Output "true" "New version of $1 downloaded" "$PASS"
+			Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
 		fi
 		rm -f "$tmpfile"
 	else
@@ -200,6 +220,22 @@ Create_Dirs(){
 	if [ ! -d "$SCRIPT_WEB_DIR" ]; then
 		mkdir -p "$SCRIPT_WEB_DIR"
 	fi
+	
+	if [ ! -d "$SHARED_WEB_DIR" ]; then
+		mkdir -p "$SHARED_WEB_DIR"
+	fi
+}
+
+Create_Symlinks(){
+	rm -f "$SCRIPT_WEB_DIR/"* 2>/dev/null
+	
+	ln -s "$SCRIPT_DIR/spdstatsdata.js" "$SCRIPT_WEB_DIR/spdstatsdata.js" 2>/dev/null
+	ln -s "$SCRIPT_DIR/spdstatstext.js" "$SCRIPT_WEB_DIR/spdstatstext.js" 2>/dev/null
+	
+	ln -s "$SHARED_DIR/chartjs-plugin-zoom.js" "$SHARED_WEB_DIR/chartjs-plugin-zoom.js" 2>/dev/null
+	ln -s "$SHARED_DIR/chartjs-plugin-annotation.js" "$SHARED_WEB_DIR/chartjs-plugin-annotation.js" 2>/dev/null
+	ln -s "$SHARED_DIR/hammerjs.js" "$SHARED_WEB_DIR/hammerjs.js" 2>/dev/null
+	ln -s "$SHARED_DIR/moment.js" "$SHARED_WEB_DIR/moment.js" 2>/dev/null
 }
 
 Conf_Exists(){
@@ -207,14 +243,12 @@ Conf_Exists(){
 		dos2unix "$SCRIPT_CONF"
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
-		if [ "$(wc -l < "$SCRIPT_CONF")" -lt 6 ]; then
-			{ echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; } >> "$SCRIPT_CONF"
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 6 ]; then
+			{ echo "MINUTE=*"; } >> "$SCRIPT_CONF"
 		fi
-		sed -i -e 's/SCHEDULEMIN/SCHEDULESTART/' "$SCRIPT_CONF"
-		sed -i -e 's/SCHEDULEHOUR/SCHEDULEEND/' "$SCRIPT_CONF"
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -291,16 +325,26 @@ Auto_Startup(){
 Auto_Cron(){
 	case $1 in
 		create)
-			Auto_Cron delete 2>/dev/null
-			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
-			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-				cru a "$SCRIPT_NAME" "12,42 * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-			else
-				if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-					cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+		STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
+		
+		if [ "$STARTUPLINECOUNT" -eq 0 ]; then
+				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
+				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
+				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+				if [ "$MINUTESTART" = "*" ]; then
+					MINUTESTART=12
+				fi
+				MINUTEEND=$((MINUTESTART + 30))
+				[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
+				
+				if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+					cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 				else
-					cru a "$SCRIPT_NAME" "12,42 ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					else
+						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					fi
 				fi
 			fi
 		;;
@@ -316,18 +360,6 @@ Auto_Cron(){
 
 Download_File(){
 	/usr/sbin/curl -fsL --retry 3 "$1" -o "$2"
-}
-
-RRD_Initialise(){
-	if [ -f "/jffs/scripts/spdstats_rrd.rrd" ]; then
-		mv "/jffs/scripts/spdstats_rrd.rrd" "$SCRIPT_DIR/spdstats_rrd.rrd"
-	fi
-	
-	if [ ! -f "$SCRIPT_DIR/spdstats_rrd.rrd" ]; then
-		Download_File "$SCRIPT_REPO/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_xml.xml"
-		rrdtool restore -f "$SCRIPT_DIR/spdstats_xml.xml" "$SCRIPT_DIR/spdstats_rrd.rrd"
-		rm -f "$SCRIPT_DIR/spdstats_xml.xml"
-	fi
 }
 
 Get_spdMerlin_UI(){
@@ -456,27 +488,6 @@ Modify_WebUI_File(){
 	### ###
 }
 
-# shellcheck disable=SC2012
-CacheGraphImages(){
-	case "$1" in
-		cache)
-			if [ "$(ls "$SCRIPT_WEB_DIR" 2>/dev/null | wc -l)" -ge "1" ]; then
-				CACHEPATH="/tmp/""$SCRIPT_NAME""Cache"
-				mkdir -p "$CACHEPATH"
-				cp "$SCRIPT_WEB_DIR"/* "$CACHEPATH"
-				rm -f "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" 2>/dev/null
-				tar -czf "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" -C "$CACHEPATH" .
-				rm -rf "$CACHEPATH" 2>/dev/null
-			fi
-		;;
-		extract)
-			if [ -f "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz" ] && [ "$(ls "$SCRIPT_WEB_DIR" 2>/dev/null | wc -l)" -lt "3" ]; then
-				tar -C "$SCRIPT_WEB_DIR" -xzf "$SCRIPT_DIR/$SCRIPT_NAME""_cache.tar.gz"
-			fi
-		;;
-	esac
-}
-
 GenerateServerList(){
 	printf "Generating list of 25 closest servers...\\n\\n"
 	serverlist="$("$SCRIPT_DIR"/spdcli.py --secure --list | sed '1d' | head -n 25)"
@@ -590,14 +601,18 @@ TestSchedule(){
 		update)
 			sed -i 's/^'"SCHEDULESTART"'.*$/SCHEDULESTART='"$2"'/' "$SCRIPT_CONF"
 			sed -i 's/^'"SCHEDULEEND"'.*$/SCHEDULEEND='"$3"'/' "$SCRIPT_CONF"
+			sed -i 's/^'"MINUTE"'.*$/MINUTE='"$4"'/' "$SCRIPT_CONF"
+			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
 		check)
 			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
 			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ]; then
+			MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ] && [ "$MINUTESTART" != "*" ]; then
 				schedulestart="$SCHEDULESTART"
 				scheduleend="$SCHEDULEEND"
+				minutestart="$MINUTESTART"
 				return 0
 			else
 				return 1
@@ -606,22 +621,59 @@ TestSchedule(){
 	esac
 }
 
+WriteData_ToJS(){
+	{
+	echo "var $3;"
+	echo "$3 = [];"; } >> "$2"
+	contents="$3"'.unshift('
+	while IFS='' read -r line || [ -n "$line" ]; do
+		if echo "$line" | grep -q "NaN"; then continue; fi
+		datapoint="{ x: moment.unix(""$(echo "$line" | awk 'BEGIN{FS=","}{ print $1 }' | awk '{$1=$1};1')""), y: ""$(echo "$line" | awk 'BEGIN{FS=","}{ print $2 }' | awk '{$1=$1};1')"" }"
+		contents="$contents""$datapoint"","
+	done < "$1"
+	contents=$(echo "$contents" | sed 's/.$//')
+	contents="$contents"");"
+	printf "%s\\r\\n\\r\\n" "$contents" >> "$2"
+}
+
+WriteStats_ToJS(){
+	echo "function $3(){" > "$2"
+	html='document.getElementById("'"$4"'").innerHTML="'
+	while IFS='' read -r line || [ -n "$line" ]; do
+		html="$html""$line""\\r\\n"
+	done < "$1"
+	html="$html"'"'
+	printf "%s\\r\\n}\\r\\n" "$html" >> "$2"
+}
+
+#$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 sqlfile
+WriteSql_ToFile(){
+	{
+		echo ".mode csv"
+		echo ".output $5"
+	} >> "$6"
+	COUNTER=0
+	timenow="$(date '+%s')"
+	until [ $COUNTER -gt "$((24*$4/$3))" ]; do
+		echo "select $timenow - ((60*60*$3)*($COUNTER)),IFNULL(avg([$1]),'NaN') from $2 WHERE ([Timestamp] >= $timenow - ((60*60*$3)*($COUNTER+1))) AND ([Timestamp] <= $timenow - ((60*60*$3)*$COUNTER));" >> "$6"
+		COUNTER=$((COUNTER + 1))
+	done
+}
+
 Generate_SPDStats(){
-	# This script is adapted from http://www.wraith.sf.ca.us/ntp
-	# This function originally written by kvic, further adapted by JGrana
-	# to display Internet Speedtest results and maintained by Jack Yaz
-	# The original is part of a set of scripts written by Steven Bjork.
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Create_Dirs
+	Create_Symlinks
 	Conf_Exists
-	RRD_Initialise
 	
 	mode="$1"
 	speedtestserverno=""
 	speedtestservername=""
+	
+	tmpfile=/tmp/spd-stats.txt
 	
 	if Check_Swap ; then
 		if [ "$mode" = "schedule" ]; then
@@ -649,10 +701,10 @@ Generate_SPDStats(){
 		if [ "$mode" = "auto" ]; then
 			if SingleMode check; then
 				Print_Output "true" "Starting speedtest using auto-selected server in single connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single >> "$tmpfile"
 			else
 				Print_Output "true" "Starting speedtest using auto-selected server in multi-connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate >> "$tmpfile"
 			fi
 		else
 			if [ "$mode" != "onetime" ]; then
@@ -665,88 +717,66 @@ Generate_SPDStats(){
 			
 			if SingleMode check; then
 				Print_Output "true" "Starting speedtest using $speedtestservername in single connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> "$tmpfile"
 			else
 				Print_Output "true" "Starting speedtest using $speedtestservername in multi-connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> /tmp/spd-rrdstats.$$
+				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> "$tmpfile"
 			fi
 		fi
 		
-		NPING=$(grep Ping /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
-		NDOWNLD=$(grep Download /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
-		NUPLD=$(grep Upload /tmp/spd-rrdstats.$$ | awk 'BEGIN{FS=" "}{print $2}')
-		
 		TZ=$(cat /etc/TZ)
 		export TZ
-		DATE=$(date "+%a %b %e %H:%M %Y")
-		DATE_TEST=$(date "+%Y-%m-%d %H:%M")
 		
-		spdtestresult="$(grep Download /tmp/spd-rrdstats.$$) - $(grep Upload /tmp/spd-rrdstats.$$)"
-		echo 'document.getElementById("spdtestresult").innerHTML="Latest Speedtest Result: '"$DATE_TEST - $spdtestresult"'"' > "$SCRIPT_WEB_DIR"/spdtestresult.js
+		download=$(grep Download "$tmpfile" | awk 'BEGIN{FS=" "}{print $2}')
+		upload=$(grep Upload "$tmpfile" | awk 'BEGIN{FS=" "}{print $2}')
+		
+		{
+		echo "CREATE TABLE IF NOT EXISTS [spdstats] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
+		echo "INSERT INTO spdstats ([Timestamp],[Download],[Upload]) values($(date '+%s'),$download,$upload);"
+		} > /tmp/spd-stats.sql
+
+		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+		
+		{
+			echo ".mode csv"
+			echo ".output /tmp/spd-downloaddaily.csv"
+			echo "select [Timestamp],[Download] from spdstats WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+			echo ".output /tmp/spd-uploaddaily.csv"
+			echo "select [Timestamp],[Upload] from spdstats WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+		} > /tmp/spd-stats.sql
+		
+		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+		
+		rm -f /tmp/spd-stats.sql
+		
+		WriteSql_ToFile "Download" "spdstats" 1 7 "/tmp/spd-downloadweekly.csv" "/tmp/spd-stats.sql"
+		WriteSql_ToFile "Upload" "spdstats" 1 7 "/tmp/spd-uploadweekly.csv" "/tmp/spd-stats.sql"
+		WriteSql_ToFile "Download" "spdstats" 3 30 "/tmp/spd-downloadmonthly.csv" "/tmp/spd-stats.sql"
+		WriteSql_ToFile "Upload" "spdstats" 3 30 "/tmp/spd-uploadmonthly.csv" "/tmp/spd-stats.sql"
+	
+		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+		
+		rm -f "$SCRIPT_DIR/spdstatsdata.js"
+		WriteData_ToJS "/tmp/spd-downloaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadDaily"
+		WriteData_ToJS "/tmp/spd-uploaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadDaily"
+
+		WriteData_ToJS "/tmp/spd-downloadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadWeekly"
+		WriteData_ToJS "/tmp/spd-uploadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadWeekly"
+
+		WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly"
+		WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly"
+		
+		spdtestresult="$(grep Download "$tmpfile") - $(grep Upload "$tmpfile")"
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
-		RDB="$SCRIPT_DIR/spdstats_rrd.rrd"
-		rrdtool update "$RDB" N:"$NPING":"$NDOWNLD":"$NUPLD"
-		rm /tmp/spd-rrdstats.$$
+		echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
+		WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
 		
-		COMMON="-c SHADEA#475A5F -c SHADEB#475A5F -c BACK#475A5F -c CANVAS#92A0A520 -c AXIS#92a0a520 -c FONT#ffffff -c ARROW#475A5F -n TITLE:9 -n AXIS:8 -n LEGEND:9 -w 650 -h 200"
+		rm -f "$tmpfile"
+		rm -f "/tmp/spd-"*".csv"
+		rm -f "/tmp/spd-stats.sql"
+		rm -f "/tmp/spdstatstitle.txt"
 		
-		D_COMMON='--start -86400 --x-grid MINUTE:20:HOUR:2:HOUR:2:0:%H:%M'
-		W_COMMON='--start -604800 --x-grid HOUR:3:DAY:1:DAY:1:0:%Y-%m-%d'
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/downld.png" \
-			$COMMON $D_COMMON \
-			--title "Download - $DATE" \
-			--vertical-label "Mbps" \
-			DEF:download="$RDB":download:LAST \
-			CDEF:ndownld=download,1000,/ \
-			AREA:download#c4fd3d:"download" \
-			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
-			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
-			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/upld.png" \
-			$COMMON $D_COMMON \
-			--title "Upload - $DATE" \
-			--vertical-label "Mbps" \
-			DEF:upload="$RDB":upload:LAST \
-			CDEF:nupld=upload,1000,/ \
-			AREA:upload#96e78a:"upload" \
-			GPRINT:upload:MIN:"Min\: %3.2lf Mbps" \
-			GPRINT:upload:MAX:"Max\: %3.2lf Mbps" \
-			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/week-downld.png" \
-			$COMMON $W_COMMON --alt-autoscale-max \
-			--title "Download - $DATE" \
-			--vertical-label "Mbps" \
-			DEF:download="$RDB":download:LAST \
-			CDEF:ndownlad=download,1000,/ \
-			AREA:download#c4fd3d:"download" \
-			GPRINT:download:MIN:"Min\: %3.2lf Mbps" \
-			GPRINT:download:MAX:"Max\: %3.2lf Mbps" \
-			GPRINT:download:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:download:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
-		
-		#shellcheck disable=SC2086
-		rrdtool graph --imgformat PNG "$SCRIPT_WEB_DIR/week-upld.png" \
-			$COMMON $W_COMMON --alt-autoscale-max \
-			--title "Upload - $DATE" \
-			--vertical-label "Mbps" \
-			DEF:upload="$RDB":upload:LAST \
-			CDEF:nupld=upload,1000,/ \
-			AREA:upload#96e78a:"uplad" \
-			GPRINT:upload:MIN:"Min\: %3.2lf Mbps" \
-			GPRINT:upload:MAX:"Max\: %3.2lf Mbps" \
-			GPRINT:upload:AVERAGE:"Avg\: %3.2lf Mbps" \
-			GPRINT:upload:LAST:"Curr\: %3.2lf Mbps\n" >/dev/null 2>&1
-			
-		CacheGraphImages cache 2>/dev/null
 		Clear_Lock
 	else
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
@@ -816,8 +846,16 @@ MainMenu(){
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
+		minuteend=$((minutestart + 30))
+		[ "$minuteend" -gt 60 ] && minuteend=$((minuteend - 60))
+		if [ "$minutestart" -lt "$minuteend" ]; then
+			TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
+		else
+			TEST_SCHEDULE2="Tests will run at $minuteend and $minutestart past the hour"
+		fi
 	else
 		TEST_SCHEDULE="No defined schedule - tests run every hour"
+		TEST_SCHEDULE2="Tests will run at 12 and 42 past the hour"
 	fi
 	
 	printf "1.    Run a speedtest now (auto select server)\\n"
@@ -827,7 +865,7 @@ MainMenu(){
 	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
 	printf "7.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "8.    Configure schedule for automatic tests\\n      %s\\n\\n" "$TEST_SCHEDULE"
+	printf "8.    Configure schedule for automatic tests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
@@ -956,6 +994,18 @@ Check_Requirements(){
 	if [ ! -f "/opt/bin/opkg" ]; then
 		Print_Output "true" "Entware not detected!" "$ERR"
 		CHECKSFAILED="true"
+		return 1
+	fi
+	
+	if [ "$(Firmware_Version_Check "$(nvram get buildno)")" -lt "$(Firmware_Version_Check 384.11)" ] && [ "$(Firmware_Version_Check "$(nvram get buildno)")" -ne "$(Firmware_Version_Check 374.43)" ]; then
+		Print_Output "true" "Older Merlin firmware detected - $SCRIPT_NAME requires 384.11 or later for sqlite3 support" "$WARN"
+		Print_Output "true" "Installing sqlite3-cli from Entware..." "$WARN"
+		opkg update
+		opkg install sqlite3-cli
+	elif [ "$(Firmware_Version_Check "$(nvram get buildno)")" -eq "$(Firmware_Version_Check 374.43)" ]; then
+		Print_Output "true" "John's fork detected - unsupported" "$ERR"
+		CHECKSFAILED="true"
+	return 1
 	fi
 	
 	if [ "$CHECKSFAILED" = "false" ]; then
@@ -979,6 +1029,7 @@ Menu_Install(){
 				break
 			;;
 			*)
+				rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 				exit 1
 			;;
 		esac
@@ -996,10 +1047,10 @@ Menu_Install(){
 	
 	opkg update
 	opkg install python
-	opkg install rrdtool
 	opkg install ca-certificates
 	
 	Create_Dirs
+	Create_Symlinks
 	
 	Download_File "$SCRIPT_REPO/spdcli.py" "$SCRIPT_DIR/spdcli.py"
 	chmod 0755 "$SCRIPT_DIR"/spdcli.py
@@ -1012,7 +1063,6 @@ Menu_Install(){
 	
 	Mount_SPD_WebUI
 	Modify_WebUI_File
-	RRD_Initialise
 	
 	while true; do
 		printf "\\n\\e[1mWould you like to run a speedtest now? (y/n)\\e[0m\\n"
@@ -1035,10 +1085,9 @@ Menu_Startup(){
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Create_Dirs
+	Create_Symlinks
 	Mount_SPD_WebUI
 	Modify_WebUI_File
-	RRD_Initialise
-	CacheGraphImages extract 2>/dev/null
 	Clear_Lock
 }
 
@@ -1074,6 +1123,7 @@ Menu_ToggleAutomated(){
 Menu_EditSchedule(){
 	exitmenu="false"
 	starthour=""
+	startminute=""
 	ScriptHeader
 	
 	while true; do
@@ -1119,7 +1169,30 @@ Menu_EditSchedule(){
 	fi
 	
 	if [ "$exitmenu" != "exit" ]; then
-		TestSchedule "update" "$starthour" "$endhour"
+		while true; do
+			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m"
+			printf "\\n\\e[1mN.B. the test will run at half hour intervals\\e[0m\\n"
+			read -r "minute"
+			
+			if [ "$minute" = "e" ]; then
+				exitmenu="exit"
+				break
+			elif ! Validate_Number "" "$minute" "silent"; then
+				printf "\\n\\e[31mPlease enter a valid number (0-59)\\e[0m\\n"
+			else
+				if [ "$minute" -lt 0 ] || [ "$minute" -gt 59 ]; then
+					printf "\\n\\e[31mPlease enter a number between 0 and 59\\e[0m\\n"
+				else
+					startminute="$minute"
+					printf "\\n"
+					break
+				fi
+			fi
+		done
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		TestSchedule "update" "$starthour" "$endhour" "$startminute"
 	fi
 	
 	Clear_Lock
@@ -1145,7 +1218,7 @@ Menu_Uninstall(){
 		read -r "confirm"
 		case "$confirm" in
 			y|Y)
-				rm -f "$SCRIPT_DIR/spdstats_rrd.rrd" 2>/dev/null
+				rm -rf "$SCRIPT_DIR" 2>/dev/null
 				break
 			;;
 			*)
@@ -1161,7 +1234,6 @@ Menu_Uninstall(){
 	umount /www/require/modules/menuTree.js 2>/dev/null
 	umount /www/start_apply.htm 2>/dev/null
 	if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
-		opkg remove --autoremove rrdtool
 		rm -f "$SHARED_DIR/custom_menuTree.js" 2>/dev/null
 		rm -f "$SHARED_DIR/custom_start_apply.htm" 2>/dev/null
 	else
@@ -1179,6 +1251,7 @@ Menu_Uninstall(){
 
 if [ -z "$1" ]; then
 	Create_Dirs
+	Create_Symlinks
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
