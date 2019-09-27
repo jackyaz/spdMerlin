@@ -1283,6 +1283,12 @@ case "$1" in
 		fi
 		exit 0
 	;;
+	automatic)
+		Check_Lock
+		Menu_ToggleAutomated
+		Clear_Lock
+		exit 0
+	;;
 	update)
 		Check_Lock
 		Menu_Update
