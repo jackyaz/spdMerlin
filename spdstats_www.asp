@@ -366,7 +366,7 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </table>
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible">
+<thead class="collapsible" id="last24">
 <tr>
 <td colspan="2">Last 24 Hours (click to expand/collapse)</td>
 </tr>
@@ -383,7 +383,7 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </table>
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible">
+<thead class="collapsible" id="last7">
 <tr>
 <td colspan="2">Last 7 days (click to expand/collapse)</td>
 </tr>
@@ -400,7 +400,7 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </table>
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible">
+<thead class="collapsible" id="last30">
 <tr>
 <td colspan="2">Last 30 days (click to expand/collapse)</td>
 </tr>
