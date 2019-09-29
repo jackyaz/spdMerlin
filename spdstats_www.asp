@@ -51,8 +51,8 @@ font-weight: bolder;
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
 <script>
 var LineChartDownloadDaily,LineChartUploadDaily,LineChartDownloadWeekly,LineChartUploadWeekly,LineChartDownloadMonthly,LineChartUploadMonthly;
-var ShowLines="line";
-var ShowFill="origin";
+var ShowLines=GetCookie("ShowLines");
+var ShowFill=GetCookie("ShowFill");
 Chart.defaults.global.defaultFontColor = "#CCC";
 Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
   return coordinates;
@@ -254,9 +254,11 @@ function round(value, decimals) {
 function ToggleLines() {
 	if(ShowLines == ""){
 		ShowLines = "line";
+		SetCookie("ShowLines","line")
 	}
 	else {
 		ShowLines = "";
+		SetCookie("ShowLines","")
 	}
 	RedrawAllCharts();
 }
@@ -264,9 +266,11 @@ function ToggleLines() {
 function ToggleFill() {
 	if(ShowFill == false){
 		ShowFill = "origin";
+		SetCookie("ShowFill","origin")
 	}
 	else {
 		ShowFill = false;
+		SetCookie("ShowFill",false)
 	}
 	RedrawAllCharts();
 }
@@ -278,6 +282,20 @@ function RedrawAllCharts() {
 	Draw_Chart("LineChartUploadWeekly",LineChartUploadWeekly,"DataUploadWeekly",DataUploadWeekly,"Upload","Mbps","day",7,"#42ecf5");
 	Draw_Chart("LineChartDownloadMonthly",LineChartDownloadMonthly,"DataDownloadMonthly",DataDownloadMonthly,"Download","Mbps","day",30,"#fc8500");
 	Draw_Chart("LineChartUploadMonthly",LineChartUploadMonthly,"DataUploadMonthly",DataUploadMonthly,"Upload","Mbps","day",30,"#42ecf5");
+}
+
+function GetCookie(cookiename) {
+	var s;
+	if ((s = cookie.get(cookiename)) != null) {
+		return cookie.get(cookiename);
+	}
+	else {
+		return ""
+	}
+}
+
+function SetCookie(cookiename,cookievalue) {
+	cookie.set(cookiename, cookievalue, 31);
 }
 
 function initial(){
@@ -424,11 +442,15 @@ for (i = 0; i < coll.length; i++) {
     var content = this.nextElementSibling.firstElementChild.firstElementChild.firstElementChild;
     if (content.style.maxHeight){
       content.style.maxHeight = null;
+      SetCookie(this.id,"collapsed")
     } else {
       content.style.maxHeight = content.scrollHeight + "px";
+      SetCookie(this.id,"expanded")
     }
   });
-  coll[i].click();
+  if(GetCookie(coll[i].id) == "expanded"){
+      coll[i].click();
+}
 }
 </script>
 </body>
