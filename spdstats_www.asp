@@ -286,8 +286,8 @@ function RedrawAllCharts() {
 
 function GetCookie(cookiename) {
 	var s;
-	if ((s = cookie.get(cookiename)) != null) {
-		return cookie.get(cookiename);
+	if ((s = cookie.get("spd_"+cookiename)) != null) {
+		return cookie.get("spd_"+cookiename);
 	}
 	else {
 		return ""
@@ -295,7 +295,7 @@ function GetCookie(cookiename) {
 }
 
 function SetCookie(cookiename,cookievalue) {
-	cookie.set(cookiename, cookievalue, 31);
+	cookie.set("spd_"+cookiename, cookievalue, 31);
 }
 
 function initial(){
