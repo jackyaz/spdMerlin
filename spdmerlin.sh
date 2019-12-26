@@ -226,6 +226,7 @@ Process_Upgrade(){
 		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 		chmod 0755 "$OOKLA_DIR/speedtest"
 		License_Acceptance "accept"
+		PressEnter
 	fi
 }
 
@@ -240,13 +241,13 @@ License_Acceptance(){
 		;;
 		accept)
 			while true; do
-				printf "==============================================================================\\n"
-				printf "You may only use this Speedtest software and information generated\\n"
+				printf "\\n\\n==============================================================================\\n"
+				printf "\\nYou may only use this Speedtest software and information generated\\n"
 				printf "from it for personal, non-commercial use, through a command line\\n"
 				printf "interface on a personal computer. Your use of this software is subject\\n"
 				printf "to the End User License Agreement, Terms of Use and Privacy Policy at\\n"
 				printf "these URLs:\\n"
-				printf "    https://www.speedtest.net/about/eula\\n"
+				printf "\\n    https://www.speedtest.net/about/eula\\n"
 				printf "    https://www.speedtest.net/about/terms\\n"
 				printf "    https://www.speedtest.net/about/privacy\\n\\n"
 				printf "==============================================================================\\n\\n"
@@ -258,11 +259,11 @@ License_Acceptance(){
 				printf "faster internet. For further information including how the data may be\\n"
 				printf "shared, where the data may be transferred and Ookla's contact details,\\n"
 				printf "please see our Privacy Policy at:\\n"
-				printf "    http://www.speedtest.net/privacy\\n"
-				printf "==============================================================================\\n\\n"
+				printf "\\n    http://www.speedtest.net/privacy\\n"
+				printf "\\n==============================================================================\\n\\n"
 				
 				printf "\\n\\e[1mYou must accept the license agreements for Speedtest CLI. Do you want to continue? (y/n)\\e[0m\\n"
-				printf "\\n\\e[1mNote: This will require an initial speedtest to run, please be patient\\e[0m\\n"
+				printf "\\e[1mNote: This will require an initial speedtest to run, please be patient\\e[0m\\n"
 				read -r "confirm"
 				case "$confirm" in
 					y|Y)
