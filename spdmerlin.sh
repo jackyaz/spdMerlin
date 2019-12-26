@@ -584,7 +584,7 @@ Modify_WebUI_File(){
 GenerateServerList(){
 	printf "Generating list of closest servers...\\n\\n"
 	serverlist="$("$OOKLA_DIR"/speedtest --servers --format="json")"
-	servercount="$(jq '.servers | length')"
+	servercount="$(echo "$serverlist" | jq '.servers | length')"
 	COUNTER=1
 	until [ $COUNTER -gt "$servercount" ]; do
 		serverdetails="$(echo "$serverlist" | jq -r --argjson index $COUNTER '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
