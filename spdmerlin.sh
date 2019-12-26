@@ -584,14 +584,14 @@ Modify_WebUI_File(){
 GenerateServerList(){
 	printf "Generating list of closest servers...\\n\\n"
 	serverlist="$("$OOKLA_DIR"/speedtest --servers --format="json")"
-	servercount="$(($(echo "$serverlist" | jq '.servers | length')-1))"
-	COUNTER=1
+	servercount="$(echo "$serverlist" | jq '.servers | length')"
+	COUNTER=0
 	until [ $COUNTER -gt "$servercount" ]; do
 		serverdetails="$(echo "$serverlist" | jq -r --argjson index $COUNTER '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
 		
-		if [ "$COUNTER" -lt "$servercount" ]; then
+		if [ "$COUNTER" -lt 10 ]; then
 			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
-		else
+		elif [ "$COUNTER" -ge 10 ]; then
 			printf "%s) %s\\n" "$COUNTER" "$serverdetails"
 		fi
 		COUNTER=$((COUNTER + 1))
@@ -600,7 +600,7 @@ GenerateServerList(){
 	printf "\\ne)  Go back\\n"
 	
 	while true; do
-		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$serverdetails"
+		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$servercount"
 		read -r "server"
 		
 		if [ "$server" = "e" ]; then
