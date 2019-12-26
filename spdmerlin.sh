@@ -585,9 +585,9 @@ GenerateServerList(){
 	printf "Generating list of closest servers...\\n\\n"
 	serverlist="$("$OOKLA_DIR"/speedtest --servers --format="json")"
 	servercount="$(echo "$serverlist" | jq '.servers | length')"
-	COUNTER=0
+	COUNTER=1
 	until [ $COUNTER -gt "$servercount" ]; do
-		serverdetails="$(echo "$serverlist" | jq -r --argjson index $COUNTER '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+		serverdetails="$(echo "$serverlist" | jq -r --argjson index "$(($COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
 		
 		if [ "$COUNTER" -lt 10 ]; then
 			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
@@ -612,8 +612,8 @@ GenerateServerList(){
 			if [ "$server" -lt 1 ] || [ "$server" -gt "$servercount" ]; then
 				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$servercount"
 			else
-				serverno="$(echo "$serverlist" | jq -r --argjson index "$server" '.servers[$index] | .id')"
-				servername="$(echo "$serverlist" | jq -r --argjson index "$server" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+				serverno="$(echo "$serverlist" | jq -r --argjson index "$(($server-1))" '.servers[$index] | .id')"
+				servername="$(echo "$serverlist" | jq -r --argjson index "$(($server-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
 				printf "\\n"
 				break
 			fi
