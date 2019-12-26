@@ -1,2 +1,4 @@
 *.tar.gz binary
-* text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.asp text eol=lf
