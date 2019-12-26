@@ -225,6 +225,7 @@ Process_Upgrade(){
 		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
 		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 		chmod 0755 "$OOKLA_DIR/speedtest"
+		License_Acceptance "accept"
 	fi
 }
 
@@ -239,14 +240,40 @@ License_Acceptance(){
 		;;
 		accept)
 			while true; do
+				printf "==============================================================================\\n"
+				printf "You may only use this Speedtest software and information generated\\n"
+				printf "from it for personal, non-commercial use, through a command line\\n"
+				printf "interface on a personal computer. Your use of this software is subject\\n"
+				printf "to the End User License Agreement, Terms of Use and Privacy Policy at\\n"
+				printf "these URLs:\\n"
+				printf "    https://www.speedtest.net/about/eula\\n"
+				printf "    https://www.speedtest.net/about/terms\\n"
+				printf "    https://www.speedtest.net/about/privacy\\n\\n"
+				printf "==============================================================================\\n\\n"
+				printf "Ookla collects certain data through Speedtest that may be considered\\n"
+				printf "personally identifiable, such as your IP address, unique device\\n"
+				printf "identifiers or location. Ookla believes it has a legitimate interest\\n"
+				printf "to share this data with internet providers, hardware manufacturers and\\n"
+				printf "industry regulators to help them understand and create a better and\\n"
+				printf "faster internet. For further information including how the data may be\\n"
+				printf "shared, where the data may be transferred and Ookla's contact details,\\n"
+				printf "please see our Privacy Policy at:\\n"
+				printf "    http://www.speedtest.net/privacy\\n"
+				printf "==============================================================================\\n\\n"
+				
 				printf "\\n\\e[1mYou must accept the license agreements for Speedtest CLI. Do you want to continue? (y/n)\\e[0m\\n"
+				printf "\\n\\e[1mNote: This will require an initial speedtest to run, please be patient\\e[0m\\n"
 				read -r "confirm"
 				case "$confirm" in
 					y|Y)
-						Menu_GenerateStats "licenseaccept"
+						"$OOKLA_DIR"/speedtest --accept-license >/dev/null 2>&1
+						"$OOKLA_DIR"/speedtest --accept-gdpr >/dev/null 2>&1
+						License_Acceptance "save"
+						return 0
 					;;
 					*)
-						exit 1
+						Print_Output "true" "Licenses not accepted, stopping" "$ERR"
+						return 1
 					;;
 				esac
 			done
@@ -254,7 +281,7 @@ License_Acceptance(){
 		save)
 			if [ ! -f "$OOKLA_DIR/speedtest-cli.json" ]; then
 				cp "$HOME_DIR/.config/ookla/speedtest-cli.json" "$OOKLA_DIR/speedtest-cli.json"
-				Print_Output "true" "License accepted and save to persistent storage" "$PASS"
+				Print_Output "true" "Licenses accepted and saved to persistent storage" "$PASS"
 			fi
 		;;
 		load)
@@ -262,7 +289,7 @@ License_Acceptance(){
 				cp "$OOKLA_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
 				return 0
 			else
-				Print_Output "true" "License hasn't been accepted previously, nothing to load" "$ERR"
+				Print_Output "true" "Licenses haven't been accepted previously, nothing to load" "$ERR"
 				return 1
 			fi
 		;;
@@ -719,6 +746,7 @@ Generate_SPDStats(){
 	Create_Dirs
 	Create_Symlinks
 	Conf_Exists
+	License_Acceptance "load"
 	
 	mode="$1"
 	speedtestserverno=""
@@ -727,13 +755,14 @@ Generate_SPDStats(){
 	tmpfile=/tmp/spd-stats.txt
 	
 	if Check_Swap ; then
-		
-		if [ "$mode" = "licenseaccept" ]; then
-			mode="auto"
-		else
-			if ! License_Acceptance "check" ; then
-				License_Acceptance "accept"
-				Clear_Lock
+		if ! License_Acceptance "check" ; then
+			if [ "$mode" != "schedule" ]; then
+				if ! License_Acceptance "accept"; then
+					Clear_Lock
+					return 1
+				fi
+			else
+				Print_Output "true" "Licenses not accepted, please run spdMerlin to accept them" "$ERR"
 				return 1
 			fi
 		fi
@@ -774,13 +803,6 @@ Generate_SPDStats(){
 			
 			Print_Output "true" "Starting speedtest using $speedtestservername" "$PASS"
 			"$OOKLA_DIR"/speedtest --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
-		fi
-		
-		if ! License_Acceptance "check" ; then
-			Print_Output "true" "License wasn't accepted, stopping" "$ERR"
-			return 1
-		else
-			License_Acceptance "save"
 		fi
 		
 		TZ=$(cat /etc/TZ)
@@ -1275,6 +1297,7 @@ if [ -z "$1" ]; then
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Conf_Exists
+	License_Acceptance "load"
 	ScriptHeader
 	MainMenu
 	exit 0
