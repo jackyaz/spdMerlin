@@ -19,9 +19,9 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v2.0.1"
-readonly SPD_VERSION="v2.0.1"
-readonly SCRIPT_BRANCH="master"
+readonly SCRIPT_VERSION="v3.0.0"
+readonly SPD_VERSION="v3.0.0"
+readonly SCRIPT_BRANCH="develop"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
 readonly SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
@@ -29,8 +29,12 @@ readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
 readonly SHARED_DIR="/jffs/scripts/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
 readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
+readonly HOME_DIR="/$(readlink $HOME)"
+readonly OOKLA_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ookla"
+
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
+[ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
 ### End of script variables ###
 
 ### Start of output format variables ###
@@ -119,7 +123,7 @@ Update_Version(){
 			Print_Output "true" "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
 		fi
 		
-		Update_File "spdcli.py"
+		Update_File "$ARCH.tgz"
 		Update_File "spdstats_www.asp"
 		Update_File "chartjs-plugin-zoom.js"
 		Update_File "chartjs-plugin-annotation.js"
@@ -142,7 +146,7 @@ Update_Version(){
 		force)
 			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
-			Update_File "spdcli.py"
+			Update_File "$ARCH.tgz"
 			Update_File "spdstats_www.asp"
 			Update_File "chartjs-plugin-zoom.js"
 			Update_File "chartjs-plugin-annotation.js"
@@ -159,18 +163,22 @@ Update_Version(){
 ############################################################################
 
 Update_File(){
-	if [ "$1" = "spdcli.py" ]; then
+	if [ "$1" = "$ARCH.tgz" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
-		if [ -f "/jffs/scripts/$1" ]; then
-			mv "/jffs/scripts/$1" "$SCRIPT_DIR/$1"
-		fi
-		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
-			Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
-			chmod 0755 "$SCRIPT_DIR/$1"
-			Print_Output "true" "New version of $1 downloaded to $SCRIPT_DIR/$1" "$PASS"
-		fi
+		tar -xzf "$tmpfile"
 		rm -f "$tmpfile"
+		localmd5="$(md5sum "$OOKLA_DIR/speedtest" | awk '{print $1}')"
+		tmpmd5="$(md5sum "/tmp/speedtest" | awk '{print $1}')"
+		if [ "$localmd5" != "$tmpmd5" ]; then
+			rm -f "$OOKLA_DIR/*"
+			Download_File "$SCRIPT_REPO/$1" "$OOKLA_DIR/$1"
+			tar -xzf "$OOKLA_DIR/$1"
+			rm -f "$OOKLA_DIR/$1"
+			chmod 0755 "$OOKLA_DIR/speedtest"
+			Print_Output "true" "New version of Speedtest CLI downloaded to $OOKLA_DIR/speedtest" "$PASS"
+		fi
+		rm -f "/tmp/speedtest*"
 	elif [ "$1" = "spdstats_www.asp" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
@@ -208,9 +216,66 @@ Validate_Number(){
 	fi
 }
 
+Process_Upgrade(){
+	if [ -f "$SCRIPT_DIR/spdcli.py" ]; then
+		rm -f "$SCRIPT_DIR/spdcli.py" 2>/dev/null
+		opkg remove --autoremove python
+		opkg install jq
+		Download_File "$SCRIPT_REPO/$ARCH.tgz" "$OOKLA_DIR/$ARCH.tgz"
+		tar -xzf "$OOKLA_DIR/$ARCH.tgz"
+		rm -f "$OOKLA_DIR/$ARCH.tgz"
+		chmod 0755 "$OOKLA_DIR/speedtest"
+	fi
+}
+
+License_Acceptance(){
+	case "$1" in
+		check)
+			if [ -f "$HOME_DIR/.config/ookla/speedtest-cli.json" ]; then
+				return 0
+			else
+				return 1
+			fi
+		;;
+		accept)
+			while true; do
+				printf "\\n\\e[1mYou must accept the license agreements for Speedtest CLI. Do you want to continue? (y/n)\\e[0m\\n"
+				read -r "confirm"
+				case "$confirm" in
+					y|Y)
+						Menu_GenerateStats "licenseaccept"
+					;;
+					*)
+						exit 1
+					;;
+				esac
+			done
+		;;
+		save)
+			if [ ! -f "$OOKLA_DIR/speedtest-cli.json" ]; then
+				cp "$HOME_DIR/.config/ookla/speedtest-cli.json" "$OOKLA_DIR/speedtest-cli.json"
+				Print_Output "true" "License accepted and save to persistent storage" "$PASS"
+			fi
+		;;
+		load)
+			if [ -f "$HOME_DIR/.config/ookla/speedtest-cli.json" ]; then
+				cp "$OOKLA_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
+				return 0
+			else
+				Print_Output "true" "License hasn't been accepted previously, nothing to load" "$ERR"
+				return 1
+			fi
+		;;
+	esac
+}
+
 Create_Dirs(){
 	if [ ! -d "$SCRIPT_DIR" ]; then
 		mkdir -p "$SCRIPT_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_DIR" ]; then
+		mkdir -p "$OOKLA_DIR"
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
@@ -489,12 +554,14 @@ Modify_WebUI_File(){
 }
 
 GenerateServerList(){
-	printf "Generating list of 25 closest servers...\\n\\n"
-	serverlist="$("$SCRIPT_DIR"/spdcli.py --secure --list | sed '1d' | head -n 25)"
+	printf "Generating list of closest servers...\\n\\n"
+	serverlist="$("$OOKLA_DIR"/speedtest --servers --format="json")"
+	servercount="$(jq '.servers | length')"
 	COUNTER=1
-	until [ $COUNTER -gt 25 ]; do
-		serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
-		if [ "$COUNTER" -lt "10" ]; then
+	until [ $COUNTER -gt "$servercount" ]; do
+		serverdetails="$(echo $serverlist | jq -r --argjson index $COUNTER '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+		
+		if [ "$COUNTER" -lt "$servercount" ]; then
 			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
 		else
 			printf "%s) %s\\n" "$COUNTER" "$serverdetails"
@@ -505,20 +572,20 @@ GenerateServerList(){
 	printf "\\ne)  Go back\\n"
 	
 	while true; do
-		printf "\\n\\e[1mPlease select a server from the list above (1-25):\\e[0m\\n"
+		printf "\\n\\e[1mPlease select a server from the list above (1-$servercount):\\e[0m\\n"
 		read -r "server"
 		
 		if [ "$server" = "e" ]; then
 			serverno="exit"
 			break
 		elif ! Validate_Number "" "$server" "silent"; then
-			printf "\\n\\e[31mPlease enter a valid number (1-25)\\e[0m\\n"
+			printf "\\n\\e[31mPlease enter a valid number (1-$servercount)\\e[0m\\n"
 		else
-			if [ "$server" -lt 1 ] || [ "$server" -gt 25 ]; then
-				printf "\\n\\e[31mPlease enter a number between 1 and 25\\e[0m\\n"
+			if [ "$server" -lt 1 ] || [ "$server" -gt "$servercount" ]; then
+				printf "\\n\\e[31mPlease enter a number between 1 and $servercount\\e[0m\\n"
 			else
-				serverno="$(echo "$serverlist" | sed "$server!d" | cut -f1 -d')' | awk '{$1=$1};1')"
-				servername="$(echo "$serverlist" | sed "$server!d" | cut -f2 -d')' | awk '{$1=$1};1')"")"
+				serverno="$(echo $serverlist | jq -r --argjson index $server '.servers[$index] | .id')"
+				servername="$(echo $serverlist | jq -r --argjson index $server '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
 				printf "\\n"
 				break
 			fi
@@ -552,30 +619,14 @@ PreferredServer(){
 		;;
 		validate)
 			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
-			"$SCRIPT_DIR"/spdcli.py --secure --list > /tmp/spdServers.txt
-			sed -i -e 's/^[ \t]*//;s/[ \t]*$//' /tmp/spdServers.txt
-			if grep -q "^$PREFERREDSERVERNO)" /tmp/spdServers.txt; then
+			"$OOKLA_DIR"/speedtest --servers --format="csv" > /tmp/spdServers.txt
+			if grep -q "^\"$PREFERREDSERVERNO" /tmp/spdServers.txt; then
 				rm -f /tmp/spdServers.txt
 				return 0
 			else
 				rm -f /tmp/spdServers.txt
 				return 1
 			fi
-	esac
-}
-
-SingleMode(){
-	case "$1" in
-		enable)
-			sed -i 's/^USESINGLE.*$/USESINGLE=true/' "$SCRIPT_CONF"
-		;;
-		disable)
-			sed -i 's/^USESINGLE.*$/USESINGLE=false/' "$SCRIPT_CONF"
-		;;
-		check)
-			USESINGLE=$(grep "USESINGLE" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$USESINGLE" = "true" ]; then return 0; else return 1; fi
-		;;
 	esac
 }
 
@@ -676,6 +727,17 @@ Generate_SPDStats(){
 	tmpfile=/tmp/spd-stats.txt
 	
 	if Check_Swap ; then
+		
+		if [ "$mode" = "licenseaccept" ]; then
+			mode="auto"
+		else
+			if ! License_Acceptance "check" ; then
+				License_Acceptance "accept"
+				Clear_Lock
+				return 1
+			fi
+		fi
+		
 		if [ "$mode" = "schedule" ]; then
 			USEPREFERRED=$(grep "USEPREFERRED" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if PreferredServer check; then
@@ -699,13 +761,8 @@ Generate_SPDStats(){
 		fi
 		
 		if [ "$mode" = "auto" ]; then
-			if SingleMode check; then
-				Print_Output "true" "Starting speedtest using auto-selected server in single connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single >> "$tmpfile"
-			else
-				Print_Output "true" "Starting speedtest using auto-selected server in multi-connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate >> "$tmpfile"
-			fi
+			Print_Output "true" "Starting speedtest using auto-selected server" "$PASS"
+			"$OOKLA_DIR"/speedtest --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
 		else
 			if [ "$mode" != "onetime" ]; then
 				if ! PreferredServer validate; then
@@ -715,20 +772,22 @@ Generate_SPDStats(){
 				fi
 			fi
 			
-			if SingleMode check; then
-				Print_Output "true" "Starting speedtest using $speedtestservername in single connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> "$tmpfile"
-			else
-				Print_Output "true" "Starting speedtest using $speedtestservername in multi-connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> "$tmpfile"
-			fi
+			Print_Output "true" "Starting speedtest using $speedtestservername" "$PASS"
+			"$OOKLA_DIR"/speedtest --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+		fi
+		
+		if ! License_Acceptance "check" ; then
+			Print_Output "true" "License wasn't accepted, stopping" "$ERR"
+			return 1
+		else
+			License_Acceptance "save"
 		fi
 		
 		TZ=$(cat /etc/TZ)
 		export TZ
 		
-		download=$(grep Download "$tmpfile" | awk 'BEGIN{FS=" "}{print $2}')
-		upload=$(grep Upload "$tmpfile" | awk 'BEGIN{FS=" "}{print $2}')
+		download=$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
+		upload=$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
 		
 		{
 		echo "CREATE TABLE IF NOT EXISTS [spdstats] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
@@ -838,11 +897,9 @@ ScriptHeader(){
 
 MainMenu(){
 	PREFERREDSERVER_ENABLED=""
-	SINGLEMODE_ENABLED=""
 	AUTOMATIC_ENABLED=""
 	TEST_SCHEDULE=""
 	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
-	if SingleMode check; then SINGLEMODE_ENABLED="Enabled"; else SINGLEMODE_ENABLED="Disabled"; fi
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
@@ -861,11 +918,10 @@ MainMenu(){
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server)\\n"
 	printf "3.    Run a speedtest (select a server)\\n\\n"
-	printf "4.    Choose a preferred server(for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
+	printf "4.    Choose a preferred server (for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
 	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
-	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
-	printf "7.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "8.    Configure schedule for automatic tests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
+	printf "6.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
+	printf "7.    Configure schedule for automatic tests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
@@ -915,15 +971,10 @@ MainMenu(){
 			;;
 			6)
 				printf "\\n"
-				Menu_ToggleSingle
-				break
-			;;
-			7)
-				printf "\\n"
 				Menu_ToggleAutomated
 				break
 			;;
-			8)
+			7)
 				printf "\\n"
 				if Check_Lock "menu"; then
 					Menu_EditSchedule
@@ -1019,22 +1070,6 @@ Menu_Install(){
 	Print_Output "true" "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
 	sleep 1
 	
-	Print_Output "true" "WARNING: Using $SCRIPT_NAME with Internet speeds over 250Mbps can cause router memory/stability issues" "$WARN"
-	
-	while true; do
-		printf "\\n\\e[1mDo you want to continue? (y/n)\\e[0m\\n"
-		read -r "confirm"
-		case "$confirm" in
-			y|Y)
-				break
-			;;
-			*)
-				rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
-				exit 1
-			;;
-		esac
-	done
-	
 	Print_Output "true" "Checking your router meets the requirements for $SCRIPT_NAME"
 	
 	if ! Check_Requirements; then
@@ -1045,15 +1080,15 @@ Menu_Install(){
 		exit 1
 	fi
 	
-	opkg update
-	opkg install python
-	opkg install ca-certificates
-	
 	Create_Dirs
 	Create_Symlinks
 	
-	Download_File "$SCRIPT_REPO/spdcli.py" "$SCRIPT_DIR/spdcli.py"
-	chmod 0755 "$SCRIPT_DIR"/spdcli.py
+	opkg install jq
+	
+	Download_File "$SCRIPT_REPO/$ARCH.tgz" "$OOKLA_DIR/$ARCH.tgz"
+	tar -xzf "$OOKLA_DIR/$ARCH.tgz"
+	rm -f "$OOKLA_DIR/$ARCH.tgz"
+	chmod 0755 "$OOKLA_DIR/speedtest"
 	
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
@@ -1064,18 +1099,8 @@ Menu_Install(){
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	
-	while true; do
-		printf "\\n\\e[1mWould you like to run a speedtest now? (y/n)\\e[0m\\n"
-		read -r "confirm"
-		case "$confirm" in
-			y|Y)
-				Menu_GenerateStats "auto"
-			;;
-			*)
-				break
-			;;
-		esac
-	done
+	License_Acceptance "accept"
+	
 	Clear_Lock
 }
 
@@ -1086,6 +1111,7 @@ Menu_Startup(){
 	Shortcut_spdMerlin create
 	Create_Dirs
 	Create_Symlinks
+	License_Acceptance "load"
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	Clear_Lock
@@ -1101,14 +1127,6 @@ Menu_TogglePreferred(){
 		PreferredServer disable
 	else
 		PreferredServer enable
-	fi
-}
-
-Menu_ToggleSingle(){
-	if SingleMode check; then
-		SingleMode disable
-	else
-		SingleMode enable
 	fi
 }
 
@@ -1227,7 +1245,6 @@ Menu_Uninstall(){
 		esac
 	done
 	Shortcut_spdMerlin delete
-	opkg remove --autoremove python
 	umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
 	umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
 	sed -i '/{url: "'"$(Get_spdMerlin_UI)"'", tabName: "SpeedTest"}/d' "$SHARED_DIR/custom_menuTree.js"
@@ -1240,10 +1257,10 @@ Menu_Uninstall(){
 		mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
 		mount -o bind "$SHARED_DIR/custom_start_apply.htm" "/www/start_apply.htm"
 	fi
+	opkg remove --autoremove jq
 	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
 	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
-	rm -f "$SCRIPT_DIR/spdcli.py" 2>/dev/null
-	rm -f "$SCRIPT_DIR/spdmerlin_images.tar.gz" 2>/dev/null
+	rm -rf "$OOKLA_DIR" 2>/dev/null
 	rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 	Clear_Lock
 	Print_Output "true" "Uninstall completed" "$PASS"
@@ -1252,6 +1269,7 @@ Menu_Uninstall(){
 if [ -z "$1" ]; then
 	Create_Dirs
 	Create_Symlinks
+	Process_Upgrade
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null

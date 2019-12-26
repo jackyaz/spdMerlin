@@ -2,14 +2,15 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
-## v2.0.1
-### Updated on 2019-09-29
+## v3.0.0
+### Updated on 2019-12-26
 ## About
 Run automated speedtests for your Internet on your router with graphs available on the Tools page of the WebUI.
 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
-spdMerlin uses [speedtest-cli](https://github.com/sivel/speedtest-cli)
+spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli)
+spdMerlin includes the required licenses, which must be accepted on first run of Speedtest CLI
 
 This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
 Permission received from JGrana to publish this!
