@@ -17,7 +17,7 @@ This script began as a user-friendly installer for a personal project developed 
 ### This script uses a large amount of RAM/memory when the speedtest is running, and as such a swap file is required
 ### The speedtest is scheduled to run at 12 past and 42 past the hour, every hour, by default
 
-![Menu UI](https://puu.sh/DPOBa/884ab7dbdc.png)
+![Menu UI](https://puu.sh/ETs9A/767afcaf6c.png)
 
 ![Graph example](https://puu.sh/DQ8cX/612747873c.png)
 
