@@ -25,6 +25,16 @@ font-weight: bolder;
   cursor: pointer;
 }
 
+.collapsibleparent {
+  color: white;
+  padding: 0px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  cursor: pointer;
+}
+
 .collapsiblecontent {
   padding: 0px;
   max-height: 0;
@@ -366,6 +376,15 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </table>
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
+<thead class="collapsibleparent" id="wan">
+<tr>
+<td colspan="2">WAN (click to expand/collapse)</td>
+</tr>
+</thead>
+<tr>
+<td colspan="2" align="center" style="padding: 0px;">
+<div class="collapsiblecontent">
+<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 <thead class="collapsible" id="last24">
 <tr>
 <td colspan="2">Last 24 Hours (click to expand/collapse)</td>
@@ -415,6 +434,10 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </td>
 </tr>
 </table>
+</div>
+</td>
+</tr>
+</table>
 </td>
 </tr>
 </tbody>
@@ -435,6 +458,29 @@ SetSPDStatsTitle();
 <script>
 var coll = document.getElementsByClassName("collapsible");
 var i;
+var height = 0;
+
+for (i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling.firstElementChild.firstElementChild.firstElementChild;
+    if (content.style.maxHeight){
+      content.style.maxHeight = null;
+      SetCookie(this.id,"collapsed")
+    } else {
+      content.style.maxHeight = content.scrollHeight + "px";
+      this.parentElement.parentElement.style.maxHeight = (this.parentElement.parentElement.style.maxHeight.substring(0,this.parentElement.parentElement.style.maxHeight.length-2)*1) + content.scrollHeight + "px";
+      SetCookie(this.id,"expanded")
+    }
+  });
+  if(GetCookie(coll[i].id) == "expanded"){
+      coll[i].click();
+}
+height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10;
+}
+
+var coll = document.getElementsByClassName("collapsibleparent");
+var i;
 
 for (i = 0; i < coll.length; i++) {
   coll[i].addEventListener("click", function() {
@@ -449,7 +495,9 @@ for (i = 0; i < coll.length; i++) {
     }
   });
   if(GetCookie(coll[i].id) == "expanded"){
-      coll[i].click();
+      coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight = height + "px";
+} else {
+      coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight = null;
 }
 }
 </script>
