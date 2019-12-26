@@ -166,14 +166,14 @@ Update_File(){
 	if [ "$1" = "$ARCH.tar.gz" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
-		tar -xzf "$tmpfile"
+		tar -xzf "$tmpfile" -C "/tmp"
 		rm -f "$tmpfile"
 		localmd5="$(md5sum "$OOKLA_DIR/speedtest" | awk '{print $1}')"
 		tmpmd5="$(md5sum "/tmp/speedtest" | awk '{print $1}')"
 		if [ "$localmd5" != "$tmpmd5" ]; then
 			rm -f "$OOKLA_DIR/*"
 			Download_File "$SCRIPT_REPO/$1" "$OOKLA_DIR/$1"
-			tar -xzf "$OOKLA_DIR/$1"
+			tar -xzf "$OOKLA_DIR/$1" -C "$OOKLA_DIR"
 			rm -f "$OOKLA_DIR/$1"
 			chmod 0755 "$OOKLA_DIR/speedtest"
 			Print_Output "true" "New version of Speedtest CLI downloaded to $OOKLA_DIR/speedtest" "$PASS"
@@ -222,7 +222,7 @@ Process_Upgrade(){
 		opkg remove --autoremove python
 		opkg install jq
 		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
-		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz"
+		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
 		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 		chmod 0755 "$OOKLA_DIR/speedtest"
 	fi
@@ -1086,7 +1086,7 @@ Menu_Install(){
 	opkg install jq
 	
 	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
-	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz"
+	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
 	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 	chmod 0755 "$OOKLA_DIR/speedtest"
 	
