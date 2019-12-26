@@ -29,7 +29,7 @@ readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
 readonly SHARED_DIR="/jffs/scripts/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
 readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
-readonly HOME_DIR="/$(readlink $HOME)"
+readonly HOME_DIR="/$(readlink "$HOME")"
 readonly OOKLA_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ookla"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
@@ -123,7 +123,7 @@ Update_Version(){
 			Print_Output "true" "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
 		fi
 		
-		Update_File "$ARCH.tgz"
+		Update_File "$ARCH.tar.gz"
 		Update_File "spdstats_www.asp"
 		Update_File "chartjs-plugin-zoom.js"
 		Update_File "chartjs-plugin-annotation.js"
@@ -146,7 +146,7 @@ Update_Version(){
 		force)
 			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
-			Update_File "$ARCH.tgz"
+			Update_File "$ARCH.tar.gz"
 			Update_File "spdstats_www.asp"
 			Update_File "chartjs-plugin-zoom.js"
 			Update_File "chartjs-plugin-annotation.js"
@@ -163,7 +163,7 @@ Update_Version(){
 ############################################################################
 
 Update_File(){
-	if [ "$1" = "$ARCH.tgz" ]; then
+	if [ "$1" = "$ARCH.tar.gz" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
 		tar -xzf "$tmpfile"
@@ -221,9 +221,9 @@ Process_Upgrade(){
 		rm -f "$SCRIPT_DIR/spdcli.py" 2>/dev/null
 		opkg remove --autoremove python
 		opkg install jq
-		Download_File "$SCRIPT_REPO/$ARCH.tgz" "$OOKLA_DIR/$ARCH.tgz"
-		tar -xzf "$OOKLA_DIR/$ARCH.tgz"
-		rm -f "$OOKLA_DIR/$ARCH.tgz"
+		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz"
+		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 		chmod 0755 "$OOKLA_DIR/speedtest"
 	fi
 }
@@ -559,7 +559,7 @@ GenerateServerList(){
 	servercount="$(jq '.servers | length')"
 	COUNTER=1
 	until [ $COUNTER -gt "$servercount" ]; do
-		serverdetails="$(echo $serverlist | jq -r --argjson index $COUNTER '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+		serverdetails="$(echo "$serverlist" | jq -r --argjson index $COUNTER '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
 		
 		if [ "$COUNTER" -lt "$servercount" ]; then
 			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
@@ -572,7 +572,7 @@ GenerateServerList(){
 	printf "\\ne)  Go back\\n"
 	
 	while true; do
-		printf "\\n\\e[1mPlease select a server from the list above (1-$servercount):\\e[0m\\n"
+		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$serverdetails"
 		read -r "server"
 		
 		if [ "$server" = "e" ]; then
@@ -582,10 +582,10 @@ GenerateServerList(){
 			printf "\\n\\e[31mPlease enter a valid number (1-$servercount)\\e[0m\\n"
 		else
 			if [ "$server" -lt 1 ] || [ "$server" -gt "$servercount" ]; then
-				printf "\\n\\e[31mPlease enter a number between 1 and $servercount\\e[0m\\n"
+				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$servercount"
 			else
-				serverno="$(echo $serverlist | jq -r --argjson index $server '.servers[$index] | .id')"
-				servername="$(echo $serverlist | jq -r --argjson index $server '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+				serverno="$(echo "$serverlist" | jq -r --argjson index "$server" '.servers[$index] | .id')"
+				servername="$(echo "$serverlist" | jq -r --argjson index "$server" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
 				printf "\\n"
 				break
 			fi
@@ -1085,9 +1085,9 @@ Menu_Install(){
 	
 	opkg install jq
 	
-	Download_File "$SCRIPT_REPO/$ARCH.tgz" "$OOKLA_DIR/$ARCH.tgz"
-	tar -xzf "$OOKLA_DIR/$ARCH.tgz"
-	rm -f "$OOKLA_DIR/$ARCH.tgz"
+	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz"
+	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 	chmod 0755 "$OOKLA_DIR/speedtest"
 	
 	Auto_Startup create 2>/dev/null
