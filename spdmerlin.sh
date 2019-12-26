@@ -848,8 +848,9 @@ Generate_SPDStats(){
 		WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly"
 		WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly"
 		
-		spdtestresult="$(grep Download test.txt | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload test.txt | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
+		spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
 		
+		printf "\\n"
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
