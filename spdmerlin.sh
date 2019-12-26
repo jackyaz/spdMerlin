@@ -835,20 +835,21 @@ Generate_SPDStats(){
 		WriteSql_ToFile "Upload" "spdstats" 1 7 "/tmp/spd-uploadweekly.csv" "/tmp/spd-stats.sql"
 		WriteSql_ToFile "Download" "spdstats" 3 30 "/tmp/spd-downloadmonthly.csv" "/tmp/spd-stats.sql"
 		WriteSql_ToFile "Upload" "spdstats" 3 30 "/tmp/spd-uploadmonthly.csv" "/tmp/spd-stats.sql"
-	
+		
 		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 		
 		rm -f "$SCRIPT_DIR/spdstatsdata.js"
 		WriteData_ToJS "/tmp/spd-downloaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadDaily"
 		WriteData_ToJS "/tmp/spd-uploaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadDaily"
-
+		
 		WriteData_ToJS "/tmp/spd-downloadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadWeekly"
 		WriteData_ToJS "/tmp/spd-uploadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadWeekly"
-
+		
 		WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly"
 		WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly"
 		
-		spdtestresult="$(grep Download "$tmpfile") - $(grep Upload "$tmpfile")"
+		spdtestresult="$(grep Download test.txt | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload test.txt | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
+		
 		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 		
 		echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
