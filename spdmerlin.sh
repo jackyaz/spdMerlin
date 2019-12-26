@@ -579,7 +579,7 @@ GenerateServerList(){
 			serverno="exit"
 			break
 		elif ! Validate_Number "" "$server" "silent"; then
-			printf "\\n\\e[31mPlease enter a valid number (1-$servercount)\\e[0m\\n"
+			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$servercount"
 		else
 			if [ "$server" -lt 1 ] || [ "$server" -gt "$servercount" ]; then
 				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$servercount"
