@@ -10,6 +10,7 @@ Run automated speedtests for your Internet on your router with graphs available 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
 spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli)
+
 spdMerlin includes the required licenses, which must be accepted on first run of Speedtest CLI
 
 This script began as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
