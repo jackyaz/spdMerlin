@@ -12,8 +12,7 @@ spdMerlin is free to use under the [GNU General Public License version 3](https:
 spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli)
 spdMerlin includes the required licenses, which must be accepted on first run of Speedtest CLI
 
-This script serves as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
-Permission received from JGrana to publish this!
+This script began as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
 
 ### This script uses a large amount of RAM/memory when the speedtest is running, and as such a swap file is required
 ### The speedtest is scheduled to run at 12 past and 42 past the hour, every hour, by default
