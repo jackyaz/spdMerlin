@@ -320,7 +320,25 @@ Create_Dirs(){
 }
 
 Create_Symlinks(){
+	echo "WAN" > "$SCRIPT_DIR/.interfaces"
+	
+	if [ "$1" = "force" ]; then
+		rm -f "$SCRIPT_DIR/.interfaces_user"
+	fi
+	
+	if [ ! -f "$SCRIPT_DIR/.interfaces_user" ]; then
+		touch "$SCRIPT_DIR/.interfaces_user"
+	fi
+	
+	while IFS='' read -r line || [ -n "$line" ]; do
+		if [ "$(grep -c "$line" "$SCRIPT_DIR/.interfaces_user")" -eq 0 ]; then
+				printf "%s\\n" "$line" >> "$SCRIPT_DIR/.interfaces_user"
+		fi
+	done < "$SCRIPT_DIR/.interfaces"
+	
 	rm -f "$SCRIPT_WEB_DIR/"* 2>/dev/null
+	
+	ln -s "$SCRIPT_DIR/.interfaces_user"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
 	ln -s "$SCRIPT_DIR/spdstatsdata.js" "$SCRIPT_WEB_DIR/spdstatsdata.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdstatstext.js" "$SCRIPT_WEB_DIR/spdstatstext.js" 2>/dev/null
@@ -380,6 +398,55 @@ Auto_ServiceEvent(){
 			fi
 		;;
 	esac
+}
+
+Generate_Interface_List(){
+	ScriptHeader
+	goback="false"
+	printf "Retrieving list of interfaces...\\n\\n"
+	chartcount="$(wc -l < "$SCRIPT_DIR/.interfaces_user")"
+	COUNTER=1
+	until [ $COUNTER -gt "$chartcount" ]; do
+		chartfile="$(sed "$COUNTER!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
+		if [ "$COUNTER" -lt "10" ]; then
+			printf "%s)  %s\\n" "$COUNTER" "$chartfile"
+		else
+			printf "%s) %s\\n" "$COUNTER" "$chartfile"
+		fi
+		COUNTER=$((COUNTER + 1))
+	done
+	
+	printf "\\ne)  Go back\\n"
+	
+	while true; do
+	printf "\\n\\e[1mPlease select a chart to toggle inclusion in %s (1-%s):\\e[0m\\n" "$SCRIPT_NAME" "$chartcount"
+	read -r "chart"
+	
+	if [ "$chart" = "e" ]; then
+		goback="true"
+		break
+	elif ! Validate_Number "" "$chart" "silent"; then
+		printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$chartcount"
+	else
+		if [ "$chart" -lt 1 ] || [ "$chart" -gt "$chartcount" ]; then
+			printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$chartcount"
+		else
+			chartline="$(sed "$chart!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
+			if echo "$chartline" | grep -q "#excluded#" ; then
+					sed -i "$chart"'s/ #excluded#//' "$SCRIPT_DIR/.interfaces_user"
+			else
+				sed -i "$chart"'s/$/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
+			fi
+			sed -i 's/ *$//' "$SCRIPT_DIR/.interfaces_user"
+			printf "\\n"
+			break
+		fi
+	fi
+	done
+	
+	if [ "$goback" != "true" ]; then
+		Generate_Interface_List
+	fi
 }
 
 Auto_Startup(){
@@ -947,6 +1014,9 @@ MainMenu(){
 	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
 	printf "7.    Configure schedule for automatic tests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
+	printf "8.    Customise list of interfaces to run speedtests for\\n\\n"
+	printf "r.    Process interface list for %s\\n" "$SCRIPT_NAME"
+	printf "rf.   Clear user preferences for tested interfaces\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
@@ -1003,6 +1073,27 @@ MainMenu(){
 				printf "\\n"
 				if Check_Lock "menu"; then
 					Menu_EditSchedule
+				fi
+				PressEnter
+				break
+			;;
+			8)
+				if Check_Lock "menu"; then
+					Menu_CustomiseInterfaceList
+				fi
+				PressEnter
+				break
+			;;
+			r)
+				if Check_Lock "menu"; then
+					Menu_ProcessInterfaces
+				fi
+				PressEnter
+				break
+			;;
+			rf)
+				if Check_Lock "menu"; then
+					Menu_ProcessInterfaces "force"
 				fi
 				PressEnter
 				break
@@ -1126,6 +1217,18 @@ Menu_Install(){
 	
 	License_Acceptance "accept"
 	
+	Clear_Lock
+}
+
+Menu_CustomiseInterfaceList(){
+	Generate_Interface_List
+	printf "\\n"
+	Clear_Lock
+}
+
+Menu_ProcessInterfaces(){
+	Create_Symlinks "$1"
+	printf "\\n"
 	Clear_Lock
 }
 
