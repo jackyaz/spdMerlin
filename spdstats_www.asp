@@ -66,6 +66,7 @@ var LineChartDownloadDaily_VPNC2,LineChartUploadDaily_VPNC2,LineChartDownloadWee
 var LineChartDownloadDaily_VPNC3,LineChartUploadDaily_VPNC3,LineChartDownloadWeekly_VPNC3,LineChartUploadWeekly_VPNC3,LineChartDownloadMonthly_VPNC3,LineChartUploadMonthly_VPNC3;
 var LineChartDownloadDaily_VPNC4,LineChartUploadDaily_VPNC4,LineChartDownloadWeekly_VPNC4,LineChartUploadWeekly_VPNC4,LineChartDownloadMonthly_VPNC4,LineChartUploadMonthly_VPNC4;
 var LineChartDownloadDaily_VPNC5,LineChartUploadDaily_VPNC5,LineChartDownloadWeekly_VPNC5,LineChartUploadWeekly_VPNC5,LineChartDownloadMonthly_VPNC5,LineChartUploadMonthly_VPNC5;
+
 var ShowLines=GetCookie("ShowLines");
 var ShowFill=GetCookie("ShowFill");
 Chart.defaults.global.defaultFontColor = "#CCC";
@@ -74,6 +75,9 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
 };
 
 function Draw_Chart(txtchartname,objchartname,txtdataname,objdataname,txttitle,txtunity,txtunitx,numunitx,colourname){
+	if ( objdataname == null ){
+		return;
+	}
 	factor=0;
 	if (txtunitx=="hour"){
 		factor=60*60*1000;
@@ -296,12 +300,16 @@ function ToggleFill() {
 
 function RedrawAllCharts() {
 	if(interfacelist != ""){
-		Draw_Chart("LineChartDownloadDaily_WAN",LineChartDownloadDaily_WAN,"DataDownloadDaily",DataDownloadDaily,"Download","Mbps","hour",24,"#fc8500");
-		Draw_Chart("LineChartUploadDaily_WAN",LineChartUploadDaily_WAN,"DataUploadDaily",DataUploadDaily,"Upload","Mbps","hour",24,"#42ecf5");
-		Draw_Chart("LineChartDownloadWeekly_WAN",LineChartDownloadWeekly_WAN,"DataDownloadWeekly",DataDownloadWeekly,"Download","Mbps","day",7,"#fc8500");
-		Draw_Chart("LineChartUploadWeekly_WAN",LineChartUploadWeekly_WAN,"DataUploadWeekly",DataUploadWeekly,"Upload","Mbps","day",7,"#42ecf5");
-		Draw_Chart("LineChartDownloadMonthly_WAN",LineChartDownloadMonthly_WAN,"DataDownloadMonthly",DataDownloadMonthly,"Download","Mbps","day",30,"#fc8500");
-		Draw_Chart("LineChartUploadMonthly_WAN",LineChartUploadMonthly_WAN,"DataUploadMonthly",DataUploadMonthly,"Upload","Mbps","day",30,"#42ecf5");
+		var interfacetextarray = interfacelist.split(',');
+		var i;
+		for (i = 0; i < interfacetextarray.length; i++) {
+		Draw_Chart("LineChartDownloadDaily_"+interfacetextarray[i],window["LineChartDownloadDaily_"+interfacetextarray[i]],"DataDownloadDaily_"+interfacetextarray[i],window["DataDownloadDaily_"+interfacetextarray[i]],"Download","Mbps","hour",24,"#fc8500");
+		Draw_Chart("LineChartUploadDaily_"+interfacetextarray[i],window["LineChartUploadDaily_"+interfacetextarray[i]],"DataUploadDaily_"+interfacetextarray[i],window["DataUploadDaily_"+interfacetextarray[i]],"Upload","Mbps","hour",24,"#42ecf5");
+		Draw_Chart("LineChartDownloadWeekly_"+interfacetextarray[i],window["LineChartDownloadWeekly_"+interfacetextarray[i]],"DataDownloadWeekly_"+interfacetextarray[i],window["DataDownloadWeekly_"+interfacetextarray[i]],"Download","Mbps","day",7,"#fc8500");
+		Draw_Chart("LineChartUploadWeekly_"+interfacetextarray[i],window["LineChartUploadWeekly_"+interfacetextarray[i]],"DataUploadWeekly_"+interfacetextarray[i],window["DataUploadWeekly_"+interfacetextarray[i]],"Upload","Mbps","day",7,"#42ecf5");
+		Draw_Chart("LineChartDownloadMonthly_"+interfacetextarray[i],window["LineChartDownloadMonthly_"+interfacetextarray[i]],"DataDownloadMonthly_"+interfacetextarray[i],window["DataDownloadMonthly_"+interfacetextarray[i]],"Download","Mbps","day",30,"#fc8500");
+		Draw_Chart("LineChartUploadMonthly_"+interfacetextarray[i],window["LineChartUploadMonthly_"+interfacetextarray[i]],"DataUploadMonthly_"+interfacetextarray[i],window["DataUploadMonthly_"+interfacetextarray[i]],"Upload","Mbps","day",30,"#42ecf5");
+		}
 	}
 }
 
@@ -343,7 +351,6 @@ function get_conf_file(){
 		},
 		success: function(data){
 			var interfaces=data.split("\n");
-			interfaces.sort();
 			interfaces.reverse();
 			interfaces=interfaces.filter(Boolean);
 			interfacelist="";
@@ -353,7 +360,7 @@ function get_conf_file(){
 				if (commentstart != -1){
 					continue
 				}
-				var interfacename=interfaces[i].substring(interfaces[i].lastIndexOf("/")+1);
+				var interfacename=interfaces[i];
 				$("#table_buttons").after(BuildInterfaceTable(interfacename));
 				if(i == interfacecount-1){
 					interfacelist+=interfacename;
@@ -366,7 +373,6 @@ function get_conf_file(){
 				AddEventHandlers();
 				RedrawAllCharts();
 			}
-			//get_all_logfiles();
 		}
 	});
 }
