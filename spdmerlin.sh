@@ -320,7 +320,18 @@ Create_Dirs(){
 }
 
 Create_Symlinks(){
-	echo "WAN" > "$SCRIPT_DIR/.interfaces"
+	printf "WAN\\n" > "$SCRIPT_DIR/.interfaces"
+	
+	for index in 1 2 3 4 5; do
+		if [ "$(nvram get "vpn_client""$index""_state")" -eq 2 ]; then
+			if [ "$index" -lt 5 ]; then
+				printf "VPNC%s\\n" "$index" >> "$SCRIPT_DIR/.interfaces"
+			else
+				printf "VPNC%s\\n" "$index" >> "$SCRIPT_DIR/.interfaces"
+			fi
+		fi
+	done
+	
 	
 	if [ "$1" = "force" ]; then
 		rm -f "$SCRIPT_DIR/.interfaces_user"
@@ -857,77 +868,129 @@ Generate_SPDStats(){
 			speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
 		fi
 		
-		if [ "$mode" = "auto" ]; then
-			Print_Output "true" "Starting speedtest using auto-selected server" "$PASS"
-			"$OOKLA_DIR"/speedtest --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
-		else
-			if [ "$mode" != "onetime" ]; then
-				if ! PreferredServer validate; then
-					Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
-					Clear_Lock
-					return 1
-				fi
+		IFACELIST=""
+		
+		while IFS='' read -r line || [ -n "$line" ]; do
+			if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+				IFACELIST="$IFACELIST"" ""$line"
 			fi
+		done < "$SCRIPT_DIR/.interfaces_user"
+		
+		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+		
+		if [ "$IFACELIST" != "" ]; then
+			rm -f "$SCRIPT_DIR/spdstatsdata.js"
 			
-			Print_Output "true" "Starting speedtest using $speedtestservername" "$PASS"
-			"$OOKLA_DIR"/speedtest --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
-		fi
-		
-		TZ=$(cat /etc/TZ)
-		export TZ
-		
-		download=$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
-		upload=$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
-		
-		{
-		echo "CREATE TABLE IF NOT EXISTS [spdstats] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
-		echo "INSERT INTO spdstats ([Timestamp],[Download],[Upload]) values($(date '+%s'),$download,$upload);"
-		} > /tmp/spd-stats.sql
+			for IFACE_NAME in $IFACELIST; do
+				
+				IFACE=""
+				case "$IFACE_NAME" in
+					WAN)
+						if [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
+							IFACE="ppp0"
+						else
+							IFACE="$(nvram get wan0_ifname)"
+						fi
+					;;
+					VPNC1)
+						IFACE="tun11"
+					;;
+					VPNC2)
+						IFACE="tun12"
+					;;
+					VPNC3)
+						IFACE="tun13"
+					;;
+					VPNC4)
+						IFACE="tun14"
+					;;
+					VPNC5)
+						IFACE="tun15"
+					;;
+				esac
+				
+				if ! ifconfig "$IFACE" > /dev/null 2>&1 ; then
+					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
+					continue
+				else
+					if [ "$mode" = "auto" ]; then
+						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
+						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+					else
+						if [ "$mode" != "onetime" ]; then
+							if ! PreferredServer validate; then
+								Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
+								Clear_Lock
+								return 1
+							fi
+						fi
+						
+						Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
+						"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+					fi
+					
+					TZ=$(cat /etc/TZ)
+					export TZ
+					
+					download=$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
+					upload=$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
+					
+					{
+					echo "DROP TABLE IF EXISTS [spdstats];"
+					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
+					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload]) values($(date '+%s'),$download,$upload);"
+					} > /tmp/spd-stats.sql
 
-		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-		
-		{
-			echo ".mode csv"
-			echo ".output /tmp/spd-downloaddaily.csv"
-			echo "select [Timestamp],[Download] from spdstats WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
-			echo ".output /tmp/spd-uploaddaily.csv"
-			echo "select [Timestamp],[Upload] from spdstats WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
-		} > /tmp/spd-stats.sql
-		
-		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-		
-		rm -f /tmp/spd-stats.sql
-		
-		WriteSql_ToFile "Download" "spdstats" 1 7 "/tmp/spd-downloadweekly.csv" "/tmp/spd-stats.sql"
-		WriteSql_ToFile "Upload" "spdstats" 1 7 "/tmp/spd-uploadweekly.csv" "/tmp/spd-stats.sql"
-		WriteSql_ToFile "Download" "spdstats" 3 30 "/tmp/spd-downloadmonthly.csv" "/tmp/spd-stats.sql"
-		WriteSql_ToFile "Upload" "spdstats" 3 30 "/tmp/spd-uploadmonthly.csv" "/tmp/spd-stats.sql"
-		
-		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-		
-		rm -f "$SCRIPT_DIR/spdstatsdata.js"
-		WriteData_ToJS "/tmp/spd-downloaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadDaily"
-		WriteData_ToJS "/tmp/spd-uploaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadDaily"
-		
-		WriteData_ToJS "/tmp/spd-downloadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadWeekly"
-		WriteData_ToJS "/tmp/spd-uploadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadWeekly"
-		
-		WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly"
-		WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly"
-		
-		spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
-		
-		printf "\\n"
-		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
-		
-		echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
-		WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
-		
-		rm -f "$tmpfile"
-		rm -f "/tmp/spd-"*".csv"
-		rm -f "/tmp/spd-stats.sql"
-		rm -f "/tmp/spdstatstitle.txt"
-		
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					
+					{
+						echo ".mode csv"
+						echo ".output /tmp/spd-downloaddaily.csv"
+						echo "select [Timestamp],[Download] from spdstats_$IFACE_NAME WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+						echo ".output /tmp/spd-uploaddaily.csv"
+						echo "select [Timestamp],[Upload] from spdstats_$IFACE_NAME WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+					} > /tmp/spd-stats.sql
+					
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					
+					rm -f /tmp/spd-stats.sql
+					
+					WriteSql_ToFile "Download" "spdstats_$IFACE_NAME" 1 7 "/tmp/spd-downloadweekly.csv" "/tmp/spd-stats.sql"
+					WriteSql_ToFile "Upload" "spdstats_$IFACE_NAME" 1 7 "/tmp/spd-uploadweekly.csv" "/tmp/spd-stats.sql"
+					WriteSql_ToFile "Download" "spdstats_$IFACE_NAME" 3 30 "/tmp/spd-downloadmonthly.csv" "/tmp/spd-stats.sql"
+					WriteSql_ToFile "Upload" "spdstats_$IFACE_NAME" 3 30 "/tmp/spd-uploadmonthly.csv" "/tmp/spd-stats.sql"
+					
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					
+					WriteData_ToJS "/tmp/spd-downloaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadDaily_$IFACE_NAME"
+					WriteData_ToJS "/tmp/spd-uploaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadDaily_$IFACE_NAME"
+					
+					WriteData_ToJS "/tmp/spd-downloadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadWeekly_$IFACE_NAME"
+					WriteData_ToJS "/tmp/spd-uploadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadWeekly_$IFACE_NAME"
+					
+					WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly_$IFACE_NAME"
+					WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly_$IFACE_NAME"
+					
+					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
+					
+					printf "\\n"
+					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
+					
+					rm -f "$tmpfile"
+					rm -f "/tmp/spd-"*".csv"
+					rm -f "/tmp/spd-stats.sql"
+					
+					echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
+					WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
+					
+					rm -f "/tmp/spdstatstitle.txt"
+				fi
+			done
+		else
+			Print_Output "true" "No interfaces enabled, exiting" "$CRIT"
+			Clear_Lock
+			return 1
+		fi
 		Clear_Lock
 	else
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
