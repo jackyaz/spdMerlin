@@ -374,7 +374,9 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </td>
 </tr>
 </table>
+
 <div style="line-height:10px;">&nbsp;</div>
+
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
 <thead class="collapsibleparent" id="wan">
 <tr>
@@ -385,7 +387,10 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 <td colspan="2" align="center" style="padding: 0px;">
 <div class="collapsiblecontent">
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible" id="last24">
+<tr>
+<div style="line-height:10px;">&nbsp;</div>
+</tr>
+<thead class="collapsible" id="last24_wan">
 <tr>
 <td colspan="2">Last 24 Hours (click to expand/collapse)</td>
 </tr>
@@ -402,7 +407,7 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </table>
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible" id="last7">
+<thead class="collapsible" id="last7_wan">
 <tr>
 <td colspan="2">Last 7 days (click to expand/collapse)</td>
 </tr>
@@ -419,7 +424,7 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </table>
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible" id="last30">
+<thead class="collapsible" id="last30_wan">
 <tr>
 <td colspan="2">Last 30 days (click to expand/collapse)</td>
 </tr>
@@ -476,7 +481,7 @@ for (i = 0; i < coll.length; i++) {
   if(GetCookie(coll[i].id) == "expanded" || GetCookie(coll[i].id) == ""){
       coll[i].click();
 }
-height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10;
+height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10 + 10;
 }
 
 var coll = document.getElementsByClassName("collapsibleparent");
