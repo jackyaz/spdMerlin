@@ -445,6 +445,7 @@ function BuildInterfaceTable(name){
 	charthtml+='</td>'
 	charthtml+='</tr>'
 	charthtml+='</table>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
 	return charthtml;
 }
 
@@ -470,7 +471,7 @@ function AddEventHandlers(){
 		if(GetCookie(coll[i].id) == "expanded" || GetCookie(coll[i].id) == ""){
 			coll[i].click();
 		}
-		height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10 + 10;
+		height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10 + 10 + 10;
 	}
 	
 	var coll = document.getElementsByClassName("collapsibleparent");
