@@ -473,7 +473,7 @@ for (i = 0; i < coll.length; i++) {
       SetCookie(this.id,"expanded")
     }
   });
-  if(GetCookie(coll[i].id) == "expanded"){
+  if(GetCookie(coll[i].id) == "expanded" || GetCookie(coll[i].id) == ""){
       coll[i].click();
 }
 height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10;
@@ -494,7 +494,7 @@ for (i = 0; i < coll.length; i++) {
       SetCookie(this.id,"expanded")
     }
   });
-  if(GetCookie(coll[i].id) == "expanded"){
+  if(GetCookie(coll[i].id) == "expanded" || GetCookie(coll[i].id) == ""){
       coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight = height + "px";
 } else {
       coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight = null;
