@@ -74,7 +74,9 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
   return coordinates;
 };
 
-function Draw_Chart(txtchartname,objchartname,txtdataname,objdataname,txttitle,txtunity,txtunitx,numunitx,colourname){
+function Draw_Chart(txtchartname,txtdataname,txttitle,txtunity,txtunitx,numunitx,colourname){
+	objchartname=window[txtchartname];
+	objdataname=window[txtdataname];
 	if ( objdataname == null ){
 		return;
 	}
@@ -303,12 +305,12 @@ function RedrawAllCharts() {
 		var interfacetextarray = interfacelist.split(',');
 		var i;
 		for (i = 0; i < interfacetextarray.length; i++) {
-		Draw_Chart("LineChartDownloadDaily_"+interfacetextarray[i],window["LineChartDownloadDaily_"+interfacetextarray[i]],"DataDownloadDaily_"+interfacetextarray[i],window["DataDownloadDaily_"+interfacetextarray[i]],"Download","Mbps","hour",24,"#fc8500");
-		Draw_Chart("LineChartUploadDaily_"+interfacetextarray[i],window["LineChartUploadDaily_"+interfacetextarray[i]],"DataUploadDaily_"+interfacetextarray[i],window["DataUploadDaily_"+interfacetextarray[i]],"Upload","Mbps","hour",24,"#42ecf5");
-		Draw_Chart("LineChartDownloadWeekly_"+interfacetextarray[i],window["LineChartDownloadWeekly_"+interfacetextarray[i]],"DataDownloadWeekly_"+interfacetextarray[i],window["DataDownloadWeekly_"+interfacetextarray[i]],"Download","Mbps","day",7,"#fc8500");
-		Draw_Chart("LineChartUploadWeekly_"+interfacetextarray[i],window["LineChartUploadWeekly_"+interfacetextarray[i]],"DataUploadWeekly_"+interfacetextarray[i],window["DataUploadWeekly_"+interfacetextarray[i]],"Upload","Mbps","day",7,"#42ecf5");
-		Draw_Chart("LineChartDownloadMonthly_"+interfacetextarray[i],window["LineChartDownloadMonthly_"+interfacetextarray[i]],"DataDownloadMonthly_"+interfacetextarray[i],window["DataDownloadMonthly_"+interfacetextarray[i]],"Download","Mbps","day",30,"#fc8500");
-		Draw_Chart("LineChartUploadMonthly_"+interfacetextarray[i],window["LineChartUploadMonthly_"+interfacetextarray[i]],"DataUploadMonthly_"+interfacetextarray[i],window["DataUploadMonthly_"+interfacetextarray[i]],"Upload","Mbps","day",30,"#42ecf5");
+		Draw_Chart("LineChartDownloadDaily_"+interfacetextarray[i],"DataDownloadDaily_"+interfacetextarray[i],"Download","Mbps","hour",24,"#fc8500");
+		Draw_Chart("LineChartUploadDaily_"+interfacetextarray[i],"DataUploadDaily_"+interfacetextarray[i],"Upload","Mbps","hour",24,"#42ecf5");
+		Draw_Chart("LineChartDownloadWeekly_"+interfacetextarray[i],"DataDownloadWeekly_"+interfacetextarray[i],"Download","Mbps","day",7,"#fc8500");
+		Draw_Chart("LineChartUploadWeekly_"+interfacetextarray[i],"DataUploadWeekly_"+interfacetextarray[i],"Upload","Mbps","day",7,"#42ecf5");
+		Draw_Chart("LineChartDownloadMonthly_"+interfacetextarray[i],"DataDownloadMonthly_"+interfacetextarray[i],"Download","Mbps","day",30,"#fc8500");
+		Draw_Chart("LineChartUploadMonthly_"+interfacetextarray[i],"DataUploadMonthly_"+interfacetextarray[i],"Upload","Mbps","day",30,"#42ecf5");
 		}
 	}
 }
