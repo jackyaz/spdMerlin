@@ -917,16 +917,20 @@ Generate_SPDStats(){
 	tmpfile=/tmp/spd-stats.txt
 	
 	if Check_Swap ; then
-		if ! License_Acceptance "check" ; then
-			if [ "$mode" != "schedule" ]; then
-				if ! License_Acceptance "accept"; then
-					Clear_Lock
+		if [ "$mode" != "webui" ]; then
+			if ! License_Acceptance "check" ; then
+				if [ "$mode" != "schedule" ]; then
+					if ! License_Acceptance "accept"; then
+						Clear_Lock
+						return 1
+					fi
+				else
+					Print_Output "true" "Licenses not accepted, please run spdMerlin to accept them" "$ERR"
 					return 1
 				fi
-			else
-				Print_Output "true" "Licenses not accepted, please run spdMerlin to accept them" "$ERR"
-				return 1
 			fi
+		else
+			mode="schedule"
 		fi
 		
 		if [ "$mode" = "schedule" ]; then
@@ -974,7 +978,7 @@ Generate_SPDStats(){
 				else
 					if [ "$mode" = "auto" ]; then
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
-						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
 					else
 						if [ "$mode" != "onetime" ]; then
 							if ! PreferredServer validate; then
@@ -986,10 +990,10 @@ Generate_SPDStats(){
 						
 						if [ "$IFACE_NAME" = "WAN" ]; then
 							Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
 						else
 							Print_Output "true" "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
 						fi
 					fi
 					
@@ -1546,7 +1550,7 @@ case "$1" in
 			Menu_GenerateStats "schedule"
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
 			Check_Lock
-			Menu_GenerateStats "schedule"
+			Menu_GenerateStats "webui"
 		fi
 		exit 0
 	;;

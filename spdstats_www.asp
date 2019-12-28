@@ -540,8 +540,8 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
 <tr class="apply_gen" valign="top" height="35px">
 <td style="background-color:rgb(77, 89, 93);border:0px;">
-<!--<input type="button" onClick="applyRule();" value="Run speedtest now" class="button_gen" name="button">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-->
+<input type="button" onClick="applyRule();" value="Run speedtest now" class="button_gen" name="button">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onClick="RedrawAllCharts();" value="Reset Zoom" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onClick="ToggleLines();" value="Toggle Lines" class="button_gen" name="button">
@@ -551,7 +551,7 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </tr>
 </table>
 
-<!-- insert here -->
+<!-- Charts inserted here -->
 
 </td>
 </tr>
