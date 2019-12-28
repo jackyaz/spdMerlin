@@ -925,8 +925,13 @@ Generate_SPDStats(){
 							fi
 						fi
 						
-						Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-						"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+						if [ "$IFACE_NAME" = "WAN" ]; then
+							Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+						else
+							Print_Output "true" "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes"  | tee "$tmpfile"
+						fi
 					fi
 					
 					TZ=$(cat /etc/TZ)
@@ -1073,13 +1078,12 @@ MainMenu(){
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server)\\n"
 	printf "3.    Run a speedtest (select a server)\\n\\n"
-	printf "4.    Choose a preferred server (for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
-	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
-	printf "6.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "7.    Configure schedule for automatic tests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
-	printf "8.    Customise list of interfaces to run speedtests for\\n\\n"
-	printf "r.    Process interface list for %s\\n" "$SCRIPT_NAME"
-	printf "rf.   Clear user preferences for tested interfaces\\n\\n"
+	printf "4.    Choose a preferred server for WAN (for automatic speedtests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
+	printf "5.    Toggle preferred server for WAN (for automatic speedtests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
+	printf "6.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
+	printf "7.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
+	printf "c.    Customise list of interfaces for automatic speedtests\\n\\n"
+	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
@@ -1140,21 +1144,15 @@ MainMenu(){
 				PressEnter
 				break
 			;;
-			8)
+			c)
 				if Check_Lock "menu"; then
 					Menu_CustomiseInterfaceList
 				fi
+				Menu_ProcessInterfaces
 				PressEnter
 				break
 			;;
 			r)
-				if Check_Lock "menu"; then
-					Menu_ProcessInterfaces
-				fi
-				PressEnter
-				break
-			;;
-			rf)
 				if Check_Lock "menu"; then
 					Menu_ProcessInterfaces "force"
 				fi
