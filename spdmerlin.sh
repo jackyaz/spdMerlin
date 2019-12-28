@@ -323,15 +323,16 @@ Create_Symlinks(){
 	printf "WAN\\n" > "$SCRIPT_DIR/.interfaces"
 	
 	for index in 1 2 3 4 5; do
-		if [ "$(nvram get "vpn_client""$index""_state")" -eq 2 ]; then
-			if [ "$index" -lt 5 ]; then
-				printf "VPNC%s\\n" "$index" >> "$SCRIPT_DIR/.interfaces"
-			else
-				printf "VPNC%s\\n" "$index" >> "$SCRIPT_DIR/.interfaces"
-			fi
+		comment=""
+		if ! ifconfig "tun1$index" > /dev/null 2>&1 ; then
+			comment=" #excluded - interface not up#"
+		fi
+		if [ "$index" -lt 5 ]; then
+			printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_DIR/.interfaces"
+		else
+			printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_DIR/.interfaces"
 		fi
 	done
-	
 	
 	if [ "$1" = "force" ]; then
 		rm -f "$SCRIPT_DIR/.interfaces_user"
@@ -342,10 +343,17 @@ Create_Symlinks(){
 	fi
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
-		if [ "$(grep -c "$line" "$SCRIPT_DIR/.interfaces_user")" -eq 0 ]; then
-				printf "%s\\n" "$line" >> "$SCRIPT_DIR/.interfaces_user"
+		if [ "$(grep -c "$(echo $line | cut -f1 -d"#" | sed 's/ *$//')" "$SCRIPT_DIR/.interfaces_user")" -eq 0 ]; then
+			printf "%s\\n" "$line" >> "$SCRIPT_DIR/.interfaces_user"
 		fi
 	done < "$SCRIPT_DIR/.interfaces"
+	
+	interfacecount="$(wc -l < "$SCRIPT_DIR/.interfaces_user")"
+	COUNTER=1
+	until [ $COUNTER -gt "$interfacecount" ]; do
+		Set_Interface_State "$COUNTER"
+		COUNTER=$((COUNTER + 1))
+	done
 	
 	rm -f "$SCRIPT_WEB_DIR/"* 2>/dev/null
 	
@@ -411,43 +419,102 @@ Auto_ServiceEvent(){
 	esac
 }
 
+Get_Interface_From_Name(){
+	IFACE=""
+	case "$1" in
+		WAN)
+			if [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
+				IFACE="ppp0"
+			else
+				IFACE="$(nvram get wan0_ifname)"
+			fi
+		;;
+		VPNC1)
+			IFACE="tun11"
+		;;
+		VPNC2)
+			IFACE="tun12"
+		;;
+		VPNC3)
+			IFACE="tun13"
+		;;
+		VPNC4)
+			IFACE="tun14"
+		;;
+		VPNC5)
+			IFACE="tun15"
+		;;
+	esac
+	
+	echo "$IFACE"
+}
+
+Set_Interface_State(){
+	interfaceline="$(sed "$1!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
+	if echo "$interfaceline" | grep -q "VPN" ; then
+		if echo "$interfaceline" | grep -q "#excluded" ; then
+			if ! ifconfig "$(Get_Interface_From_Name "$(echo $interfaceline | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+				sed -i "$1"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
+			else
+				sed -i "$1"'s/ #excluded - interface not up#/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
+			fi
+		else
+			if ! ifconfig "$(Get_Interface_From_Name "$interfaceline")" > /dev/null 2>&1 ; then
+				sed -i "$1"'s/$/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
+			fi
+		fi
+	fi
+}
+
 Generate_Interface_List(){
 	ScriptHeader
 	goback="false"
 	printf "Retrieving list of interfaces...\\n\\n"
-	chartcount="$(wc -l < "$SCRIPT_DIR/.interfaces_user")"
+	interfacecount="$(wc -l < "$SCRIPT_DIR/.interfaces_user")"
 	COUNTER=1
-	until [ $COUNTER -gt "$chartcount" ]; do
-		chartfile="$(sed "$COUNTER!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
+	until [ $COUNTER -gt "$interfacecount" ]; do
+		Set_Interface_State "$COUNTER"
+		interfaceline="$(sed "$COUNTER!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
 		if [ "$COUNTER" -lt "10" ]; then
-			printf "%s)  %s\\n" "$COUNTER" "$chartfile"
+			printf "%s)  %s\\n" "$COUNTER" "$interfaceline"
 		else
-			printf "%s) %s\\n" "$COUNTER" "$chartfile"
+			printf "%s) %s\\n" "$COUNTER" "$interfaceline"
 		fi
+		
 		COUNTER=$((COUNTER + 1))
 	done
 	
 	printf "\\ne)  Go back\\n"
 	
 	while true; do
-	printf "\\n\\e[1mPlease select a chart to toggle inclusion in %s (1-%s):\\e[0m\\n" "$SCRIPT_NAME" "$chartcount"
-	read -r "chart"
+	printf "\\n\\e[1mPlease select a chart to toggle inclusion in %s (1-%s):\\e[0m\\n" "$SCRIPT_NAME" "$interfacecount"
+	read -r "interface"
 	
-	if [ "$chart" = "e" ]; then
+	if [ "$interface" = "e" ]; then
 		goback="true"
 		break
-	elif ! Validate_Number "" "$chart" "silent"; then
-		printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$chartcount"
+	elif ! Validate_Number "" "$interface" "silent"; then
+		printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$interfacecount"
 	else
-		if [ "$chart" -lt 1 ] || [ "$chart" -gt "$chartcount" ]; then
-			printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$chartcount"
+		if [ "$interface" -lt 1 ] || [ "$interface" -gt "$interfacecount" ]; then
+			printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$interfacecount"
 		else
-			chartline="$(sed "$chart!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
-			if echo "$chartline" | grep -q "#excluded#" ; then
-					sed -i "$chart"'s/ #excluded#//' "$SCRIPT_DIR/.interfaces_user"
+			interfaceline="$(sed "$interface!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
+			if echo "$interfaceline" | grep -q "#excluded" ; then
+				if ! ifconfig "$(Get_Interface_From_Name "$(echo $interfaceline | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+					sed -i "$interface"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
+				else
+					sed -i "$interface"'s/ #excluded - interface not up#//' "$SCRIPT_DIR/.interfaces_user"
+					sed -i "$interface"'s/ #excluded#//' "$SCRIPT_DIR/.interfaces_user"
+				fi
 			else
-				sed -i "$chart"'s/$/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
+				if ! ifconfig "$(Get_Interface_From_Name "$(echo $interfaceline | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+					sed -i "$interface"'s/$/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
+				else
+					sed -i "$interface"'s/$/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
+				fi
 			fi
+			
 			sed -i 's/ *$//' "$SCRIPT_DIR/.interfaces_user"
 			printf "\\n"
 			break
@@ -883,31 +950,7 @@ Generate_SPDStats(){
 			
 			for IFACE_NAME in $IFACELIST; do
 				
-				IFACE=""
-				case "$IFACE_NAME" in
-					WAN)
-						if [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
-							IFACE="ppp0"
-						else
-							IFACE="$(nvram get wan0_ifname)"
-						fi
-					;;
-					VPNC1)
-						IFACE="tun11"
-					;;
-					VPNC2)
-						IFACE="tun12"
-					;;
-					VPNC3)
-						IFACE="tun13"
-					;;
-					VPNC4)
-						IFACE="tun14"
-					;;
-					VPNC5)
-						IFACE="tun15"
-					;;
-				esac
+				IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				
 				if ! ifconfig "$IFACE" > /dev/null 2>&1 ; then
 					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
