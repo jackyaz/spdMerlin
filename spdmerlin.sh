@@ -31,6 +31,7 @@ readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master
 readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
 readonly HOME_DIR="/$(readlink "$HOME")"
 readonly OOKLA_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ookla"
+readonly OOKLA_LICENSE_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ooklalicense"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
@@ -280,14 +281,19 @@ License_Acceptance(){
 			done
 		;;
 		save)
-			if [ ! -f "$OOKLA_DIR/speedtest-cli.json" ]; then
-				cp "$HOME_DIR/.config/ookla/speedtest-cli.json" "$OOKLA_DIR/speedtest-cli.json"
+			if [ ! -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
+				cp "$HOME_DIR/.config/ookla/speedtest-cli.json" "$OOKLA_LICENSE_DIR/speedtest-cli.json"
 				Print_Output "true" "Licenses accepted and saved to persistent storage" "$PASS"
 			fi
 		;;
 		load)
-			if [ -f "$HOME_DIR/.config/ookla/speedtest-cli.json" ]; then
-				cp "$OOKLA_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
+			if [ -f "$OOKLA_DIR/speedtest-cli.json" ]; then
+				mv "$OOKLA_DIR/speedtest-cli.json" "$OOKLA_LICENSE_DIR/speedtest-cli.json"
+				return 0
+			fi
+			
+			if [ -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
+				cp "$OOKLA_LICENSE_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
 				return 0
 			else
 				Print_Output "true" "Licenses haven't been accepted previously, nothing to load" "$ERR"
@@ -304,6 +310,10 @@ Create_Dirs(){
 	
 	if [ ! -d "$OOKLA_DIR" ]; then
 		mkdir -p "$OOKLA_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
+		mkdir -p "$OOKLA_LICENSE_DIR"
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
