@@ -19,8 +19,8 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v2.0.1"
-readonly SPD_VERSION="v2.0.1"
+readonly SCRIPT_VERSION="v3.0.0"
+readonly SPD_VERSION="v3.0.0"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
@@ -29,8 +29,13 @@ readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
 readonly SHARED_DIR="/jffs/scripts/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
 readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
+readonly HOME_DIR="/$(readlink "$HOME")"
+readonly OOKLA_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ookla"
+readonly OOKLA_LICENSE_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ooklalicense"
+
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
+[ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
 ### End of script variables ###
 
 ### Start of output format variables ###
@@ -119,7 +124,7 @@ Update_Version(){
 			Print_Output "true" "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
 		fi
 		
-		Update_File "spdcli.py"
+		Update_File "$ARCH.tar.gz"
 		Update_File "spdstats_www.asp"
 		Update_File "chartjs-plugin-zoom.js"
 		Update_File "chartjs-plugin-annotation.js"
@@ -142,7 +147,7 @@ Update_Version(){
 		force)
 			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
-			Update_File "spdcli.py"
+			Update_File "$ARCH.tar.gz"
 			Update_File "spdstats_www.asp"
 			Update_File "chartjs-plugin-zoom.js"
 			Update_File "chartjs-plugin-annotation.js"
@@ -159,18 +164,22 @@ Update_Version(){
 ############################################################################
 
 Update_File(){
-	if [ "$1" = "spdcli.py" ]; then
+	if [ "$1" = "$ARCH.tar.gz" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
-		if [ -f "/jffs/scripts/$1" ]; then
-			mv "/jffs/scripts/$1" "$SCRIPT_DIR/$1"
-		fi
-		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
-			Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
-			chmod 0755 "$SCRIPT_DIR/$1"
-			Print_Output "true" "New version of $1 downloaded to $SCRIPT_DIR/$1" "$PASS"
-		fi
+		tar -xzf "$tmpfile" -C "/tmp"
 		rm -f "$tmpfile"
+		localmd5="$(md5sum "$OOKLA_DIR/speedtest" | awk '{print $1}')"
+		tmpmd5="$(md5sum "/tmp/speedtest" | awk '{print $1}')"
+		if [ "$localmd5" != "$tmpmd5" ]; then
+			rm -f "$OOKLA_DIR/*"
+			Download_File "$SCRIPT_REPO/$1" "$OOKLA_DIR/$1"
+			tar -xzf "$OOKLA_DIR/$1" -C "$OOKLA_DIR"
+			rm -f "$OOKLA_DIR/$1"
+			chmod 0755 "$OOKLA_DIR/speedtest"
+			Print_Output "true" "New version of Speedtest CLI downloaded to $OOKLA_DIR/speedtest" "$PASS"
+		fi
+		rm -f "/tmp/speedtest*"
 	elif [ "$1" = "spdstats_www.asp" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
@@ -208,9 +217,103 @@ Validate_Number(){
 	fi
 }
 
+Process_Upgrade(){
+	if [ -f "$SCRIPT_DIR/spdcli.py" ]; then
+		rm -f "$SCRIPT_DIR/spdcli.py" 2>/dev/null
+		opkg remove --autoremove python
+		opkg install jq
+		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
+		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
+		chmod 0755 "$OOKLA_DIR/speedtest"
+		License_Acceptance "accept"
+		PressEnter
+	fi
+}
+
+License_Acceptance(){
+	case "$1" in
+		check)
+			if [ -f "$HOME_DIR/.config/ookla/speedtest-cli.json" ]; then
+				return 0
+			else
+				return 1
+			fi
+		;;
+		accept)
+			while true; do
+				printf "\\n\\n==============================================================================\\n"
+				printf "\\nYou may only use this Speedtest software and information generated\\n"
+				printf "from it for personal, non-commercial use, through a command line\\n"
+				printf "interface on a personal computer. Your use of this software is subject\\n"
+				printf "to the End User License Agreement, Terms of Use and Privacy Policy at\\n"
+				printf "these URLs:\\n"
+				printf "\\n    https://www.speedtest.net/about/eula\\n"
+				printf "    https://www.speedtest.net/about/terms\\n"
+				printf "    https://www.speedtest.net/about/privacy\\n\\n"
+				printf "==============================================================================\\n\\n"
+				printf "Ookla collects certain data through Speedtest that may be considered\\n"
+				printf "personally identifiable, such as your IP address, unique device\\n"
+				printf "identifiers or location. Ookla believes it has a legitimate interest\\n"
+				printf "to share this data with internet providers, hardware manufacturers and\\n"
+				printf "industry regulators to help them understand and create a better and\\n"
+				printf "faster internet. For further information including how the data may be\\n"
+				printf "shared, where the data may be transferred and Ookla's contact details,\\n"
+				printf "please see our Privacy Policy at:\\n"
+				printf "\\n    http://www.speedtest.net/privacy\\n"
+				printf "\\n==============================================================================\\n\\n"
+				
+				printf "\\n\\e[1mYou must accept the license agreements for Speedtest CLI. Do you want to continue? (y/n)\\e[0m\\n"
+				printf "\\e[1mNote: This will require an initial speedtest to run, please be patient\\e[0m\\n"
+				read -r "confirm"
+				case "$confirm" in
+					y|Y)
+						"$OOKLA_DIR"/speedtest --accept-license >/dev/null 2>&1
+						"$OOKLA_DIR"/speedtest --accept-gdpr >/dev/null 2>&1
+						License_Acceptance "save"
+						return 0
+					;;
+					*)
+						Print_Output "true" "Licenses not accepted, stopping" "$ERR"
+						return 1
+					;;
+				esac
+			done
+		;;
+		save)
+			if [ ! -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
+				cp "$HOME_DIR/.config/ookla/speedtest-cli.json" "$OOKLA_LICENSE_DIR/speedtest-cli.json"
+				Print_Output "true" "Licenses accepted and saved to persistent storage" "$PASS"
+			fi
+		;;
+		load)
+			if [ -f "$OOKLA_DIR/speedtest-cli.json" ]; then
+				mv "$OOKLA_DIR/speedtest-cli.json" "$OOKLA_LICENSE_DIR/speedtest-cli.json"
+				return 0
+			fi
+			
+			if [ -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
+				cp "$OOKLA_LICENSE_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
+				return 0
+			else
+				Print_Output "true" "Licenses haven't been accepted previously, nothing to load" "$ERR"
+				return 1
+			fi
+		;;
+	esac
+}
+
 Create_Dirs(){
 	if [ ! -d "$SCRIPT_DIR" ]; then
 		mkdir -p "$SCRIPT_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_DIR" ]; then
+		mkdir -p "$OOKLA_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
+		mkdir -p "$OOKLA_LICENSE_DIR"
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
@@ -227,7 +330,44 @@ Create_Dirs(){
 }
 
 Create_Symlinks(){
+	printf "WAN\\n" > "$SCRIPT_DIR/.interfaces"
+	
+	for index in 1 2 3 4 5; do
+		comment=""
+		if ! ifconfig "tun1$index" > /dev/null 2>&1 ; then
+			comment=" #excluded - interface not up#"
+		fi
+		if [ "$index" -lt 5 ]; then
+			printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_DIR/.interfaces"
+		else
+			printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_DIR/.interfaces"
+		fi
+	done
+	
+	if [ "$1" = "force" ]; then
+		rm -f "$SCRIPT_DIR/.interfaces_user"
+	fi
+	
+	if [ ! -f "$SCRIPT_DIR/.interfaces_user" ]; then
+		touch "$SCRIPT_DIR/.interfaces_user"
+	fi
+	
+	while IFS='' read -r line || [ -n "$line" ]; do
+		if [ "$(grep -c "$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')" "$SCRIPT_DIR/.interfaces_user")" -eq 0 ]; then
+			printf "%s\\n" "$line" >> "$SCRIPT_DIR/.interfaces_user"
+		fi
+	done < "$SCRIPT_DIR/.interfaces"
+	
+	interfacecount="$(wc -l < "$SCRIPT_DIR/.interfaces_user")"
+	COUNTER=1
+	until [ $COUNTER -gt "$interfacecount" ]; do
+		Set_Interface_State "$COUNTER"
+		COUNTER=$((COUNTER + 1))
+	done
+	
 	rm -f "$SCRIPT_WEB_DIR/"* 2>/dev/null
+	
+	ln -s "$SCRIPT_DIR/.interfaces_user"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
 	ln -s "$SCRIPT_DIR/spdstatsdata.js" "$SCRIPT_WEB_DIR/spdstatsdata.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdstatstext.js" "$SCRIPT_WEB_DIR/spdstatstext.js" 2>/dev/null
@@ -287,6 +427,114 @@ Auto_ServiceEvent(){
 			fi
 		;;
 	esac
+}
+
+Get_Interface_From_Name(){
+	IFACE=""
+	case "$1" in
+		WAN)
+			if [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
+				IFACE="ppp0"
+			else
+				IFACE="$(nvram get wan0_ifname)"
+			fi
+		;;
+		VPNC1)
+			IFACE="tun11"
+		;;
+		VPNC2)
+			IFACE="tun12"
+		;;
+		VPNC3)
+			IFACE="tun13"
+		;;
+		VPNC4)
+			IFACE="tun14"
+		;;
+		VPNC5)
+			IFACE="tun15"
+		;;
+	esac
+	
+	echo "$IFACE"
+}
+
+Set_Interface_State(){
+	interfaceline="$(sed "$1!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
+	if echo "$interfaceline" | grep -q "VPN" ; then
+		if echo "$interfaceline" | grep -q "#excluded" ; then
+			if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+				sed -i "$1"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
+			else
+				sed -i "$1"'s/ #excluded - interface not up#/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
+			fi
+		else
+			if ! ifconfig "$(Get_Interface_From_Name "$interfaceline")" > /dev/null 2>&1 ; then
+				sed -i "$1"'s/$/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
+			fi
+		fi
+	fi
+}
+
+Generate_Interface_List(){
+	ScriptHeader
+	goback="false"
+	printf "Retrieving list of interfaces...\\n\\n"
+	interfacecount="$(wc -l < "$SCRIPT_DIR/.interfaces_user")"
+	COUNTER=1
+	until [ $COUNTER -gt "$interfacecount" ]; do
+		Set_Interface_State "$COUNTER"
+		interfaceline="$(sed "$COUNTER!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
+		if [ "$COUNTER" -lt "10" ]; then
+			printf "%s)  %s\\n" "$COUNTER" "$interfaceline"
+		else
+			printf "%s) %s\\n" "$COUNTER" "$interfaceline"
+		fi
+		
+		COUNTER=$((COUNTER + 1))
+	done
+	
+	printf "\\ne)  Go back\\n"
+	
+	while true; do
+	printf "\\n\\e[1mPlease select a chart to toggle inclusion in %s (1-%s):\\e[0m\\n" "$SCRIPT_NAME" "$interfacecount"
+	read -r "interface"
+	
+	if [ "$interface" = "e" ]; then
+		goback="true"
+		break
+	elif ! Validate_Number "" "$interface" "silent"; then
+		printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$interfacecount"
+	else
+		if [ "$interface" -lt 1 ] || [ "$interface" -gt "$interfacecount" ]; then
+			printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$interfacecount"
+		else
+			interfaceline="$(sed "$interface!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
+			if echo "$interfaceline" | grep -q "#excluded" ; then
+				if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+					sed -i "$interface"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
+				else
+					sed -i "$interface"'s/ #excluded - interface not up#//' "$SCRIPT_DIR/.interfaces_user"
+					sed -i "$interface"'s/ #excluded#//' "$SCRIPT_DIR/.interfaces_user"
+				fi
+			else
+				if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+					sed -i "$interface"'s/$/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
+				else
+					sed -i "$interface"'s/$/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
+				fi
+			fi
+			
+			sed -i 's/ *$//' "$SCRIPT_DIR/.interfaces_user"
+			printf "\\n"
+			break
+		fi
+	fi
+	done
+	
+	if [ "$goback" != "true" ]; then
+		Generate_Interface_List
+	fi
 }
 
 Auto_Startup(){
@@ -489,14 +737,16 @@ Modify_WebUI_File(){
 }
 
 GenerateServerList(){
-	printf "Generating list of 25 closest servers...\\n\\n"
-	serverlist="$("$SCRIPT_DIR"/spdcli.py --secure --list | sed '1d' | head -n 25)"
+	printf "Generating list of closest servers...\\n\\n"
+	serverlist="$("$OOKLA_DIR"/speedtest --servers --format="json")"
+	servercount="$(echo "$serverlist" | jq '.servers | length')"
 	COUNTER=1
-	until [ $COUNTER -gt 25 ]; do
-		serverdetails="$(echo "$serverlist" | sed "$COUNTER!d" | cut -f2- -d')' | awk '{$1=$1};1')"
-		if [ "$COUNTER" -lt "10" ]; then
+	until [ $COUNTER -gt "$servercount" ]; do
+		serverdetails="$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+		
+		if [ "$COUNTER" -lt 10 ]; then
 			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
-		else
+		elif [ "$COUNTER" -ge 10 ]; then
 			printf "%s) %s\\n" "$COUNTER" "$serverdetails"
 		fi
 		COUNTER=$((COUNTER + 1))
@@ -505,20 +755,20 @@ GenerateServerList(){
 	printf "\\ne)  Go back\\n"
 	
 	while true; do
-		printf "\\n\\e[1mPlease select a server from the list above (1-25):\\e[0m\\n"
+		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$servercount"
 		read -r "server"
 		
 		if [ "$server" = "e" ]; then
 			serverno="exit"
 			break
 		elif ! Validate_Number "" "$server" "silent"; then
-			printf "\\n\\e[31mPlease enter a valid number (1-25)\\e[0m\\n"
+			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$servercount"
 		else
-			if [ "$server" -lt 1 ] || [ "$server" -gt 25 ]; then
-				printf "\\n\\e[31mPlease enter a number between 1 and 25\\e[0m\\n"
+			if [ "$server" -lt 1 ] || [ "$server" -gt "$servercount" ]; then
+				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$servercount"
 			else
-				serverno="$(echo "$serverlist" | sed "$server!d" | cut -f1 -d')' | awk '{$1=$1};1')"
-				servername="$(echo "$serverlist" | sed "$server!d" | cut -f2 -d')' | awk '{$1=$1};1')"")"
+				serverno="$(echo "$serverlist" | jq -r --argjson index "$((server-1))" '.servers[$index] | .id')"
+				servername="$(echo "$serverlist" | jq -r --argjson index "$((server-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
 				printf "\\n"
 				break
 			fi
@@ -552,30 +802,14 @@ PreferredServer(){
 		;;
 		validate)
 			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
-			"$SCRIPT_DIR"/spdcli.py --secure --list > /tmp/spdServers.txt
-			sed -i -e 's/^[ \t]*//;s/[ \t]*$//' /tmp/spdServers.txt
-			if grep -q "^$PREFERREDSERVERNO)" /tmp/spdServers.txt; then
+			"$OOKLA_DIR"/speedtest --servers --format="csv" > /tmp/spdServers.txt
+			if grep -q "^\"$PREFERREDSERVERNO" /tmp/spdServers.txt; then
 				rm -f /tmp/spdServers.txt
 				return 0
 			else
 				rm -f /tmp/spdServers.txt
 				return 1
 			fi
-	esac
-}
-
-SingleMode(){
-	case "$1" in
-		enable)
-			sed -i 's/^USESINGLE.*$/USESINGLE=true/' "$SCRIPT_CONF"
-		;;
-		disable)
-			sed -i 's/^USESINGLE.*$/USESINGLE=false/' "$SCRIPT_CONF"
-		;;
-		check)
-			USESINGLE=$(grep "USESINGLE" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$USESINGLE" = "true" ]; then return 0; else return 1; fi
-		;;
 	esac
 }
 
@@ -622,18 +856,24 @@ TestSchedule(){
 }
 
 WriteData_ToJS(){
-	{
-	echo "var $3;"
-	echo "$3 = [];"; } >> "$2"
-	contents="$3"'.unshift('
-	while IFS='' read -r line || [ -n "$line" ]; do
-		if echo "$line" | grep -q "NaN"; then continue; fi
-		datapoint="{ x: moment.unix(""$(echo "$line" | awk 'BEGIN{FS=","}{ print $1 }' | awk '{$1=$1};1')""), y: ""$(echo "$line" | awk 'BEGIN{FS=","}{ print $2 }' | awk '{$1=$1};1')"" }"
-		contents="$contents""$datapoint"","
-	done < "$1"
-	contents=$(echo "$contents" | sed 's/.$//')
-	contents="$contents"");"
-	printf "%s\\r\\n\\r\\n" "$contents" >> "$2"
+	inputfile="$1"
+	outputfile="$2"
+	shift;shift
+	
+	for var in "$@"; do
+		{
+		echo "var $var;"
+		echo "$var = [];"; } >> "$outputfile"
+		contents="$var"'.unshift('
+		while IFS='' read -r line || [ -n "$line" ]; do
+			if echo "$line" | grep -q "NaN"; then continue; fi
+			datapoint="{ x: moment.unix(""$(echo "$line" | awk 'BEGIN{FS=","}{ print $1 }' | awk '{$1=$1};1')""), y: ""$(echo "$line" | awk 'BEGIN{FS=","}{ print $2 }' | awk '{$1=$1};1')"" }"
+			contents="$contents""$datapoint"","
+		done < "$inputfile"
+		contents=$(echo "$contents" | sed 's/.$//')
+		contents="$contents"");"
+		printf "%s\\r\\n\\r\\n" "$contents" >> "$outputfile"
+	done
 }
 
 WriteStats_ToJS(){
@@ -668,6 +908,7 @@ Generate_SPDStats(){
 	Create_Dirs
 	Create_Symlinks
 	Conf_Exists
+	License_Acceptance "load"
 	
 	mode="$1"
 	speedtestserverno=""
@@ -676,6 +917,22 @@ Generate_SPDStats(){
 	tmpfile=/tmp/spd-stats.txt
 	
 	if Check_Swap ; then
+		if [ "$mode" != "webui" ]; then
+			if ! License_Acceptance "check" ; then
+				if [ "$mode" != "schedule" ]; then
+					if ! License_Acceptance "accept"; then
+						Clear_Lock
+						return 1
+					fi
+				else
+					Print_Output "true" "Licenses not accepted, please run spdMerlin to accept them" "$ERR"
+					return 1
+				fi
+			fi
+		else
+			mode="schedule"
+		fi
+		
 		if [ "$mode" = "schedule" ]; then
 			USEPREFERRED=$(grep "USEPREFERRED" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if PreferredServer check; then
@@ -698,85 +955,110 @@ Generate_SPDStats(){
 			speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
 		fi
 		
-		if [ "$mode" = "auto" ]; then
-			if SingleMode check; then
-				Print_Output "true" "Starting speedtest using auto-selected server in single connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single >> "$tmpfile"
-			else
-				Print_Output "true" "Starting speedtest using auto-selected server in multi-connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate >> "$tmpfile"
+		IFACELIST=""
+		
+		while IFS='' read -r line || [ -n "$line" ]; do
+			if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+				IFACELIST="$IFACELIST"" ""$line"
 			fi
-		else
-			if [ "$mode" != "onetime" ]; then
-				if ! PreferredServer validate; then
-					Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
-					Clear_Lock
-					return 1
-				fi
-			fi
+		done < "$SCRIPT_DIR/.interfaces_user"
+		
+		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+		
+		if [ "$IFACELIST" != "" ]; then
+			rm -f "$SCRIPT_DIR/spdstatsdata.js"
 			
-			if SingleMode check; then
-				Print_Output "true" "Starting speedtest using $speedtestservername in single connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --single --server "$speedtestserverno" >> "$tmpfile"
-			else
-				Print_Output "true" "Starting speedtest using $speedtestservername in multi-connection mode" "$PASS"
-				"$SCRIPT_DIR"/spdcli.py --secure --simple --no-pre-allocate --server "$speedtestserverno" >> "$tmpfile"
-			fi
+			for IFACE_NAME in $IFACELIST; do
+				
+				IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
+				
+				if ! ifconfig "$IFACE" > /dev/null 2>&1 ; then
+					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
+					continue
+				else
+					if [ "$mode" = "auto" ]; then
+						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
+						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
+					else
+						if [ "$mode" != "onetime" ]; then
+							if ! PreferredServer validate; then
+								Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
+								Clear_Lock
+								return 1
+							fi
+						fi
+						
+						if [ "$IFACE_NAME" = "WAN" ]; then
+							Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
+						else
+							Print_Output "true" "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
+						fi
+					fi
+					
+					TZ=$(cat /etc/TZ)
+					export TZ
+					
+					download=$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
+					upload=$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
+					
+					{
+					echo "DROP TABLE IF EXISTS [spdstats];"
+					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
+					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload]) values($(date '+%s'),$download,$upload);"
+					} > /tmp/spd-stats.sql
+
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					
+					{
+						echo ".mode csv"
+						echo ".output /tmp/spd-downloaddaily.csv"
+						echo "select [Timestamp],[Download] from spdstats_$IFACE_NAME WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+						echo ".output /tmp/spd-uploaddaily.csv"
+						echo "select [Timestamp],[Upload] from spdstats_$IFACE_NAME WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+					} > /tmp/spd-stats.sql
+					
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					
+					rm -f /tmp/spd-stats.sql
+					
+					WriteSql_ToFile "Download" "spdstats_$IFACE_NAME" 1 7 "/tmp/spd-downloadweekly.csv" "/tmp/spd-stats.sql"
+					WriteSql_ToFile "Upload" "spdstats_$IFACE_NAME" 1 7 "/tmp/spd-uploadweekly.csv" "/tmp/spd-stats.sql"
+					WriteSql_ToFile "Download" "spdstats_$IFACE_NAME" 3 30 "/tmp/spd-downloadmonthly.csv" "/tmp/spd-stats.sql"
+					WriteSql_ToFile "Upload" "spdstats_$IFACE_NAME" 3 30 "/tmp/spd-uploadmonthly.csv" "/tmp/spd-stats.sql"
+					
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					
+					WriteData_ToJS "/tmp/spd-downloaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadDaily_$IFACE_NAME"
+					WriteData_ToJS "/tmp/spd-uploaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadDaily_$IFACE_NAME"
+					
+					WriteData_ToJS "/tmp/spd-downloadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadWeekly_$IFACE_NAME"
+					WriteData_ToJS "/tmp/spd-uploadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadWeekly_$IFACE_NAME"
+					
+					WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly_$IFACE_NAME"
+					WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly_$IFACE_NAME"
+					
+					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
+					
+					printf "\\n"
+					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
+					
+					rm -f "$tmpfile"
+					rm -f "/tmp/spd-"*".csv"
+					rm -f "/tmp/spd-stats.sql"
+					
+					echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
+					WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
+					
+					rm -f "/tmp/spdstatstitle.txt"
+				fi
+			done
+		else
+			Print_Output "true" "No interfaces enabled, exiting" "$CRIT"
+			Clear_Lock
+			return 1
 		fi
-		
-		TZ=$(cat /etc/TZ)
-		export TZ
-		
-		download=$(grep Download "$tmpfile" | awk 'BEGIN{FS=" "}{print $2}')
-		upload=$(grep Upload "$tmpfile" | awk 'BEGIN{FS=" "}{print $2}')
-		
-		{
-		echo "CREATE TABLE IF NOT EXISTS [spdstats] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
-		echo "INSERT INTO spdstats ([Timestamp],[Download],[Upload]) values($(date '+%s'),$download,$upload);"
-		} > /tmp/spd-stats.sql
-
-		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-		
-		{
-			echo ".mode csv"
-			echo ".output /tmp/spd-downloaddaily.csv"
-			echo "select [Timestamp],[Download] from spdstats WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
-			echo ".output /tmp/spd-uploaddaily.csv"
-			echo "select [Timestamp],[Upload] from spdstats WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
-		} > /tmp/spd-stats.sql
-		
-		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-		
-		rm -f /tmp/spd-stats.sql
-		
-		WriteSql_ToFile "Download" "spdstats" 1 7 "/tmp/spd-downloadweekly.csv" "/tmp/spd-stats.sql"
-		WriteSql_ToFile "Upload" "spdstats" 1 7 "/tmp/spd-uploadweekly.csv" "/tmp/spd-stats.sql"
-		WriteSql_ToFile "Download" "spdstats" 3 30 "/tmp/spd-downloadmonthly.csv" "/tmp/spd-stats.sql"
-		WriteSql_ToFile "Upload" "spdstats" 3 30 "/tmp/spd-uploadmonthly.csv" "/tmp/spd-stats.sql"
-	
-		"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-		
-		rm -f "$SCRIPT_DIR/spdstatsdata.js"
-		WriteData_ToJS "/tmp/spd-downloaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadDaily"
-		WriteData_ToJS "/tmp/spd-uploaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadDaily"
-
-		WriteData_ToJS "/tmp/spd-downloadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadWeekly"
-		WriteData_ToJS "/tmp/spd-uploadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadWeekly"
-
-		WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly"
-		WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly"
-		
-		spdtestresult="$(grep Download "$tmpfile") - $(grep Upload "$tmpfile")"
-		Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
-		
-		echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
-		WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
-		
-		rm -f "$tmpfile"
-		rm -f "/tmp/spd-"*".csv"
-		rm -f "/tmp/spd-stats.sql"
-		rm -f "/tmp/spdstatstitle.txt"
-		
 		Clear_Lock
 	else
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
@@ -838,11 +1120,9 @@ ScriptHeader(){
 
 MainMenu(){
 	PREFERREDSERVER_ENABLED=""
-	SINGLEMODE_ENABLED=""
 	AUTOMATIC_ENABLED=""
 	TEST_SCHEDULE=""
 	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
-	if SingleMode check; then SINGLEMODE_ENABLED="Enabled"; else SINGLEMODE_ENABLED="Disabled"; fi
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
@@ -859,13 +1139,14 @@ MainMenu(){
 	fi
 	
 	printf "1.    Run a speedtest now (auto select server)\\n"
-	printf "2.    Run a speedtest now (use preferred server)\\n"
-	printf "3.    Run a speedtest (select a server)\\n\\n"
-	printf "4.    Choose a preferred server(for automatic tests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
-	printf "5.    Toggle preferred server (for automatic tests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
-	printf "6.    Toggle single connection mode (for all tests)\\n      Currently %s\\n\\n" "$SINGLEMODE_ENABLED"
-	printf "7.    Toggle automatic tests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "8.    Configure schedule for automatic tests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
+	printf "2.    Run a speedtest now (use preferred server - applies to WAN only)\\n"
+	printf "3.    Run a speedtest (select a server - applies to WAN only)\\n\\n"
+	printf "4.    Choose a preferred server for WAN (for automatic speedtests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
+	printf "5.    Toggle preferred server for WAN (for automatic speedtests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
+	printf "6.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
+	printf "7.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
+	printf "c.    Customise list of interfaces for automatic speedtests\\n\\n"
+	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
@@ -915,18 +1196,28 @@ MainMenu(){
 			;;
 			6)
 				printf "\\n"
-				Menu_ToggleSingle
+				Menu_ToggleAutomated
 				break
 			;;
 			7)
 				printf "\\n"
-				Menu_ToggleAutomated
-				break
-			;;
-			8)
-				printf "\\n"
 				if Check_Lock "menu"; then
 					Menu_EditSchedule
+				fi
+				PressEnter
+				break
+			;;
+			c)
+				if Check_Lock "menu"; then
+					Menu_CustomiseInterfaceList
+				fi
+				Menu_ProcessInterfaces
+				PressEnter
+				break
+			;;
+			r)
+				if Check_Lock "menu"; then
+					Menu_ProcessInterfaces "force"
 				fi
 				PressEnter
 				break
@@ -1019,22 +1310,6 @@ Menu_Install(){
 	Print_Output "true" "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
 	sleep 1
 	
-	Print_Output "true" "WARNING: Using $SCRIPT_NAME with Internet speeds over 250Mbps can cause router memory/stability issues" "$WARN"
-	
-	while true; do
-		printf "\\n\\e[1mDo you want to continue? (y/n)\\e[0m\\n"
-		read -r "confirm"
-		case "$confirm" in
-			y|Y)
-				break
-			;;
-			*)
-				rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
-				exit 1
-			;;
-		esac
-	done
-	
 	Print_Output "true" "Checking your router meets the requirements for $SCRIPT_NAME"
 	
 	if ! Check_Requirements; then
@@ -1045,15 +1320,15 @@ Menu_Install(){
 		exit 1
 	fi
 	
-	opkg update
-	opkg install python
-	opkg install ca-certificates
-	
 	Create_Dirs
 	Create_Symlinks
 	
-	Download_File "$SCRIPT_REPO/spdcli.py" "$SCRIPT_DIR/spdcli.py"
-	chmod 0755 "$SCRIPT_DIR"/spdcli.py
+	opkg install jq
+	
+	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
+	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
+	chmod 0755 "$OOKLA_DIR/speedtest"
 	
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
@@ -1064,18 +1339,20 @@ Menu_Install(){
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	
-	while true; do
-		printf "\\n\\e[1mWould you like to run a speedtest now? (y/n)\\e[0m\\n"
-		read -r "confirm"
-		case "$confirm" in
-			y|Y)
-				Menu_GenerateStats "auto"
-			;;
-			*)
-				break
-			;;
-		esac
-	done
+	License_Acceptance "accept"
+	
+	Clear_Lock
+}
+
+Menu_CustomiseInterfaceList(){
+	Generate_Interface_List
+	printf "\\n"
+	Clear_Lock
+}
+
+Menu_ProcessInterfaces(){
+	Create_Symlinks "$1"
+	printf "\\n"
 	Clear_Lock
 }
 
@@ -1086,6 +1363,7 @@ Menu_Startup(){
 	Shortcut_spdMerlin create
 	Create_Dirs
 	Create_Symlinks
+	License_Acceptance "load"
 	Mount_SPD_WebUI
 	Modify_WebUI_File
 	Clear_Lock
@@ -1101,14 +1379,6 @@ Menu_TogglePreferred(){
 		PreferredServer disable
 	else
 		PreferredServer enable
-	fi
-}
-
-Menu_ToggleSingle(){
-	if SingleMode check; then
-		SingleMode disable
-	else
-		SingleMode enable
 	fi
 }
 
@@ -1227,7 +1497,6 @@ Menu_Uninstall(){
 		esac
 	done
 	Shortcut_spdMerlin delete
-	opkg remove --autoremove python
 	umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
 	umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
 	sed -i '/{url: "'"$(Get_spdMerlin_UI)"'", tabName: "SpeedTest"}/d' "$SHARED_DIR/custom_menuTree.js"
@@ -1240,10 +1509,10 @@ Menu_Uninstall(){
 		mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
 		mount -o bind "$SHARED_DIR/custom_start_apply.htm" "/www/start_apply.htm"
 	fi
+	opkg remove --autoremove jq
 	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
 	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
-	rm -f "$SCRIPT_DIR/spdcli.py" 2>/dev/null
-	rm -f "$SCRIPT_DIR/spdmerlin_images.tar.gz" 2>/dev/null
+	rm -rf "$OOKLA_DIR" 2>/dev/null
 	rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 	Clear_Lock
 	Print_Output "true" "Uninstall completed" "$PASS"
@@ -1252,11 +1521,13 @@ Menu_Uninstall(){
 if [ -z "$1" ]; then
 	Create_Dirs
 	Create_Symlinks
+	Process_Upgrade
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	Conf_Exists
+	License_Acceptance "load"
 	ScriptHeader
 	MainMenu
 	exit 0
@@ -1279,7 +1550,7 @@ case "$1" in
 			Menu_GenerateStats "schedule"
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
 			Check_Lock
-			Menu_GenerateStats "schedule"
+			Menu_GenerateStats "webui"
 		fi
 		exit 0
 	;;

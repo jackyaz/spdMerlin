@@ -25,6 +25,16 @@ font-weight: bolder;
   cursor: pointer;
 }
 
+.collapsibleparent {
+  color: white;
+  padding: 0px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  cursor: pointer;
+}
+
 .collapsiblecontent {
   padding: 0px;
   max-height: 0;
@@ -50,7 +60,13 @@ font-weight: bolder;
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatsdata.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
 <script>
-var LineChartDownloadDaily,LineChartUploadDaily,LineChartDownloadWeekly,LineChartUploadWeekly,LineChartDownloadMonthly,LineChartUploadMonthly;
+var LineChartDownloadDaily_WAN,LineChartUploadDaily_WAN,LineChartDownloadWeekly_WAN,LineChartUploadWeekly_WAN,LineChartDownloadMonthly_WAN,LineChartUploadMonthly_WAN;
+var LineChartDownloadDaily_VPNC1,LineChartUploadDaily_VPNC1,LineChartDownloadWeekly_VPNC1,LineChartUploadWeekly_VPNC1,LineChartDownloadMonthly_VPNC1,LineChartUploadMonthly_VPNC1;
+var LineChartDownloadDaily_VPNC2,LineChartUploadDaily_VPNC2,LineChartDownloadWeekly_VPNC2,LineChartUploadWeekly_VPNC2,LineChartDownloadMonthly_VPNC2,LineChartUploadMonthly_VPNC2;
+var LineChartDownloadDaily_VPNC3,LineChartUploadDaily_VPNC3,LineChartDownloadWeekly_VPNC3,LineChartUploadWeekly_VPNC3,LineChartDownloadMonthly_VPNC3,LineChartUploadMonthly_VPNC3;
+var LineChartDownloadDaily_VPNC4,LineChartUploadDaily_VPNC4,LineChartDownloadWeekly_VPNC4,LineChartUploadWeekly_VPNC4,LineChartDownloadMonthly_VPNC4,LineChartUploadMonthly_VPNC4;
+var LineChartDownloadDaily_VPNC5,LineChartUploadDaily_VPNC5,LineChartDownloadWeekly_VPNC5,LineChartUploadWeekly_VPNC5,LineChartDownloadMonthly_VPNC5,LineChartUploadMonthly_VPNC5;
+
 var ShowLines=GetCookie("ShowLines");
 var ShowFill=GetCookie("ShowFill");
 Chart.defaults.global.defaultFontColor = "#CCC";
@@ -58,7 +74,12 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
   return coordinates;
 };
 
-function Draw_Chart(txtchartname,objchartname,txtdataname,objdataname,txttitle,txtunity,txtunitx,numunitx,colourname){
+function Draw_Chart(txtchartname,txtdataname,txttitle,txtunity,txtunitx,numunitx,colourname){
+	objchartname=window[txtchartname];
+	objdataname=window[txtdataname];
+	if ( objdataname == null ){
+		return;
+	}
 	factor=0;
 	if (txtunitx=="hour"){
 		factor=60*60*1000;
@@ -252,36 +273,46 @@ function round(value, decimals) {
 }
 
 function ToggleLines() {
-	if(ShowLines == ""){
-		ShowLines = "line";
-		SetCookie("ShowLines","line")
+	if(interfacelist != ""){
+		if(ShowLines == ""){
+			ShowLines = "line";
+			SetCookie("ShowLines","line")
+		}
+		else {
+			ShowLines = "";
+			SetCookie("ShowLines","")
+		}
+		RedrawAllCharts();
 	}
-	else {
-		ShowLines = "";
-		SetCookie("ShowLines","")
-	}
-	RedrawAllCharts();
 }
 
 function ToggleFill() {
-	if(ShowFill == false){
-		ShowFill = "origin";
-		SetCookie("ShowFill","origin")
+	if(interfacelist != ""){
+		if(ShowFill == false){
+			ShowFill = "origin";
+			SetCookie("ShowFill","origin")
+		}
+		else {
+			ShowFill = false;
+			SetCookie("ShowFill",false)
+		}
+		RedrawAllCharts();
 	}
-	else {
-		ShowFill = false;
-		SetCookie("ShowFill",false)
-	}
-	RedrawAllCharts();
 }
 
 function RedrawAllCharts() {
-	Draw_Chart("LineChartDownloadDaily",LineChartDownloadDaily,"DataDownloadDaily",DataDownloadDaily,"Download","Mbps","hour",24,"#fc8500");
-	Draw_Chart("LineChartUploadDaily",LineChartUploadDaily,"DataUploadDaily",DataUploadDaily,"Upload","Mbps","hour",24,"#42ecf5");
-	Draw_Chart("LineChartDownloadWeekly",LineChartDownloadWeekly,"DataDownloadWeekly",DataDownloadWeekly,"Download","Mbps","day",7,"#fc8500");
-	Draw_Chart("LineChartUploadWeekly",LineChartUploadWeekly,"DataUploadWeekly",DataUploadWeekly,"Upload","Mbps","day",7,"#42ecf5");
-	Draw_Chart("LineChartDownloadMonthly",LineChartDownloadMonthly,"DataDownloadMonthly",DataDownloadMonthly,"Download","Mbps","day",30,"#fc8500");
-	Draw_Chart("LineChartUploadMonthly",LineChartUploadMonthly,"DataUploadMonthly",DataUploadMonthly,"Upload","Mbps","day",30,"#42ecf5");
+	if(interfacelist != ""){
+		var interfacetextarray = interfacelist.split(',');
+		var i;
+		for (i = 0; i < interfacetextarray.length; i++) {
+		Draw_Chart("LineChartDownloadDaily_"+interfacetextarray[i],"DataDownloadDaily_"+interfacetextarray[i],"Download","Mbps","hour",24,"#fc8500");
+		Draw_Chart("LineChartUploadDaily_"+interfacetextarray[i],"DataUploadDaily_"+interfacetextarray[i],"Upload","Mbps","hour",24,"#42ecf5");
+		Draw_Chart("LineChartDownloadWeekly_"+interfacetextarray[i],"DataDownloadWeekly_"+interfacetextarray[i],"Download","Mbps","day",7,"#fc8500");
+		Draw_Chart("LineChartUploadWeekly_"+interfacetextarray[i],"DataUploadWeekly_"+interfacetextarray[i],"Upload","Mbps","day",7,"#42ecf5");
+		Draw_Chart("LineChartDownloadMonthly_"+interfacetextarray[i],"DataDownloadMonthly_"+interfacetextarray[i],"Download","Mbps","day",30,"#fc8500");
+		Draw_Chart("LineChartUploadMonthly_"+interfacetextarray[i],"DataUploadMonthly_"+interfacetextarray[i],"Upload","Mbps","day",30,"#42ecf5");
+		}
+	}
 }
 
 function GetCookie(cookiename) {
@@ -300,7 +331,7 @@ function SetCookie(cookiename,cookievalue) {
 
 function initial(){
 	show_menu();
-	RedrawAllCharts();
+	get_conf_file();
 }
 
 function reload() {
@@ -311,6 +342,161 @@ function applyRule() {
 	var action_script_tmp = "start_spdmerlin";
 	document.form.action_script.value = action_script_tmp;
 	document.form.submit();
+}
+
+function get_conf_file(){
+	$.ajax({
+		url: '/ext/spdmerlin/interfaces.htm',
+		dataType: 'text',
+		error: function(xhr){
+			setTimeout("get_conf_file();", 1000);
+		},
+		success: function(data){
+			var interfaces=data.split("\n");
+			interfaces.reverse();
+			interfaces=interfaces.filter(Boolean);
+			interfacelist="";
+			var interfacecount=interfaces.length;
+			for (var i = 0; i < interfacecount; i++) {
+				var commentstart=interfaces[i].indexOf("#");
+				if (commentstart != -1){
+					continue
+				}
+				var interfacename=interfaces[i];
+				$("#table_buttons").after(BuildInterfaceTable(interfacename));
+				if(i == interfacecount-1){
+					interfacelist+=interfacename;
+				} else {
+					interfacelist+=interfacename+',';
+				}
+			}
+			
+			if(interfacelist != ""){
+				AddEventHandlers();
+				RedrawAllCharts();
+			}
+		}
+	});
+}
+
+function BuildInterfaceTable(name){
+	var charthtml = '<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_interfaces_'+name+'">'
+	charthtml+='<thead class="collapsibleparent" id="'+name+'">'
+	charthtml+='<tr>'
+	charthtml+='<td colspan="2">'+name+' (click to expand/collapse)</td>'
+	charthtml+='</tr>'
+	charthtml+='</thead>'
+	charthtml+='<tr>'
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
+	charthtml+='<div class="collapsiblecontent">'
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">'
+	charthtml+='<tr>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='</tr>'
+	charthtml+='<thead class="collapsible" id="last24_'+name+'">'
+	charthtml+='<tr>'
+	charthtml+='<td colspan="2">Last 24 Hours (click to expand/collapse)</td>'
+	charthtml+='</tr>'
+	charthtml+='</thead>'
+	charthtml+='<tr>'
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
+	charthtml+='<div class="collapsiblecontent">'
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadDaily_'+name+'" height="300"></div>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadDaily_'+name+'" height="300"></div>'
+	charthtml+='</div>'
+	charthtml+='</td>'
+	charthtml+='</tr>'
+	charthtml+='</table>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">'
+	charthtml+='<thead class="collapsible" id="last7_'+name+'">'
+	charthtml+='<tr>'
+	charthtml+='<td colspan="2">Last 7 days (click to expand/collapse)</td>'
+	charthtml+='</tr>'
+	charthtml+='</thead>'
+	charthtml+='<tr>'
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
+	charthtml+='<div class="collapsiblecontent">'
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadWeekly_'+name+'" height="300"></div>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadWeekly_'+name+'" height="300"></div>'
+	charthtml+='</div>'
+	charthtml+='</td>'
+	charthtml+='</tr>'
+	charthtml+='</table>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">'
+	charthtml+='<thead class="collapsible" id="last30_'+name+'">'
+	charthtml+='<tr>'
+	charthtml+='<td colspan="2">Last 30 days (click to expand/collapse)</td>'
+	charthtml+='</tr>'
+	charthtml+='</thead>'
+	charthtml+='<tr>'
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
+	charthtml+='<div class="collapsiblecontent">'
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadMonthly_'+name+'" height="300"></div>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadMonthly_'+name+'" height="300"></div>'
+	charthtml+='</div>'
+	charthtml+='</td>'
+	charthtml+='</tr>'
+	charthtml+='</table>'
+	charthtml+='</div>'
+	charthtml+='</td>'
+	charthtml+='</tr>'
+	charthtml+='</table>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	return charthtml;
+}
+
+function AddEventHandlers(){
+	var coll = document.getElementsByClassName("collapsible");
+	var i;
+	var height = 0;
+
+	for (i = 0; i < coll.length; i++) {
+		coll[i].addEventListener("click", function() {
+			this.classList.toggle("active");
+			var content = this.nextElementSibling.firstElementChild.firstElementChild.firstElementChild;
+			if (content.style.maxHeight){
+					content.style.maxHeight = null;
+					SetCookie(this.id,"collapsed")
+			} else {
+					content.style.maxHeight = content.scrollHeight + "px";
+					this.parentElement.parentElement.style.maxHeight = (this.parentElement.parentElement.style.maxHeight.substring(0,this.parentElement.parentElement.style.maxHeight.length-2)*1) + content.scrollHeight + "px";
+					SetCookie(this.id,"expanded")
+				}
+		});
+		
+		if(GetCookie(coll[i].id) == "expanded" || GetCookie(coll[i].id) == ""){
+			coll[i].click();
+		}
+		height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10 + 10 + 10;
+	}
+	
+	var coll = document.getElementsByClassName("collapsibleparent");
+	var i;
+	
+	for (i = 0; i < coll.length; i++) {
+		coll[i].addEventListener("click", function() {
+			this.classList.toggle("active");
+			var content = this.nextElementSibling.firstElementChild.firstElementChild.firstElementChild;
+			if (content.style.maxHeight){
+				content.style.maxHeight = null;
+				SetCookie(this.id,"collapsed")
+			} else {
+				content.style.maxHeight = content.scrollHeight + "px";
+				SetCookie(this.id,"expanded")
+			}
+		});
+		if(GetCookie(coll[i].id) == "expanded" || GetCookie(coll[i].id) == ""){
+			coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight = height + "px";
+		} else {
+			coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight = null;
+		}
+	}
 }
 
 </script>
@@ -351,7 +537,7 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 <td valign="top">
 <div>&nbsp;</div>
 <div class="formfonttitle" id="statstitle">Internet Speedtest Stats</div>
-<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;">
+<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
 <tr class="apply_gen" valign="top" height="35px">
 <td style="background-color:rgb(77, 89, 93);border:0px;">
 <input type="button" onClick="applyRule();" value="Run speedtest now" class="button_gen" name="button">
@@ -364,57 +550,9 @@ document.getElementById("next_page").value=window.location.pathname.substring(1)
 </td>
 </tr>
 </table>
-<div style="line-height:10px;">&nbsp;</div>
-<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible" id="last24">
-<tr>
-<td colspan="2">Last 24 Hours (click to expand/collapse)</td>
-</tr>
-</thead>
-<tr>
-<td colspan="2" align="center" style="padding: 0px;">
-<div class="collapsiblecontent">
-<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadDaily" height="300"></div>
-<div style="line-height:10px;">&nbsp;</div>
-<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadDaily" height="300"></div>
-</div>
-</td>
-</tr>
-</table>
-<div style="line-height:10px;">&nbsp;</div>
-<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible" id="last7">
-<tr>
-<td colspan="2">Last 7 days (click to expand/collapse)</td>
-</tr>
-</thead>
-<tr>
-<td colspan="2" align="center" style="padding: 0px;">
-<div class="collapsiblecontent">
-<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadWeekly" height="300"></div>
-<div style="line-height:10px;">&nbsp;</div>
-<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadWeekly" height="300"></div>
-</div>
-</td>
-</tr>
-</table>
-<div style="line-height:10px;">&nbsp;</div>
-<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
-<thead class="collapsible" id="last30">
-<tr>
-<td colspan="2">Last 30 days (click to expand/collapse)</td>
-</tr>
-</thead>
-<tr>
-<td colspan="2" align="center" style="padding: 0px;">
-<div class="collapsiblecontent">
-<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadMonthly" height="300"></div>
-<div style="line-height:10px;">&nbsp;</div>
-<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadMonthly" height="300"></div>
-</div>
-</td>
-</tr>
-</table>
+
+<!-- Charts inserted here -->
+
 </td>
 </tr>
 </tbody>
@@ -432,26 +570,5 @@ SetSPDStatsTitle();
 </script>
 <div id="footer">
 </div>
-<script>
-var coll = document.getElementsByClassName("collapsible");
-var i;
-
-for (i = 0; i < coll.length; i++) {
-  coll[i].addEventListener("click", function() {
-    this.classList.toggle("active");
-    var content = this.nextElementSibling.firstElementChild.firstElementChild.firstElementChild;
-    if (content.style.maxHeight){
-      content.style.maxHeight = null;
-      SetCookie(this.id,"collapsed")
-    } else {
-      content.style.maxHeight = content.scrollHeight + "px";
-      SetCookie(this.id,"expanded")
-    }
-  });
-  if(GetCookie(coll[i].id) == "expanded"){
-      coll[i].click();
-}
-}
-</script>
 </body>
 </html>
