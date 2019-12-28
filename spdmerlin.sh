@@ -1076,8 +1076,8 @@ MainMenu(){
 	fi
 	
 	printf "1.    Run a speedtest now (auto select server)\\n"
-	printf "2.    Run a speedtest now (use preferred server)\\n"
-	printf "3.    Run a speedtest (select a server)\\n\\n"
+	printf "2.    Run a speedtest now (use preferred server - applies to WAN only)\\n"
+	printf "3.    Run a speedtest (select a server - applies to WAN only)\\n\\n"
 	printf "4.    Choose a preferred server for WAN (for automatic speedtests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
 	printf "5.    Toggle preferred server for WAN (for automatic speedtests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
