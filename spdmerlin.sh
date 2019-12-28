@@ -343,7 +343,7 @@ Create_Symlinks(){
 	fi
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
-		if [ "$(grep -c "$(echo $line | cut -f1 -d"#" | sed 's/ *$//')" "$SCRIPT_DIR/.interfaces_user")" -eq 0 ]; then
+		if [ "$(grep -c "$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')" "$SCRIPT_DIR/.interfaces_user")" -eq 0 ]; then
 			printf "%s\\n" "$line" >> "$SCRIPT_DIR/.interfaces_user"
 		fi
 	done < "$SCRIPT_DIR/.interfaces"
@@ -453,7 +453,7 @@ Set_Interface_State(){
 	interfaceline="$(sed "$1!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
 	if echo "$interfaceline" | grep -q "VPN" ; then
 		if echo "$interfaceline" | grep -q "#excluded" ; then
-			if ! ifconfig "$(Get_Interface_From_Name "$(echo $interfaceline | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+			if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
 				sed -i "$1"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
 			else
 				sed -i "$1"'s/ #excluded - interface not up#/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
@@ -501,14 +501,14 @@ Generate_Interface_List(){
 		else
 			interfaceline="$(sed "$interface!d" "$SCRIPT_DIR/.interfaces_user" | awk '{$1=$1};1')"
 			if echo "$interfaceline" | grep -q "#excluded" ; then
-				if ! ifconfig "$(Get_Interface_From_Name "$(echo $interfaceline | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+				if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
 					sed -i "$interface"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
 				else
 					sed -i "$interface"'s/ #excluded - interface not up#//' "$SCRIPT_DIR/.interfaces_user"
 					sed -i "$interface"'s/ #excluded#//' "$SCRIPT_DIR/.interfaces_user"
 				fi
 			else
-				if ! ifconfig "$(Get_Interface_From_Name "$(echo $interfaceline | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+				if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
 					sed -i "$interface"'s/$/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
 				else
 					sed -i "$interface"'s/$/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
