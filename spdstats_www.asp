@@ -250,6 +250,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 		options: lineOptions,
 		data: lineDataset
 	});
+	window["LineChart"+txtchartname]=objchartname;
 }
 
 function getLimit(datasetname,axis,maxmin) {
