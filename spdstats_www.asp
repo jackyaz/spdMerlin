@@ -78,6 +78,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 	objchartname=window["LineChart"+txtchartname];
 	txtdataname="Data"+txtchartname;
 	objdataname=window["Data"+txtchartname];
+	if(typeof objdataname === 'undefined' || objdataname === null) return;
 	if ( objdataname == null ) return;
 	factor=0;
 	if (txtunitx=="hour"){
@@ -87,7 +88,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 		factor=60*60*24*1000;
 	}
 	if (objchartname != undefined) objchartname.destroy();
-	var ctx = document.getElementById("div"+txtchartname).getContext("2d");
+	var ctx = document.getElementById("divLineChart"+txtchartname).getContext("2d");
 	var lineOptions = {
 		segmentShowStroke : false,
 		segmentStrokeColor : "#000",
