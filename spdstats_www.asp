@@ -283,13 +283,13 @@ function ToggleLines() {
 
 function ToggleFill() {
 	if(interfacelist != ""){
-		if(ShowFill == false){
-			ShowFill = "origin";
-			SetCookie("ShowFill","origin")
-		}
-		else {
+		if(ShowFill == "origin"){
 			ShowFill = false;
 			SetCookie("ShowFill",false)
+		}
+		else {
+			ShowFill = "origin";
+			SetCookie("ShowFill","origin")
 		}
 		RedrawAllCharts();
 	}
