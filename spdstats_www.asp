@@ -60,12 +60,6 @@ font-weight: bolder;
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatsdata.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
 <script>
-var LineChartDownloadDaily_WAN,LineChartUploadDaily_WAN,LineChartDownloadWeekly_WAN,LineChartUploadWeekly_WAN,LineChartDownloadMonthly_WAN,LineChartUploadMonthly_WAN;
-var LineChartDownloadDaily_VPNC1,LineChartUploadDaily_VPNC1,LineChartDownloadWeekly_VPNC1,LineChartUploadWeekly_VPNC1,LineChartDownloadMonthly_VPNC1,LineChartUploadMonthly_VPNC1;
-var LineChartDownloadDaily_VPNC2,LineChartUploadDaily_VPNC2,LineChartDownloadWeekly_VPNC2,LineChartUploadWeekly_VPNC2,LineChartDownloadMonthly_VPNC2,LineChartUploadMonthly_VPNC2;
-var LineChartDownloadDaily_VPNC3,LineChartUploadDaily_VPNC3,LineChartDownloadWeekly_VPNC3,LineChartUploadWeekly_VPNC3,LineChartDownloadMonthly_VPNC3,LineChartUploadMonthly_VPNC3;
-var LineChartDownloadDaily_VPNC4,LineChartUploadDaily_VPNC4,LineChartDownloadWeekly_VPNC4,LineChartUploadWeekly_VPNC4,LineChartDownloadMonthly_VPNC4,LineChartUploadMonthly_VPNC4;
-var LineChartDownloadDaily_VPNC5,LineChartUploadDaily_VPNC5,LineChartDownloadWeekly_VPNC5,LineChartUploadWeekly_VPNC5,LineChartDownloadMonthly_VPNC5,LineChartUploadMonthly_VPNC5;
 
 var ShowLines=GetCookie("ShowLines");
 var ShowFill=GetCookie("ShowFill");
@@ -75,9 +69,9 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
 };
 
 function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname){
-	objchartname=window["LineChart"+txtchartname];
-	txtdataname="Data"+txtchartname;
-	objdataname=window["Data"+txtchartname];
+	var objchartname=window["LineChart"+txtchartname];
+	var txtdataname="Data"+txtchartname;
+	var objdataname=window["Data"+txtchartname];
 	if(typeof objdataname === 'undefined' || objdataname === null) return;
 	if ( objdataname == null ) return;
 	factor=0;
