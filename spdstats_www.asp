@@ -69,17 +69,17 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
 };
 
 function Draw_Chart_NoData(txtchartname){
-	document.getElementById("divLineChart"+txtchartname).width="735";
-	document.getElementById("divLineChart"+txtchartname).height="360";
-	document.getElementById("divLineChart"+txtchartname).style.width="735px";
-	document.getElementById("divLineChart"+txtchartname).style.height="360px";
+	document.getElementById("divLineChart"+txtchartname).width="700";
+	document.getElementById("divLineChart"+txtchartname).height="300";
+	document.getElementById("divLineChart"+txtchartname).style.width="700px";
+	document.getElementById("divLineChart"+txtchartname).style.height="300px";
 	var ctx = document.getElementById("divLineChart"+txtchartname).getContext("2d");
 	ctx.save();
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 	ctx.font = "normal normal bolder 48px Arial";
 	ctx.fillStyle = 'white'
-	ctx.fillText('No data to display', 375, 180);
+	ctx.fillText('No data to display', 350, 150);
 	ctx.restore();
 }
 
