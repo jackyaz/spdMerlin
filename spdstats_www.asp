@@ -77,7 +77,8 @@ function Draw_Chart_NoData(txtchartname){
 	ctx.save();
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
-	ctx.font = "36px normal Arial";
+	ctx.font = "normal normal bolder 48px Arial";
+	ctx.fillStyle = 'white'
 	ctx.fillText('No data to display', 375, 180);
 	ctx.restore();
 }
