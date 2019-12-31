@@ -68,12 +68,26 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
   return coordinates;
 };
 
+function Draw_Chart_NoData(txtchartname){
+	document.getElementById("divLineChart"+txtchartname).width="735";
+	document.getElementById("divLineChart"+txtchartname).height="360";
+	document.getElementById("divLineChart"+txtchartname).style.width="735px";
+	document.getElementById("divLineChart"+txtchartname).style.height="360px";
+	var ctx = document.getElementById("divLineChart"+txtchartname).getContext("2d");
+	ctx.save();
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.font = "36px normal Arial";
+	ctx.fillText('No data to display', 375, 180);
+	ctx.restore();
+}
+
 function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname){
 	var objchartname=window["LineChart"+txtchartname];
 	var txtdataname="Data"+txtchartname;
 	var objdataname=window["Data"+txtchartname];
-	if(typeof objdataname === 'undefined' || objdataname === null) return;
-	if ( objdataname == null ) return;
+	if(typeof objdataname === 'undefined' || objdataname === null) { Draw_Chart_NoData(txtchartname); return; }
+	if (objdataname.length == 0) { Draw_Chart_NoData(txtchartname); return; }
 	factor=0;
 	if (txtunitx=="hour"){
 		factor=60*60*1000;
