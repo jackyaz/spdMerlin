@@ -32,6 +32,7 @@ readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
 readonly HOME_DIR="/$(readlink "$HOME")"
 readonly OOKLA_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ookla"
 readonly OOKLA_LICENSE_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ooklalicense"
+readonly OOKLA_HOME_DIR="$HOME_DIR/.config.ookla"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
@@ -314,6 +315,10 @@ Create_Dirs(){
 	
 	if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
 		mkdir -p "$OOKLA_LICENSE_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_HOME_DIR" ]; then
+		mkdir -p "$OOKLA_HOME_DIR"
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
