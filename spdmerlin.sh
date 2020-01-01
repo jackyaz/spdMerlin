@@ -19,8 +19,8 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v3.0.0"
-readonly SPD_VERSION="v3.0.0"
+readonly SCRIPT_VERSION="v3.0.1"
+readonly SPD_VERSION="v3.0.1"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
@@ -32,6 +32,7 @@ readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
 readonly HOME_DIR="/$(readlink "$HOME")"
 readonly OOKLA_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ookla"
 readonly OOKLA_LICENSE_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ooklalicense"
+readonly OOKLA_HOME_DIR="$HOME_DIR/.config.ookla"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
@@ -314,6 +315,10 @@ Create_Dirs(){
 	
 	if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
 		mkdir -p "$OOKLA_LICENSE_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_HOME_DIR" ]; then
+		mkdir -p "$OOKLA_HOME_DIR"
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
@@ -1329,6 +1334,11 @@ Menu_Install(){
 	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
 	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 	chmod 0755 "$OOKLA_DIR/speedtest"
+	
+	Update_File "chartjs-plugin-zoom.js"
+	Update_File "chartjs-plugin-annotation.js"
+	Update_File "hammerjs.js"
+	Update_File "moment.js"
 	
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi

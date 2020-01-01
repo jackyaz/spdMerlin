@@ -60,12 +60,6 @@ font-weight: bolder;
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatsdata.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
 <script>
-var LineChartDownloadDaily_WAN,LineChartUploadDaily_WAN,LineChartDownloadWeekly_WAN,LineChartUploadWeekly_WAN,LineChartDownloadMonthly_WAN,LineChartUploadMonthly_WAN;
-var LineChartDownloadDaily_VPNC1,LineChartUploadDaily_VPNC1,LineChartDownloadWeekly_VPNC1,LineChartUploadWeekly_VPNC1,LineChartDownloadMonthly_VPNC1,LineChartUploadMonthly_VPNC1;
-var LineChartDownloadDaily_VPNC2,LineChartUploadDaily_VPNC2,LineChartDownloadWeekly_VPNC2,LineChartUploadWeekly_VPNC2,LineChartDownloadMonthly_VPNC2,LineChartUploadMonthly_VPNC2;
-var LineChartDownloadDaily_VPNC3,LineChartUploadDaily_VPNC3,LineChartDownloadWeekly_VPNC3,LineChartUploadWeekly_VPNC3,LineChartDownloadMonthly_VPNC3,LineChartUploadMonthly_VPNC3;
-var LineChartDownloadDaily_VPNC4,LineChartUploadDaily_VPNC4,LineChartDownloadWeekly_VPNC4,LineChartUploadWeekly_VPNC4,LineChartDownloadMonthly_VPNC4,LineChartUploadMonthly_VPNC4;
-var LineChartDownloadDaily_VPNC5,LineChartUploadDaily_VPNC5,LineChartDownloadWeekly_VPNC5,LineChartUploadWeekly_VPNC5,LineChartDownloadMonthly_VPNC5,LineChartUploadMonthly_VPNC5;
 
 var ShowLines=GetCookie("ShowLines");
 var ShowFill=GetCookie("ShowFill");
@@ -74,12 +68,27 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
   return coordinates;
 };
 
-function Draw_Chart(txtchartname,txtdataname,txttitle,txtunity,txtunitx,numunitx,colourname){
-	objchartname=window[txtchartname];
-	objdataname=window[txtdataname];
-	if ( objdataname == null ){
-		return;
-	}
+function Draw_Chart_NoData(txtchartname){
+	document.getElementById("divLineChart"+txtchartname).width="730";
+	document.getElementById("divLineChart"+txtchartname).height="300";
+	document.getElementById("divLineChart"+txtchartname).style.width="730px";
+	document.getElementById("divLineChart"+txtchartname).style.height="300px";
+	var ctx = document.getElementById("divLineChart"+txtchartname).getContext("2d");
+	ctx.save();
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.font = "normal normal bolder 48px Arial";
+	ctx.fillStyle = 'white'
+	ctx.fillText('No data to display', 365, 150);
+	ctx.restore();
+}
+
+function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname){
+	var objchartname=window["LineChart"+txtchartname];
+	var txtdataname="Data"+txtchartname;
+	var objdataname=window["Data"+txtchartname];
+	if(typeof objdataname === 'undefined' || objdataname === null) { Draw_Chart_NoData(txtchartname); return; }
+	if (objdataname.length == 0) { Draw_Chart_NoData(txtchartname); return; }
 	factor=0;
 	if (txtunitx=="hour"){
 		factor=60*60*1000;
@@ -88,7 +97,7 @@ function Draw_Chart(txtchartname,txtdataname,txttitle,txtunity,txtunitx,numunitx
 		factor=60*60*24*1000;
 	}
 	if (objchartname != undefined) objchartname.destroy();
-	var ctx = document.getElementById("div"+txtchartname).getContext("2d");
+	var ctx = document.getElementById("divLineChart"+txtchartname).getContext("2d");
 	var lineOptions = {
 		segmentShowStroke : false,
 		segmentStrokeColor : "#000",
@@ -251,6 +260,7 @@ function Draw_Chart(txtchartname,txtdataname,txttitle,txtunity,txtunitx,numunitx
 		options: lineOptions,
 		data: lineDataset
 	});
+	window["LineChart"+txtchartname]=objchartname;
 }
 
 function getLimit(datasetname,axis,maxmin) {
@@ -288,13 +298,13 @@ function ToggleLines() {
 
 function ToggleFill() {
 	if(interfacelist != ""){
-		if(ShowFill == false){
-			ShowFill = "origin";
-			SetCookie("ShowFill","origin")
-		}
-		else {
+		if(ShowFill == "origin"){
 			ShowFill = false;
 			SetCookie("ShowFill",false)
+		}
+		else {
+			ShowFill = "origin";
+			SetCookie("ShowFill","origin")
 		}
 		RedrawAllCharts();
 	}
@@ -305,12 +315,12 @@ function RedrawAllCharts() {
 		var interfacetextarray = interfacelist.split(',');
 		var i;
 		for (i = 0; i < interfacetextarray.length; i++) {
-		Draw_Chart("LineChartDownloadDaily_"+interfacetextarray[i],"DataDownloadDaily_"+interfacetextarray[i],"Download","Mbps","hour",24,"#fc8500");
-		Draw_Chart("LineChartUploadDaily_"+interfacetextarray[i],"DataUploadDaily_"+interfacetextarray[i],"Upload","Mbps","hour",24,"#42ecf5");
-		Draw_Chart("LineChartDownloadWeekly_"+interfacetextarray[i],"DataDownloadWeekly_"+interfacetextarray[i],"Download","Mbps","day",7,"#fc8500");
-		Draw_Chart("LineChartUploadWeekly_"+interfacetextarray[i],"DataUploadWeekly_"+interfacetextarray[i],"Upload","Mbps","day",7,"#42ecf5");
-		Draw_Chart("LineChartDownloadMonthly_"+interfacetextarray[i],"DataDownloadMonthly_"+interfacetextarray[i],"Download","Mbps","day",30,"#fc8500");
-		Draw_Chart("LineChartUploadMonthly_"+interfacetextarray[i],"DataUploadMonthly_"+interfacetextarray[i],"Upload","Mbps","day",30,"#42ecf5");
+		Draw_Chart("DownloadDaily_"+interfacetextarray[i],"Download","Mbps","hour",24,"#fc8500");
+		Draw_Chart("UploadDaily_"+interfacetextarray[i],"Upload","Mbps","hour",24,"#42ecf5");
+		Draw_Chart("DownloadWeekly_"+interfacetextarray[i],"Download","Mbps","day",7,"#fc8500");
+		Draw_Chart("UploadWeekly_"+interfacetextarray[i],"Upload","Mbps","day",7,"#42ecf5");
+		Draw_Chart("DownloadMonthly_"+interfacetextarray[i],"Download","Mbps","day",30,"#fc8500");
+		Draw_Chart("UploadMonthly_"+interfacetextarray[i],"Upload","Mbps","day",30,"#42ecf5");
 		}
 	}
 }
