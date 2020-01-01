@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
 ## v3.0.1
-### Updated on 2019-12-29
+### Updated on 2020-01-01
 ## About
 Run automated speedtests for your Internet on your router with graphs available on the Tools page of the WebUI.
 
