@@ -875,7 +875,7 @@ WriteData_ToJS(){
 			datapoint="{ x: moment.unix(""$(echo "$line" | awk 'BEGIN{FS=","}{ print $1 }' | awk '{$1=$1};1')""), y: ""$(echo "$line" | awk 'BEGIN{FS=","}{ print $2 }' | awk '{$1=$1};1')"" }"
 			contents="$contents""$datapoint"","
 		done < "$inputfile"
-		contents=$(echo "$contents" | sed 's/.$//')
+		contents=$(echo "$contents" | sed 's/,$//')
 		contents="$contents"");"
 		printf "%s\\r\\n\\r\\n" "$contents" >> "$outputfile"
 	done
