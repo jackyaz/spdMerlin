@@ -32,8 +32,8 @@ readonly SHARED_DIR="/jffs/addons/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
 readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
 readonly HOME_DIR="/$(readlink "$HOME")"
-readonly OOKLA_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ookla"
-readonly OOKLA_LICENSE_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d/ooklalicense"
+readonly OOKLA_DIR="$SCRIPT_DIR/ookla"
+readonly OOKLA_LICENSE_DIR="$SCRIPT_DIR/ooklalicense"
 readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
