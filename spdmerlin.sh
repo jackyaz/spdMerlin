@@ -24,9 +24,11 @@ readonly SPD_VERSION="v3.1.0"
 readonly SCRIPT_BRANCH="develop"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
-readonly SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
+readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
+readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
-readonly SHARED_DIR="/jffs/scripts/shared-jy"
+readonly OLD_SHARED_DIR="/jffs/scripts/shared-jy"
+readonly SHARED_DIR="/jffs/addons/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
 readonly SHARED_WEB_DIR="$(readlink /www/ext)/shared-jy"
 readonly HOME_DIR="/$(readlink "$HOME")"
@@ -307,6 +309,11 @@ License_Acceptance(){
 Create_Dirs(){
 	if [ ! -d "$SCRIPT_DIR" ]; then
 		mkdir -p "$SCRIPT_DIR"
+	fi
+	
+	if [ -d "$OLD_SCRIPT_DIR" ]; then
+		mv "$OLD_SCRIPT_DIR/*" "$SCRIPT_DIR"
+		rm -rf "$SCRIPT_DIR"
 	fi
 	
 	if [ ! -d "$OOKLA_DIR" ]; then
