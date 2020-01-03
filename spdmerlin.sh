@@ -1538,7 +1538,7 @@ Menu_Uninstall(){
 	Auto_Cron delete 2>/dev/null
 	Auto_ServiceEvent delete 2>/dev/null
 	while true; do
-		printf "\\n\\e[1mDo you want to delete %s stats? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
+		printf "\\n\\e[1mDo you want to delete %s stats and config? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
 		read -r "confirm"
 		case "$confirm" in
 			y|Y)
@@ -1565,7 +1565,6 @@ Menu_Uninstall(){
 	fi
 	opkg remove --autoremove jq
 	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
-	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
 	rm -rf "$OOKLA_DIR" 2>/dev/null
 	rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 	Clear_Lock
