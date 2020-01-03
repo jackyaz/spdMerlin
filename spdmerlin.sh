@@ -313,7 +313,7 @@ Create_Dirs(){
 	fi
 	
 	if [ -d "$OLD_SCRIPT_DIR" ]; then
-		mv "$OLD_SCRIPT_DIR/*" "$SCRIPT_DIR"
+		mv "$OLD_SCRIPT_DIR" "$(dirname "$SCRIPT_DIR")"
 		rm -rf "$OLD_SCRIPT_DIR"
 	fi
 	
