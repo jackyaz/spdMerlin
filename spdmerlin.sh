@@ -189,7 +189,7 @@ Update_File(){
 		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
 			Print_Output "true" "New version of $1 downloaded" "$PASS"
 			mv "$SCRIPT_DIR/$1" "$SCRIPT_DIR/$1.old"
-			Mount_SPD_WebUI
+			Mount_WebUI
 		fi
 		rm -f "$tmpfile"
 	elif [ "$1" = "chartjs-plugin-zoom.js" ] || [ "$1" = "chartjs-plugin-annotation.js" ] || [ "$1" = "moment.js" ] || [ "$1" =  "hammerjs.js" ]; then
@@ -630,19 +630,53 @@ Get_spdMerlin_UI(){
 	fi
 }
 
-Mount_SPD_WebUI(){
-	umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
-	umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
-	
-	if [ -f "/jffs/scripts/spdstats_www.asp" ]; then
-		mv "/jffs/scripts/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
+Get_WebUI_Page () {
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		page="/www/ext/user$i.asp"
+		if [ ! -f "$page" ] || [ "$(md5sum < "$1")" = "$(md5sum < "$page")" ]; then
+			echo "user$i.asp"
+			return
+		fi
+	done
+	echo "none"
+}
+
+Mount_WebUI(){
+	if [ "$(Firmware_Version_Check "$(nvram get buildno)")" -ge "$(Firmware_Version_Check 384.15)" ]; then
+		if [ ! -f "$SCRIPT_DIR/spdstats_www.asp" ]; then
+			Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
+		fi
+		MyPage="$(Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp")"
+		if [ "$MyPage" = "none" ]; then
+			Print_Output "true" "Unable to mount spdMerlin WebUI page, exiting" "$CRIT"
+			exit 1
+		fi
+		Print_Output "true" "Unable to mount spdMerlin WebUI page, exiting" "$PASS"
+		cp "$SCRIPT_DIR/spdstats_www.asp" "/www/user/$MyPage"
+		
+		if [ ! -f "/tmp/menuTree.js" ]; then
+			cp -f "/www/require/modules/menuTree.js" "/tmp/"
+		fi
+		
+		sed -i "\\~$MyPage~d" /tmp/menuTree.js
+		sed -i "/url: \"Tools_OtherSettings.asp\", tabName:/a {url: \"$MyPage\", tabName: \"SpeedTest\"}," /tmp/menuTree.js
+		umount /www/require/modules/menuTree.js 2>/dev/null
+		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
+	else
+		Mount_SPD_WebUI_Old
+		Modify_WebUI_File
 	fi
-	
-	if [ ! -f "$SCRIPT_DIR/spdstats_www.asp" ]; then
-		Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
-	fi
-	
-	mount -o bind "$SCRIPT_DIR/spdstats_www.asp" /www/"$(Get_spdMerlin_UI)"
+}
+
+Mount_SPD_WebUI_Old(){
+		umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
+		umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
+		
+		if [ ! -f "$SCRIPT_DIR/spdstats_www.asp" ]; then
+			Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
+		fi
+		
+		mount -o bind "$SCRIPT_DIR/spdstats_www.asp" /www/"$(Get_spdMerlin_UI)"
 }
 
 Modify_WebUI_File(){
@@ -1353,8 +1387,7 @@ Menu_Install(){
 	Shortcut_spdMerlin create
 	Conf_Exists
 	
-	Mount_SPD_WebUI
-	Modify_WebUI_File
+	Mount_WebUI
 	
 	License_Acceptance "accept"
 	
@@ -1381,8 +1414,7 @@ Menu_Startup(){
 	Create_Dirs
 	Create_Symlinks
 	License_Acceptance "load"
-	Mount_SPD_WebUI
-	Modify_WebUI_File
+	Mount_WebUI
 	Clear_Lock
 }
 
