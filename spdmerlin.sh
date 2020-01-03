@@ -23,7 +23,8 @@ readonly SCRIPT_VERSION="v3.1.0"
 readonly SPD_VERSION="v3.1.0"
 readonly SCRIPT_BRANCH="develop"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
-readonly SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
+readonly OLD_SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
+readonly SCRIPT_CONF="$SCRIPT_DIR/config"
 readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
@@ -391,6 +392,10 @@ Create_Symlinks(){
 }
 
 Conf_Exists(){
+	if [ -f "$OLD_SCRIPT_CONF" ]; then
+		mv "$OLD_SCRIPT_CONF" "$SCRIPT_CONF"
+	fi
+	
 	if [ -f "$SCRIPT_CONF" ]; then
 		dos2unix "$SCRIPT_CONF"
 		chmod 0644 "$SCRIPT_CONF"
