@@ -291,11 +291,6 @@ License_Acceptance(){
 			fi
 		;;
 		load)
-			if [ -f "$OOKLA_DIR/speedtest-cli.json" ]; then
-				mv "$OOKLA_DIR/speedtest-cli.json" "$OOKLA_LICENSE_DIR/speedtest-cli.json"
-				return 0
-			fi
-			
 			if [ -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
 				cp "$OOKLA_LICENSE_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
 				return 0
