@@ -15,6 +15,7 @@
 p{
 font-weight: bolder;
 }
+
 .collapsible {
   color: white;
   padding: 0px;
