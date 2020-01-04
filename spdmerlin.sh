@@ -27,7 +27,8 @@ readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly OLD_SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config"
-readonly SCRIPT_WEB_DIR="$(readlink /www/ext)/$SCRIPT_NAME_LOWER"
+readonly SCRIPT_PAGE_DIR="$(readlink /www/user)"
+readonly SCRIPT_WEB_DIR="$SCRIPT_PAGE_DIR/$SCRIPT_NAME_LOWER"
 readonly OLD_SHARED_DIR="/jffs/scripts/shared-jy"
 readonly SHARED_DIR="/jffs/addons/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
@@ -328,6 +329,10 @@ Create_Dirs(){
 		mkdir -p "$SHARED_DIR"
 	fi
 	
+	if [ ! -d "$SCRIPT_PAGE_DIR" ]; then
+		mkdir -p "$SCRIPT_PAGE_DIR"
+	fi
+		
 	if [ ! -d "$SCRIPT_WEB_DIR" ]; then
 		mkdir -p "$SCRIPT_WEB_DIR"
 	fi
@@ -648,11 +653,11 @@ Mount_WebUI(){
 		fi
 		MyPage="$(Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp")"
 		if [ "$MyPage" = "none" ]; then
-			Print_Output "true" "Unable to mount spdMerlin WebUI page, exiting" "$CRIT"
+			Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
 			exit 1
 		fi
-		Print_Output "true" "Unable to mount spdMerlin WebUI page, exiting" "$PASS"
-		cp "$SCRIPT_DIR/spdstats_www.asp" "/www/user/$MyPage"
+		Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
+		cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_PAGE_DIR/$MyPage"
 		
 		if [ ! -f "/tmp/menuTree.js" ]; then
 			cp -f "/www/require/modules/menuTree.js" "/tmp/"
@@ -762,7 +767,7 @@ Modify_WebUI_File(){
 		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Feedback_Info.asp") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect();}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
 	fi
 	
-	sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("'"$(Get_spdMerlin_UI)"'") != -1){'"\\r\\n"'parent.showLoading(restart_time, "waiting");'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect();}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
+	sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("'"$(Get_spdMerlin_UI)"'") != -1){'"\\r\\n"'setTimeout(function(){ getXMLAndRedirect();}, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
 	
 	if [ -f /jffs/scripts/custom_start_apply.htm ]; then
 		mv /jffs/scripts/custom_start_apply.htm "$SHARED_DIR/custom_start_apply.htm"
@@ -1546,21 +1551,36 @@ Menu_Uninstall(){
 		esac
 	done
 	Shortcut_spdMerlin delete
-	umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
-	umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
-	sed -i '/{url: "'"$(Get_spdMerlin_UI)"'", tabName: "SpeedTest"}/d' "$SHARED_DIR/custom_menuTree.js"
-	umount /www/require/modules/menuTree.js 2>/dev/null
-	umount /www/start_apply.htm 2>/dev/null
-	if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
-		rm -f "$SHARED_DIR/custom_menuTree.js" 2>/dev/null
-		rm -f "$SHARED_DIR/custom_start_apply.htm" 2>/dev/null
+	
+	if [ "$(Firmware_Version_Check "$(nvram get buildno)")" -ge "$(Firmware_Version_Check 384.15)" ]; then
+		MyPage="$(Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp")"
+		if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f "/tmp/menuTree.js" ]; then
+			sed -i "\\~$MyPage~d" /tmp/menuTree.js
+			umount /www/require/modules/menuTree.js
+			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
+			rm -rf "{$SCRIPT_PAGE_DIR:?}/$MyPage"
+		fi
 	else
-		mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
-		mount -o bind "$SHARED_DIR/custom_start_apply.htm" "/www/start_apply.htm"
+		umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
+		umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
+		sed -i '/{url: "'"$(Get_spdMerlin_UI)"'", tabName: "SpeedTest"}/d' "$SHARED_DIR/custom_menuTree.js"
+		umount /www/require/modules/menuTree.js 2>/dev/null
+		umount /www/start_apply.htm 2>/dev/null
+		if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
+			rm -f "$SHARED_DIR/custom_menuTree.js" 2>/dev/null
+			rm -f "$SHARED_DIR/custom_start_apply.htm" 2>/dev/null
+		else
+			mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
+			mount -o bind "$SHARED_DIR/custom_start_apply.htm" "/www/start_apply.htm"
+		fi
 	fi
+	
 	opkg remove --autoremove jq
 	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
+	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
+	rm -rf "$SCRIPT_WEB_DIR" 2>/dev/null
 	rm -rf "$OOKLA_DIR" 2>/dev/null
+	rm -rf "$OOKLA_LICENSE_DIR" 2>/dev/null
 	rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 	Clear_Lock
 	Print_Output "true" "Uninstall completed" "$PASS"
