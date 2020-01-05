@@ -341,8 +341,8 @@ function SetCookie(cookiename,cookievalue) {
 }
 
 function SetCurrentPage(){
-	$("#next_page").val(window.location.pathname.substring(1));
-	$("#current_page").val(window.location.pathname.substring(1));
+	document.form.next_page.value = window.location.pathname.substring(1);
+	document.form.current_page.value = window.location.pathname.substring(1);
 }
 
 function initial(){
@@ -526,8 +526,8 @@ function AddEventHandlers(){
 <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
 <form method="post" name="form" id="ruleForm" action="/start_apply.htm" target="hidden_frame">
 <input type="hidden" name="action_script" value="start_spdmerlin">
-<input type="hidden" id="current_page" name="current_page" value="">
-<input type="hidden" id="next_page" name="next_page" value="">
+<input type="hidden" name="current_page" value="">
+<input type="hidden" name="next_page" value="">
 <input type="hidden" name="modified" value="0">
 <input type="hidden" name="action_mode" value="apply">
 <input type="hidden" name="action_wait" value="90">
