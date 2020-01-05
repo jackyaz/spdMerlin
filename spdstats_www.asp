@@ -1,11 +1,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-<html xmlns:v>
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
-<meta HTTP-EQUIV="Expires" CONTENT="-1">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
 <title>Internet Speedtest</title>
@@ -349,6 +348,7 @@ function initial(){
 	SetCurrentPage();
 	show_menu();
 	get_conf_file();
+	SetSPDStatsTitle();
 }
 
 function reload() {
@@ -520,7 +520,7 @@ function AddEventHandlers(){
 
 </script>
 </head>
-<body onload="initial();" onunLoad="return unload_body();">
+<body onload="initial();" onunload="return unload_body();">
 <div id="TopBanner"></div>
 <div id="Loading" class="popup_bg"></div>
 <iframe name="hidden_frame" id="hidden_frame" src="" width="0" height="0" frameborder="0"></iframe>
@@ -555,13 +555,13 @@ function AddEventHandlers(){
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
 <tr class="apply_gen" valign="top" height="35px">
 <td style="background-color:rgb(77, 89, 93);border:0px;">
-<input type="button" onClick="applyRule();" value="Run speedtest now" class="button_gen" name="button">
+<input type="button" onclick="applyRule();" value="Run speedtest now" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onClick="RedrawAllCharts();" value="Reset Zoom" class="button_gen" name="button">
+<input type="button" onclick="RedrawAllCharts();" value="Reset Zoom" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onClick="ToggleLines();" value="Toggle Lines" class="button_gen" name="button">
+<input type="button" onclick="ToggleLines();" value="Toggle Lines" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onClick="ToggleFill();" value="Toggle Fill" class="button_gen" name="button">
+<input type="button" onclick="ToggleFill();" value="Toggle Fill" class="button_gen" name="button">
 </td>
 </tr>
 </table>
@@ -572,17 +572,13 @@ function AddEventHandlers(){
 </tr>
 </tbody>
 </table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
 </form>
-</td>
-</tr>
-</table>
-</td>
-<td width="10" align="center" valign="top">&nbsp;</td>
-</tr>
-</table>
-<script>
-SetSPDStatsTitle();
-</script>
 <div id="footer">
 </div>
 </body>
