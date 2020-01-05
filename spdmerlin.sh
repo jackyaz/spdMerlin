@@ -329,6 +329,11 @@ Create_Dirs(){
 		mkdir -p "$SHARED_DIR"
 	fi
 	
+	if [ -d "$OLD_SHARED_DIR" ]; then
+		mv "$OLD_SHARED_DIR" "$(dirname "$SHARED_DIR")"
+		rm -rf "$OLD_SHARED_DIR"
+	fi
+	
 	if [ ! -d "$SCRIPT_PAGE_DIR" ]; then
 		mkdir -p "$SCRIPT_PAGE_DIR"
 	fi
