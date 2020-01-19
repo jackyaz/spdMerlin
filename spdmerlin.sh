@@ -68,11 +68,23 @@ Print_Output(){
 	fi
 }
 
-### Code for this function courtesy of https://github.com/decoderman- credit to @thelonelycoder ###
 Firmware_Version_Check(){
-	echo "$1" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'
+	if [ "$1" = "install" ]; then
+		if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ "$(nvram get buildno | tr -d '.')" -ge "38400" ]; then
+			return 0
+		elif [ "$(uname -o)" = "ASUSWRT-Merlin-LTS" ] && nvram get rc_support | grep -qF "am_addons"; then
+			return 0
+		else
+			return 1
+		fi
+	elif [ "$1" = "webui" ]; then
+		if nvram get rc_support | grep -qF "am_addons"; then
+			return 0
+		else
+			return 1
+		fi
+	fi
 }
-############################################################################
 
 ### Code for these functions inspired by https://github.com/Adamm00 - credit to @Adamm ###
 Check_Lock(){
@@ -652,7 +664,7 @@ Get_WebUI_Page () {
 }
 
 Mount_WebUI(){
-	if [ "$(Firmware_Version_Check "$(nvram get buildno)")" -ge "$(Firmware_Version_Check 384.15)" ]; then
+	if Firmware_Version_Check "webui"; then
 		if [ ! -f "$SCRIPT_DIR/spdstats_www.asp" ]; then
 			Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
 		fi
@@ -1344,16 +1356,15 @@ Check_Requirements(){
 		return 1
 	fi
 	
-	if [ "$(Firmware_Version_Check "$(nvram get buildno)")" -lt "$(Firmware_Version_Check 384.11)" ] && [ "$(Firmware_Version_Check "$(nvram get buildno)")" -ne "$(Firmware_Version_Check 374.43)" ]; then
-		Print_Output "true" "Older Merlin firmware detected - $SCRIPT_NAME requires 384.11 or later for sqlite3 support" "$WARN"
-		Print_Output "true" "Installing sqlite3-cli from Entware..." "$WARN"
-		opkg update
-		opkg install sqlite3-cli
-	elif [ "$(Firmware_Version_Check "$(nvram get buildno)")" -eq "$(Firmware_Version_Check 374.43)" ]; then
-		Print_Output "true" "John's fork detected - unsupported" "$ERR"
+	if Firmware_Version_Check "install" ; then
+		Print_Output "true" "Unsupported firmware version detected" "$ERR"
 		CHECKSFAILED="true"
-	return 1
+		return 1
 	fi
+	
+	opkg update
+	opkg install sqlite3-cli
+	opkg install jq
 	
 	if [ "$CHECKSFAILED" = "false" ]; then
 		return 0
@@ -1378,8 +1389,6 @@ Menu_Install(){
 	
 	Create_Dirs
 	Create_Symlinks
-	
-	opkg install jq
 	
 	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
 	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
@@ -1557,7 +1566,7 @@ Menu_Uninstall(){
 	done
 	Shortcut_spdMerlin delete
 	
-	if [ "$(Firmware_Version_Check "$(nvram get buildno)")" -ge "$(Firmware_Version_Check 384.15)" ]; then
+	if Firmware_Version_Check "webui"; then
 		MyPage="$(Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp")"
 		if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f "/tmp/menuTree.js" ]; then
 			sed -i "\\~$MyPage~d" /tmp/menuTree.js
