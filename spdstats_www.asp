@@ -108,7 +108,7 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatsdata.js"></script>
-<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatsdata.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdlastx.js"></script>
 <script>
 
