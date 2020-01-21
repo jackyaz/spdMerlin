@@ -35,6 +35,11 @@ thead.collapsibleparent {
   cursor: pointer;
 }
 
+th.keystatsnumber {
+  font-size: 20px !important;
+  font-weight: bolder !important;
+}
+
 td.keystatsnumber {
   font-size: 20px !important;
   font-weight: bolder !important;
@@ -487,15 +492,15 @@ function BuildInterfaceTable(name){
 		charthtml+='<col style="width:240px;">';
 		charthtml+='<thead>';
 		charthtml+='<tr>';
-		charthtml+='<th>Time</th>';
-		charthtml+='<th>Download (Mbps)</th>';
-		charthtml+='<th>Upload (Mbps)</th>';
+		charthtml+='<th class="keystatsnumber">Time</th>';
+		charthtml+='<th class="keystatsnumber">Download (Mbps)</th>';
+		charthtml+='<th class="keystatsnumber">Upload (Mbps)</th>';
 		charthtml+='</tr>';
 		charthtml+='</thead>';
 		
 		for(i = 0; i < objdataname.length; i++){
 			charthtml+='<tr>';
-			charthtml+='<td class="keystatsnumber">'+moment(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
+			charthtml+='<td class="keystatsnumber">'+moment(window["DataTimestamp_"+name][i]*1000).format('YYYY-MM-DD HH:mm:ss')+'</td>';
 			charthtml+='<td class="keystatsnumber">'+window["DataDownload_"+name][i]+'</td>';
 			charthtml+='<td class="keystatsnumber">'+window["DataUpload_"+name][i]+'</td>';
 			charthtml+='</tr>';
