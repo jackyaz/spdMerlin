@@ -11,11 +11,11 @@
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <style>
-p{
+p {
 font-weight: bolder;
 }
 
-.collapsible {
+thead.collapsible {
   color: white;
   padding: 0px;
   width: 100%;
@@ -25,7 +25,7 @@ font-weight: bolder;
   cursor: pointer;
 }
 
-.collapsibleparent {
+thead.collapsibleparent {
   color: white;
   padding: 0px;
   width: 100%;
@@ -33,6 +33,56 @@ font-weight: bolder;
   text-align: left;
   outline: none;
   cursor: pointer;
+}
+
+td.keystatsnumber {
+  font-size: 20px !important;
+  font-weight: bolder !important;
+}
+
+td.nodata {
+  font-size: 48px !important;
+  font-weight: bolder !important;
+  height: 65px !important;
+  font-family: Arial !important;
+}
+
+.StatsTable {
+  table-layout: fixed !important;
+  width: 747px !important;
+  text-align: center !important;
+}
+
+.StatsTable th {
+  background-color:#1F2D35 !important;
+  background:#2F3A3E !important;
+  border-bottom:none !important;
+  border-top:none !important;
+  font-size: 12px !important;
+  color: white !important;
+  padding: 4px !important;
+  width: 740px !important;
+}
+
+.StatsTable td {
+  padding: 2px !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.StatsTable a {
+  font-weight: bolder !important;
+  text-decoration: underline !important;
+}
+
+.StatsTable th:first-child,
+.StatsTable td:first-child {
+  border-left: none !important;
+}
+
+.StatsTable th:last-child ,
+.StatsTable td:last-child {
+  border-right: none !important;
 }
 
 .collapsiblecontent {
@@ -58,7 +108,8 @@ font-weight: bolder;
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatsdata.js"></script>
-<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatsdata.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdlastx.js"></script>
 <script>
 
 var ShowLines=GetCookie("ShowLines");
@@ -409,6 +460,43 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr>'
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
 	charthtml+='<div class="collapsiblecontent">'
+	
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">'
+	var nodata="";
+	var objdataname = window["DataTimestamp_"+name];
+	if(typeof objdataname === 'undefined' || objdataname === null){nodata="true"}
+	if(objdataname.length == 0) {nodata="true"}
+	if(objdataname.length == 1 && objdataname[0] == "") {nodata="true"}
+	
+	if(nodata == "true") {
+		charthtml+='<tr>';
+		charthtml+='<td colspan="3" class="nodata">';
+		charthtml+='No data to display';
+		charthtml+='</td>';
+		charthtml+='</tr>';
+	} else {
+		charthtml+='<col style="width:240px;">';
+		charthtml+='<col style="width:240px;">';
+		charthtml+='<col style="width:240px;">';
+		charthtml+='<thead>';
+		charthtml+='<tr>';
+		charthtml+='<th>Time</th>';
+		charthtml+='<th>Download (Mbps)</th>';
+		charthtml+='<th>Upload (Mbps)</th>';
+		charthtml+='</tr>';
+		charthtml+='</thead>';
+		
+		for(i = 0; i < objdataname.length; i++){
+			charthtml+='<tr>';
+			charthtml+='<td class="keystatsnumber">'+moment(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
+			charthtml+='<td class="keystatsnumber">'+window["DataDownload_"+name][i]+'</td>';
+			charthtml+='<td class="keystatsnumber">'+window["DataUpload_"+name][i]+'</td>';
+			charthtml+='</tr>';
+		};
+	}
+	charthtml+='</table>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+		
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">'
 	charthtml+='<tr>'
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
@@ -492,7 +580,7 @@ function AddEventHandlers(){
 		if(GetCookie(coll[i].id) == "expanded" || GetCookie(coll[i].id) == ""){
 			coll[i].click();
 		}
-		height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10 + 10 + 10;
+		height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10 + 10 + 10 + 10;
 	}
 	
 	var coll = document.getElementsByClassName("collapsibleparent");
