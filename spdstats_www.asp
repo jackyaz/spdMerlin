@@ -461,6 +461,13 @@ function BuildInterfaceTable(name){
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
 	charthtml+='<div class="collapsiblecontent">'
 	
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
+	charthtml+='<thead class="collapsible expanded" id="spd_resulttable_'+name+'">';
+	charthtml+='<tr><td colspan="2">Last 10 speedtest results (click to expand/collapse)</td></tr>';
+	charthtml+='</thead>';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
+	charthtml+='<div class="collapsiblecontent">';
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">'
 	var nodata="";
 	var objdataname = window["DataTimestamp_"+name];
@@ -494,6 +501,10 @@ function BuildInterfaceTable(name){
 			charthtml+='</tr>';
 		};
 	}
+	charthtml+='</table>';
+	charthtml+='</div>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
 	charthtml+='</table>';
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
 		
