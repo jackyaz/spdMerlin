@@ -934,7 +934,7 @@ WritePlainData_ToJS(){
 		i=$((i+1))
 		{ echo "var $var;"
 			echo "$var = [];"
-			echo "${var}.unshift('$(awk -v i=$i '{printf t $i} {t=","}' "$inputfile" | sed "s~,~\\',\\'~g")');"
+			echo "${var}.unshift('$(awk -v i=$i 'BEGIN{FS=","}{printf t $i} {t=","}' "$inputfile" | sed "s~,~\\',\\'~g")');"
 			echo; } >> "$outputfile"
 	done
 }
