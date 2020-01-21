@@ -934,7 +934,7 @@ WritePlainData_ToJS(){
 		i=$((i+1))
 		{ echo "var $var;"
 			echo "$var = [];"
-			echo "${var}.unshift('$(awk -v i=$i 'BEGIN{FS=","}{printf t $i} {t=","}' "$inputfile" | sed "s~,~\\',\\'~g")');"
+			echo "${var}.unshift('$(awk -v i=$i '{printf t $i} {t=","}' "$inputfile" | sed "s~,~\\',\\'~g")');"
 			echo; } >> "$outputfile"
 	done
 }
@@ -992,6 +992,7 @@ Generate_LastXResults(){
 	} > /tmp/spd-lastx.sql
 	echo "select[Timestamp],[Download],[Upload] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-lastx.sql
+	sed -i 's/,/ /g' "/tmp/spd-lastx.csv"
 	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_DIR/spdlastx.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
 	rm -f /tmp/spd-lastx.sql
 }
