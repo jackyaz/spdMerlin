@@ -500,9 +500,9 @@ function BuildInterfaceTable(name){
 		
 		for(i = 0; i < objdataname.length; i++){
 			charthtml+='<tr>';
-			charthtml+='<td class="keystatsnumber">'+moment(window["DataTimestamp_"+name][i]*1000).format('YYYY-MM-DD HH:mm:ss')+'</td>';
-			charthtml+='<td class="keystatsnumber">'+window["DataDownload_"+name][i]+'</td>';
-			charthtml+='<td class="keystatsnumber">'+window["DataUpload_"+name][i]+'</td>';
+			charthtml+='<td>'+moment(window["DataTimestamp_"+name][i]*1000).format('YYYY-MM-DD HH:mm:ss')+'</td>';
+			charthtml+='<td>'+window["DataDownload_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
 			charthtml+='</tr>';
 		};
 	}
