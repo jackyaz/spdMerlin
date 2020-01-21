@@ -400,6 +400,7 @@ Create_Symlinks(){
 	ln -s "$SCRIPT_DIR/.interfaces_user"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
 	ln -s "$SCRIPT_DIR/spdstatsdata.js" "$SCRIPT_WEB_DIR/spdstatsdata.js" 2>/dev/null
+	ln -s "$SCRIPT_DIR/spdlastx.js" "$SCRIPT_WEB_DIR/spdlastx.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdstatstext.js" "$SCRIPT_WEB_DIR/spdstatstext.js" 2>/dev/null
 	
 	ln -s "$SHARED_DIR/chartjs-plugin-zoom.js" "$SHARED_WEB_DIR/chartjs-plugin-zoom.js" 2>/dev/null
@@ -923,13 +924,28 @@ TestSchedule(){
 	esac
 }
 
+
+WritePlainData_ToJS(){
+	inputfile="$1"
+	outputfile="$2"
+	shift;shift
+	i="0"
+	for var in "$@"; do
+		i=$((i+1))
+		{ echo "var $var;"
+			echo "$var = [];"
+			echo "${var}.unshift('$(awk -v i=$i '{printf t $i} {t=","}' "$inputfile" | sed "s~,~\\',\\'~g")');"
+			echo; } >> "$outputfile"
+	done
+}
+
 WriteData_ToJS(){
 	inputfile="$1"
 	outputfile="$2"
 	shift;shift
 	
 	for var in "$@"; do
-		{
+	{
 		echo "var $var;"
 		echo "$var = [];"; } >> "$outputfile"
 		contents="$var"'.unshift('
@@ -966,6 +982,18 @@ WriteSql_ToFile(){
 		echo "select $timenow - ((60*60*$3)*($COUNTER)),IFNULL(avg([$1]),'NaN') from $2 WHERE ([Timestamp] >= $timenow - ((60*60*$3)*($COUNTER+1))) AND ([Timestamp] <= $timenow - ((60*60*$3)*$COUNTER));" >> "$6"
 		COUNTER=$((COUNTER + 1))
 	done
+}
+
+#$1 iface name
+Generate_LastXResults(){
+	{
+		echo ".mode csv"
+		echo ".output /tmp/spd-lastx.csv"
+	} > /tmp/spd-lastx.sql
+	echo "select[Timestamp],[Download],[Upload] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
+	"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-lastx.sql
+	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_DIR/spdlastx.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
+	rm -f /tmp/spd-lastx.sql
 }
 
 Generate_SPDStats(){
@@ -1035,6 +1063,7 @@ Generate_SPDStats(){
 		
 		if [ "$IFACELIST" != "" ]; then
 			rm -f "$SCRIPT_DIR/spdstatsdata.js"
+			rm -f "$SCRIPT_DIR/spdlastx.js"
 			
 			for IFACE_NAME in $IFACELIST; do
 				
@@ -1106,6 +1135,8 @@ Generate_SPDStats(){
 					
 					WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly_$IFACE_NAME"
 					WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly_$IFACE_NAME"
+					
+					Generate_LastXResults "$IFACE_NAME"
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
 					
