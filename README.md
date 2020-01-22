@@ -29,7 +29,7 @@ Love the script and want to support future development? Any and all donations gr
 
 ## Supported Models
 ### Models
-All modes supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Models confirmed to work are below:
+All models supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Models confirmed to work are below:
 *   RT-AC68U
 *   RT-AC86U
 *   RT-AC3100
