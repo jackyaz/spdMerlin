@@ -72,8 +72,6 @@ Firmware_Version_Check(){
 	if [ "$1" = "install" ]; then
 		if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ "$(nvram get buildno | tr -d '.')" -ge "38400" ]; then
 			return 0
-		elif [ "$(uname -o)" = "ASUSWRT-Merlin-LTS" ] && nvram get rc_support | grep -qF "am_addons"; then
-			return 0
 		else
 			return 1
 		fi
