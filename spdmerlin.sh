@@ -503,10 +503,6 @@ Set_Interface_State(){
 			else
 				sed -i "$1"'s/ #excluded - interface not up#/ #excluded#/' "$SCRIPT_DIR/.interfaces_user"
 			fi
-		else
-			if ! ifconfig "$(Get_Interface_From_Name "$interfaceline")" > /dev/null 2>&1 ; then
-				sed -i "$1"'s/$/ #excluded - interface not up#/' "$SCRIPT_DIR/.interfaces_user"
-			fi
 		fi
 	fi
 }
