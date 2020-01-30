@@ -20,6 +20,7 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
 readonly SCRIPT_VERSION="v3.2.0"
+#shellcheck disable=SC2034
 readonly SPD_VERSION="v3.2.0"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
