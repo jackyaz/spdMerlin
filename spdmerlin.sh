@@ -1383,7 +1383,7 @@ Check_Requirements(){
 		return 1
 	fi
 	
-	if Firmware_Version_Check "install" ; then
+	if ! Firmware_Version_Check "install" ; then
 		Print_Output "true" "Unsupported firmware version detected" "$ERR"
 		CHECKSFAILED="true"
 		return 1
