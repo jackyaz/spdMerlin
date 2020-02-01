@@ -1380,20 +1380,18 @@ Check_Requirements(){
 	if [ ! -f "/opt/bin/opkg" ]; then
 		Print_Output "true" "Entware not detected!" "$ERR"
 		CHECKSFAILED="true"
-		return 1
 	fi
 	
 	if ! Firmware_Version_Check "install" ; then
 		Print_Output "true" "Unsupported firmware version detected" "$ERR"
 		CHECKSFAILED="true"
-		return 1
 	fi
 	
-	opkg update
-	opkg install sqlite3-cli
-	opkg install jq
-	
 	if [ "$CHECKSFAILED" = "false" ]; then
+		Print_Output "true" "Installing required packages from Entware" "$PASS"
+		opkg update
+		opkg install sqlite3-cli
+		opkg install jq
 		return 0
 	else
 		return 1
