@@ -395,6 +395,7 @@ Create_Symlinks(){
 	done
 	
 	rm -f "$SCRIPT_WEB_DIR/"* 2>/dev/null
+	rm -f "$SHARED_WEB_DIR/"* 2>/dev/null
 	
 	ln -s "$SCRIPT_DIR/.interfaces_user"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
