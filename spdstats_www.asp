@@ -101,9 +101,11 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/moment.js"></script>
 <script language="JavaScript" type="text/javascript" src="/js/chart.min.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chart.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/hammerjs.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-zoom.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-annotation.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-datasource.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
@@ -116,7 +118,50 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdlastx.js"></script>
 <script>
-
+// Keep the real data in a seperate object called allData
+// Put only that part of allData in the dataset to optimize zoom/pan performance
+// Author: Evert van der Weit - 2018
+function filterData(chartInstance) {
+	var datasets = chartInstance.data.datasets;
+	var originalDatasets = chartInstance.data.allData;
+	var chartOptions = chartInstance.options.scales.xAxes[0];
+	
+	var startX = chartOptions.time.min;
+	var endX = chartOptions.time.max;
+	if(typeof originalDatasets === 'undefined' || originalDatasets === null) { return; }
+	for(var i = 0; i < originalDatasets.length; i++) {
+		var dataset = datasets[i];
+		var originalData = originalDatasets[i];
+		
+		if (!originalData.length) break
+		
+		var s = startX;
+		var e = endX;
+		var sI = null;
+		var eI = null;
+		
+		for (var j = 0; j < originalData.length; j++) {
+			if ((sI==null) && originalData[j].x > s) {
+				sI = j;
+			}
+			if ((eI==null) && originalData[j].x > e) {
+				eI = j;
+			}
+		}
+		if (sI==null) sI = 0;
+		if (originalData[originalData.length - 1].x < s) eI = 0
+			else if (eI==null) eI = originalData.length
+		
+		dataset.data = originalData.slice(sI, eI);
+	}
+}
+var datafilterPlugin = {
+	beforeUpdate: function(chartInstance) {
+		filterData(chartInstance);
+	}
+}
+</script>
+<script>
 var ShowLines=GetCookie("ShowLines");
 var ShowFill=GetCookie("ShowFill");
 Chart.defaults.global.defaultFontColor = "#CCC";
@@ -134,7 +179,7 @@ function Draw_Chart_NoData(txtchartname){
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 	ctx.font = "normal normal bolder 48px Arial";
-	ctx.fillStyle = 'white'
+	ctx.fillStyle = 'white';
 	ctx.fillText('No data to display', 365, 150);
 	ctx.restore();
 }
@@ -177,9 +222,10 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 				type: "time",
 				gridLines: { display: true, color: "#282828" },
 				ticks: {
+					min: moment().subtract(numunitx, txtunitx+"s"),
 					display: true
 				},
-				time: { min: moment().subtract(numunitx, txtunitx+"s"), unit: txtunitx, stepSize: 1 }
+				time: { unit: txtunitx, stepSize: 1 }
 			}],
 			yAxes: [{
 				gridLines: { display: false, color: "#282828" },
@@ -313,6 +359,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 	};
 	objchartname = new Chart(ctx, {
 		type: 'line',
+		plugins: [datafilterPlugin],
 		options: lineOptions,
 		data: lineDataset
 	});
@@ -342,11 +389,11 @@ function ToggleLines() {
 	if(interfacelist != ""){
 		if(ShowLines == ""){
 			ShowLines = "line";
-			SetCookie("ShowLines","line")
+			SetCookie("ShowLines","line");
 		}
 		else {
 			ShowLines = "";
-			SetCookie("ShowLines","")
+			SetCookie("ShowLines","");
 		}
 		RedrawAllCharts();
 	}
@@ -356,11 +403,11 @@ function ToggleFill() {
 	if(interfacelist != ""){
 		if(ShowFill == "origin"){
 			ShowFill = false;
-			SetCookie("ShowFill",false)
+			SetCookie("ShowFill",false);
 		}
 		else {
 			ShowFill = "origin";
-			SetCookie("ShowFill","origin")
+			SetCookie("ShowFill","origin");
 		}
 		RedrawAllCharts();
 	}
@@ -387,7 +434,7 @@ function GetCookie(cookiename) {
 		return cookie.get("spd_"+cookiename);
 	}
 	else {
-		return ""
+		return "";
 	}
 }
 
@@ -455,16 +502,16 @@ function get_conf_file(){
 }
 
 function BuildInterfaceTable(name){
-	var charthtml = '<div style="line-height:10px;">&nbsp;</div>'
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_interfaces_'+name+'">'
-	charthtml+='<thead class="collapsibleparent" id="'+name+'">'
-	charthtml+='<tr>'
-	charthtml+='<td colspan="2">'+name+' (click to expand/collapse)</td>'
-	charthtml+='</tr>'
-	charthtml+='</thead>'
-	charthtml+='<tr>'
-	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
-	charthtml+='<div class="collapsiblecontent">'
+	var charthtml = '<div style="line-height:10px;">&nbsp;</div>';
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_interfaces_'+name+'">';
+	charthtml+='<thead class="collapsibleparent" id="'+name+'">';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2">'+name+' (click to expand/collapse)</td>';
+	charthtml+='</tr>';
+	charthtml+='</thead>';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
+	charthtml+='<div class="collapsiblecontent">';
 	
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
 	charthtml+='<thead class="collapsible expanded" id="spd_resulttable_'+name+'">';
@@ -473,7 +520,7 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
 	charthtml+='<div class="collapsiblecontent">';
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">'
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">';
 	var nodata="";
 	var objdataname = window["DataTimestamp_"+name];
 	if(typeof objdataname === 'undefined' || objdataname === null){nodata="true"}
@@ -511,66 +558,66 @@ function BuildInterfaceTable(name){
 	charthtml+='</td>';
 	charthtml+='</tr>';
 	charthtml+='</table>';
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
 		
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">'
-	charthtml+='<tr>'
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
-	charthtml+='</tr>'
-	charthtml+='<thead class="collapsible" id="last24_'+name+'">'
-	charthtml+='<tr>'
-	charthtml+='<td colspan="2">Last 24 Hours (click to expand/collapse)</td>'
-	charthtml+='</tr>'
-	charthtml+='</thead>'
-	charthtml+='<tr>'
-	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
-	charthtml+='<div class="collapsiblecontent">'
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadDaily_'+name+'" height="300" /></div>'
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadDaily_'+name+'" height="300" /></div>'
-	charthtml+='</div>'
-	charthtml+='</td>'
-	charthtml+='</tr>'
-	charthtml+='</table>'
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">'
-	charthtml+='<thead class="collapsible" id="last7_'+name+'">'
-	charthtml+='<tr>'
-	charthtml+='<td colspan="2">Last 7 days (click to expand/collapse)</td>'
-	charthtml+='</tr>'
-	charthtml+='</thead>'
-	charthtml+='<tr>'
-	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
-	charthtml+='<div class="collapsiblecontent">'
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadWeekly_'+name+'" height="300" /></div>'
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadWeekly_'+name+'" height="300" /></div>'
-	charthtml+='</div>'
-	charthtml+='</td>'
-	charthtml+='</tr>'
-	charthtml+='</table>'
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">'
-	charthtml+='<thead class="collapsible" id="last30_'+name+'">'
-	charthtml+='<tr>'
-	charthtml+='<td colspan="2">Last 30 days (click to expand/collapse)</td>'
-	charthtml+='</tr>'
-	charthtml+='</thead>'
-	charthtml+='<tr>'
-	charthtml+='<td colspan="2" align="center" style="padding: 0px;">'
-	charthtml+='<div class="collapsiblecontent">'
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadMonthly_'+name+'" height="300" /></div>'
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadMonthly_'+name+'" height="300" /></div>'
-	charthtml+='</div>'
-	charthtml+='</td>'
-	charthtml+='</tr>'
-	charthtml+='</table>'
-	charthtml+='</div>'
-	charthtml+='</td>'
-	charthtml+='</tr>'
-	charthtml+='</table>'
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>'
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
+	charthtml+='<tr>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
+	charthtml+='</tr>';
+	charthtml+='<thead class="collapsible" id="last24_'+name+'">';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2">Last 24 Hours (click to expand/collapse)</td>';
+	charthtml+='</tr>';
+	charthtml+='</thead>';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
+	charthtml+='<div class="collapsiblecontent">';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadDaily_'+name+'" height="300" /></div>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadDaily_'+name+'" height="300" /></div>';
+	charthtml+='</div>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='</table>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
+	charthtml+='<thead class="collapsible" id="last7_'+name+'">';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2">Last 7 days (click to expand/collapse)</td>';
+	charthtml+='</tr>';
+	charthtml+='</thead>';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
+	charthtml+='<div class="collapsiblecontent">';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadWeekly_'+name+'" height="300" /></div>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadWeekly_'+name+'" height="300" /></div>';
+	charthtml+='</div>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='</table>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
+	charthtml+='<thead class="collapsible" id="last30_'+name+'">';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2">Last 30 days (click to expand/collapse)</td>';
+	charthtml+='</tr>';
+	charthtml+='</thead>';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
+	charthtml+='<div class="collapsiblecontent">';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadMonthly_'+name+'" height="300" /></div>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadMonthly_'+name+'" height="300" /></div>';
+	charthtml+='</div>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='</table>';
+	charthtml+='</div>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='</table>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
 	return charthtml;
 }
 
@@ -589,7 +636,7 @@ function AddEventHandlers(){
 			} else {
 					content.style.maxHeight = content.scrollHeight + "px";
 					this.parentElement.parentElement.style.maxHeight = (this.parentElement.parentElement.style.maxHeight.substring(0,this.parentElement.parentElement.style.maxHeight.length-2)*1) + content.scrollHeight + "px";
-					SetCookie(this.id,"expanded")
+					SetCookie(this.id,"expanded");
 				}
 		});
 		
@@ -608,10 +655,10 @@ function AddEventHandlers(){
 			var content = this.nextElementSibling.firstElementChild.firstElementChild.firstElementChild;
 			if (content.style.maxHeight){
 				content.style.maxHeight = null;
-				SetCookie(this.id,"collapsed")
+				SetCookie(this.id,"collapsed");
 			} else {
 				content.style.maxHeight = content.scrollHeight + "px";
-				SetCookie(this.id,"expanded")
+				SetCookie(this.id,"expanded");
 			}
 		});
 		if(GetCookie(coll[i].id) == "expanded" || GetCookie(coll[i].id) == ""){
