@@ -28,12 +28,12 @@ readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly OLD_SCRIPT_CONF="/jffs/configs/$SCRIPT_NAME_LOWER.config"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config"
-readonly SCRIPT_PAGE_DIR="$(readlink /www/user)"
-readonly SCRIPT_WEB_DIR="$SCRIPT_PAGE_DIR/$SCRIPT_NAME_LOWER"
+readonly SCRIPT_WEBPAGE_DIR="$(readlink /www/user)"
+readonly SCRIPT_WEB_DIR="$SCRIPT_WEBPAGE_DIR/$SCRIPT_NAME_LOWER"
 readonly OLD_SHARED_DIR="/jffs/scripts/shared-jy"
 readonly SHARED_DIR="/jffs/addons/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
-readonly SHARED_WEB_DIR="$SCRIPT_PAGE_DIR/shared-jy"
+readonly SHARED_WEB_DIR="$SCRIPT_WEBPAGE_DIR/shared-jy"
 readonly HOME_DIR="/$(readlink "$HOME")"
 readonly OOKLA_DIR="$SCRIPT_DIR/ookla"
 readonly OOKLA_LICENSE_DIR="$SCRIPT_DIR/ooklalicense"
@@ -347,8 +347,8 @@ Create_Dirs(){
 		rm -rf "$OLD_SHARED_DIR"
 	fi
 	
-	if [ ! -d "$SCRIPT_PAGE_DIR" ]; then
-		mkdir -p "$SCRIPT_PAGE_DIR"
+	if [ ! -d "$SCRIPT_WEBPAGE_DIR" ]; then
+		mkdir -p "$SCRIPT_WEBPAGE_DIR"
 	fi
 		
 	if [ ! -d "$SCRIPT_WEB_DIR" ]; then
@@ -672,7 +672,7 @@ Mount_WebUI(){
 			exit 1
 		fi
 		Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
-		cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_PAGE_DIR/$MyPage"
+		cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
 		
 		if [ ! -f "/tmp/menuTree.js" ]; then
 			cp -f "/www/require/modules/menuTree.js" "/tmp/"
@@ -1600,7 +1600,7 @@ Menu_Uninstall(){
 			sed -i "\\~$MyPage~d" /tmp/menuTree.js
 			umount /www/require/modules/menuTree.js
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
-			rm -rf "{$SCRIPT_PAGE_DIR:?}/$MyPage"
+			rm -rf "{$SCRIPT_WEBPAGE_DIR:?}/$MyPage"
 		fi
 	else
 		umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
