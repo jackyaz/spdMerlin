@@ -19,9 +19,9 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v3.2.0"
+readonly SCRIPT_VERSION="v3.2.1"
 #shellcheck disable=SC2034
-readonly SPD_VERSION="v3.2.0"
+readonly SPD_VERSION="v3.2.1"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
@@ -142,8 +142,10 @@ Update_Version(){
 		
 		Update_File "$ARCH.tar.gz"
 		Update_File "spdstats_www.asp"
+		Update_File "chart.js"
 		Update_File "chartjs-plugin-zoom.js"
 		Update_File "chartjs-plugin-annotation.js"
+		Update_File "chartjs-plugin-datasource.js"
 		Update_File "hammerjs.js"
 		Update_File "moment.js"
 		Mount_WebUI
@@ -165,8 +167,10 @@ Update_Version(){
 			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 			Update_File "$ARCH.tar.gz"
 			Update_File "spdstats_www.asp"
+			Update_File "chart.js"
 			Update_File "chartjs-plugin-zoom.js"
 			Update_File "chartjs-plugin-annotation.js"
+			Update_File "chartjs-plugin-datasource.js"
 			Update_File "hammerjs.js"
 			Update_File "moment.js"
 			Mount_WebUI
@@ -201,11 +205,11 @@ Update_File(){
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
 		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
 			Print_Output "true" "New version of $1 downloaded" "$PASS"
-			mv "$SCRIPT_DIR/$1" "$SCRIPT_DIR/$1.old"
+			Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
 			Mount_WebUI
 		fi
 		rm -f "$tmpfile"
-	elif [ "$1" = "chartjs-plugin-zoom.js" ] || [ "$1" = "chartjs-plugin-annotation.js" ] || [ "$1" = "moment.js" ] || [ "$1" =  "hammerjs.js" ]; then
+	elif [ "$1" = "chart.js" ] || [ "$1" = "chartjs-plugin-zoom.js" ] || [ "$1" = "chartjs-plugin-annotation.js" ] || [ "$1" = "moment.js" ] || [ "$1" =  "hammerjs.js" ] || [ "$1" = "chartjs-plugin-datasource.js" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SHARED_REPO/$1" "$tmpfile"
 		if [ ! -f "$SHARED_DIR/$1" ]; then
@@ -395,6 +399,7 @@ Create_Symlinks(){
 	done
 	
 	rm -f "$SCRIPT_WEB_DIR/"* 2>/dev/null
+	rm -f "$SHARED_WEB_DIR/"* 2>/dev/null
 	
 	ln -s "$SCRIPT_DIR/.interfaces_user"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
@@ -402,8 +407,10 @@ Create_Symlinks(){
 	ln -s "$SCRIPT_DIR/spdlastx.js" "$SCRIPT_WEB_DIR/spdlastx.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdstatstext.js" "$SCRIPT_WEB_DIR/spdstatstext.js" 2>/dev/null
 	
+	ln -s "$SHARED_DIR/chart.js" "$SHARED_WEB_DIR/chart.js" 2>/dev/null
 	ln -s "$SHARED_DIR/chartjs-plugin-zoom.js" "$SHARED_WEB_DIR/chartjs-plugin-zoom.js" 2>/dev/null
 	ln -s "$SHARED_DIR/chartjs-plugin-annotation.js" "$SHARED_WEB_DIR/chartjs-plugin-annotation.js" 2>/dev/null
+	ln -s "$SHARED_DIR/chartjs-plugin-datasource.js" "$SHARED_WEB_DIR/chartjs-plugin-datasource.js" 2>/dev/null
 	ln -s "$SHARED_DIR/hammerjs.js" "$SHARED_WEB_DIR/hammerjs.js" 2>/dev/null
 	ln -s "$SHARED_DIR/moment.js" "$SHARED_WEB_DIR/moment.js" 2>/dev/null
 }
@@ -650,21 +657,18 @@ Get_spdMerlin_UI(){
 
 Get_WebUI_Page () {
 	for i in 1 2 3 4 5 6 7 8 9 10; do
-		page="$SCRIPT_PAGE_DIR/user$i.asp"
+		page="$SCRIPT_WEBPAGE_DIR/user$i.asp"
 		if [ ! -f "$page" ] || [ "$(md5sum < "$1")" = "$(md5sum < "$page")" ]; then
-			echo "user$i.asp"
+			MyPage="user$i.asp"
 			return
 		fi
 	done
-	echo "none"
+	MyPage="none"
 }
 
 Mount_WebUI(){
 	if Firmware_Version_Check "webui"; then
-		if [ ! -f "$SCRIPT_DIR/spdstats_www.asp" ]; then
-			Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
-		fi
-		MyPage="$(Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp")"
+		Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
 		if [ "$MyPage" = "none" ]; then
 			Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
 			exit 1
@@ -1380,20 +1384,18 @@ Check_Requirements(){
 	if [ ! -f "/opt/bin/opkg" ]; then
 		Print_Output "true" "Entware not detected!" "$ERR"
 		CHECKSFAILED="true"
-		return 1
 	fi
 	
 	if ! Firmware_Version_Check "install" ; then
 		Print_Output "true" "Unsupported firmware version detected" "$ERR"
 		CHECKSFAILED="true"
-		return 1
 	fi
 	
-	opkg update
-	opkg install sqlite3-cli
-	opkg install jq
-	
 	if [ "$CHECKSFAILED" = "false" ]; then
+		Print_Output "true" "Installing required packages from Entware" "$PASS"
+		opkg update
+		opkg install sqlite3-cli
+		opkg install jq
 		return 0
 	else
 		return 1
@@ -1422,8 +1424,11 @@ Menu_Install(){
 	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 	chmod 0755 "$OOKLA_DIR/speedtest"
 	
+	Update_File "spdstats_www.asp"
+	Update_File "chart.js"
 	Update_File "chartjs-plugin-zoom.js"
 	Update_File "chartjs-plugin-annotation.js"
+	Update_File "chartjs-plugin-datasource.js"
 	Update_File "hammerjs.js"
 	Update_File "moment.js"
 	
@@ -1594,7 +1599,7 @@ Menu_Uninstall(){
 	Shortcut_spdMerlin delete
 	
 	if Firmware_Version_Check "webui"; then
-		MyPage="$(Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp")"
+		Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
 		if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f "/tmp/menuTree.js" ]; then
 			sed -i "\\~$MyPage~d" /tmp/menuTree.js
 			umount /www/require/modules/menuTree.js
@@ -1616,7 +1621,6 @@ Menu_Uninstall(){
 		fi
 	fi
 	
-	opkg remove --autoremove jq
 	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
 	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
 	rm -rf "$SCRIPT_WEB_DIR" 2>/dev/null
@@ -1628,6 +1632,11 @@ Menu_Uninstall(){
 }
 
 if [ -z "$1" ]; then
+	if [ ! -f /opt/bin/sqlite3 ]; then
+		Print_Output "true" "Installing required version of sqlite3 from Entware" "$PASS"
+		opkg update
+		opkg install sqlite3-cli
+	fi
 	Create_Dirs
 	Create_Symlinks
 	Process_Upgrade

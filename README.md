@@ -2,8 +2,8 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
-## v3.2.0
-### Updated on 2020-01-30
+## v3.2.1
+### Updated on 2020-02-08
 ## About
 Run automated speedtests for your Internet on your router with graphs available on the Tools page of the WebUI.
 
