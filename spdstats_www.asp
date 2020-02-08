@@ -524,8 +524,8 @@ function BuildInterfaceTable(name){
 	var nodata="";
 	var objdataname = window["DataTimestamp_"+name];
 	if(typeof objdataname === 'undefined' || objdataname === null){nodata="true"}
-	if(objdataname.length == 0) {nodata="true"}
-	if(objdataname.length == 1 && objdataname[0] == "") {nodata="true"}
+	else if(objdataname.length == 0) {nodata="true"}
+	else if(objdataname.length == 1 && objdataname[0] == "") {nodata="true"}
 	
 	if(nodata == "true") {
 		charthtml+='<tr>';
