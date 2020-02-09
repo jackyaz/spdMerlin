@@ -416,7 +416,7 @@ Create_Symlinks(){
 	ln -s "$SHARED_DIR/hammerjs.js" "$SHARED_WEB_DIR/hammerjs.js" 2>/dev/null
 	ln -s "$SHARED_DIR/moment.js" "$SHARED_WEB_DIR/moment.js" 2>/dev/null
 	ln -s "$SHARED_DIR/redirect.htm" "$SHARED_WEB_DIR/redirect.htm" 2>/dev/null
-	ln -s "$SHARED_DIR/addons.png" "$SHARED_WEB_DIR/addons.png.htm" 2>/dev/null
+	ln -s "$SHARED_DIR/addons.png" "$SHARED_WEB_DIR/addons.png" 2>/dev/null
 }
 
 Conf_Exists(){
