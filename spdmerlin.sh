@@ -681,8 +681,8 @@ Mount_WebUI(){
 			cp -f "/www/index_style.css" "/tmp/"
 		fi
 		
-		if ! grep -q '.menu_Addons' /www/index_style.css ; then
-			echo ".menu_Addons{ background: url(ext/shared-jy/addons.png); }" >> /www/index_style.css
+		if ! grep -q '.menu_Addons' /tmp/index_style.css ; then
+			echo ".menu_Addons{ background: url(ext/shared-jy/addons.png); }" >> /tmp/index_style.css
 		fi
 		
 		umount /www/index_style.css 2>/dev/null
