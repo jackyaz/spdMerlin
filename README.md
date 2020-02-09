@@ -5,7 +5,7 @@
 ## v3.2.2
 ### Updated on 2020-02-09
 ## About
-Run automated speedtests for your Internet on your router with graphs available on the Tools page of the WebUI.
+Run automated speedtests for your Internet on your router with graphs available on the Addons page of the WebUI.
 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
