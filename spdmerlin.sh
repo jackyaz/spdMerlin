@@ -852,11 +852,27 @@ GenerateServerList(){
 	
 	while true; do
 		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$servercount"
+		printf "\\n\\e[1mOr press c to enter a known server ID\\e[0m\\n"
 		read -r "server"
 		
 		if [ "$server" = "e" ]; then
 			serverno="exit"
 			break
+		elif [ "$server" = "c" ]; then
+				while true; do
+					printf "\\n\\e[1mPlease enter server ID (WARNING: this is not validated) or e to go back\\e[0m\\n"
+					read -r "customserver"
+					if [ "$customserver" = "e" ]; then
+						break
+					elif ! Validate_Number "" "$customserver" "silent"; then
+						printf "\\n\\e[31mPlease enter a valid number\\e[0m\\n"
+					else
+						serverno="$customserver"
+						servername="Custom"
+						printf "\\n"
+						return 0
+					fi
+				done
 		elif ! Validate_Number "" "$server" "silent"; then
 			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$servercount"
 		else
@@ -897,6 +913,7 @@ PreferredServer(){
 			echo "$PREFERREDSERVER"
 		;;
 		validate)
+			#TODO: validate against XML here: https://c.speedtest.net/speedtest-servers-static.php
 			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
 			"$OOKLA_DIR"/speedtest --servers --format="csv" > /tmp/spdServers.txt
 			if grep -q "^\"$PREFERREDSERVERNO" /tmp/spdServers.txt; then
@@ -1105,13 +1122,13 @@ Generate_SPDStats(){
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
 					else
-						if [ "$mode" != "onetime" ]; then
-							if ! PreferredServer validate; then
-								Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
-								Clear_Lock
-								return 1
-							fi
-						fi
+						#if [ "$mode" != "onetime" ]; then
+						#	if ! PreferredServer validate; then
+						#		Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
+						#		Clear_Lock
+						#		return 1
+						#	fi
+						#fi
 						
 						if [ "$IFACE_NAME" = "WAN" ]; then
 							Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
