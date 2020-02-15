@@ -71,7 +71,7 @@ Print_Output(){
 
 Firmware_Version_Check(){
 	if [ "$1" = "install" ]; then
-		if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ "$(nvram get buildno | tr -d '.')" -ge "38400" ]; then
+		if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ "$(nvram get buildno | cut -f1 -d'.')" -ge "384" ]; then
 			return 0
 		else
 			return 1
