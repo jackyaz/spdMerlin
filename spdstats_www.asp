@@ -462,7 +462,7 @@ function applyRule() {
 	var action_script_tmp = "start_spdmerlin";
 	document.form.action_script.value = action_script_tmp;
 	var restart_time = document.form.action_wait.value*1;
-	parent.showLoading(restart_time, "waiting");
+	showLoading();
 	document.form.submit();
 }
 
@@ -686,6 +686,7 @@ function AddEventHandlers(){
 <input type="hidden" name="SystemCmd" value="">
 <input type="hidden" name="preferred_lang" id="preferred_lang" value="<% nvram_get("preferred_lang"); %>">
 <input type="hidden" name="firmver" value="<% nvram_get("firmver"); %>">
+<input type="hidden" name="amng_custom" id="amng_custom" value="">
 <table class="content" align="center" cellpadding="0" cellspacing="0">
 <tr>
 <td width="17">&nbsp;</td>
