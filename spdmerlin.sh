@@ -205,10 +205,15 @@ Update_File(){
 	elif [ "$1" = "spdstats_www.asp" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
+		if [ ! -f "$SCRIPT_DIR/$1" ]; then
+			touch "$SCRIPT_DIR/$1"
+		fi
 		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
 			Get_WebUI_Page "$SCRIPT_DIR/$1"
-			sed -i "\\~$MyPage~d" /tmp/menuTree.js
-			rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage" 2>/dev/null
+			if [ -n "$MyPage" ] && [ "$MyPage" != "none" ]; then
+				sed -i "\\~$MyPage~d" /tmp/menuTree.js
+				rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage" 2>/dev/null
+			fi
 			Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
 			Print_Output "true" "New version of $1 downloaded" "$PASS"
 			Mount_WebUI
@@ -1479,11 +1484,12 @@ Menu_Install(){
 	Update_File "hammerjs.js"
 	Update_File "moment.js"
 	
+	Conf_Exists
+	
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
-	Conf_Exists
 	
 	License_Acceptance "accept"
 	
@@ -1649,7 +1655,7 @@ Menu_Uninstall(){
 			sed -i "\\~$MyPage~d" /tmp/menuTree.js
 			umount /www/require/modules/menuTree.js
 			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
-			rm -rf "{$SCRIPT_WEBPAGE_DIR:?}/$MyPage"
+			rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage"
 		fi
 	else
 		umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
