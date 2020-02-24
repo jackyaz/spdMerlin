@@ -205,12 +205,9 @@ Update_File(){
 	elif [ "$1" = "spdstats_www.asp" ]; then
 		tmpfile="/tmp/$1"
 		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
-		if [ ! -f "$SCRIPT_DIR/$1" ]; then
-			touch "$SCRIPT_DIR/$1"
-		fi
 		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
-			Get_WebUI_Page "$SCRIPT_DIR/$1"
-			if [ -n "$MyPage" ] && [ "$MyPage" != "none" ]; then
+			if [ -f "$SCRIPT_DIR/$1" ]; then
+				Get_WebUI_Page "$SCRIPT_DIR/$1"
 				sed -i "\\~$MyPage~d" /tmp/menuTree.js
 				rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage" 2>/dev/null
 			fi
