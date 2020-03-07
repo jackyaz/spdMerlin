@@ -180,7 +180,7 @@ var colourlist = ["#fc8500","#42ecf5"];
 function keyHandler(e) {
 	if (e.keyCode == 16){
 		$(document).off("keydown");
-		ToggleZoom();
+		ToggleZoom(true);
 	}
 	else if (e.ctrlKey && e.shiftKey && e.keyCode == 88){
 		$(document).off("keydown");
@@ -191,7 +191,7 @@ function keyHandler(e) {
 $(document).keydown(function(e){keyHandler(e);});
 $(document).keyup(function(e){
 	if (e.keyCode == 16){
-		ToggleZoom();
+		ToggleZoom(false);
 	}
 	$(document).keydown(function(e){
 		keyHandler(e);
@@ -538,7 +538,7 @@ function ResetZoom(){
 	}
 }
 
-function ToggleZoom(){
+function ToggleZoom(enabledisable){
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		for(i = 0; i < metriclist.length; i++){
@@ -546,7 +546,7 @@ function ToggleZoom(){
 				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
 					var chartobj = window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]];
 					if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
-					chartobj.options.plugins.zoom.zoom.enabled = ! chartobj.options.plugins.zoom.zoom.enabled;
+					chartobj.options.plugins.zoom.zoom.enabled = enabledisable;
 					chartobj.update();
 				}
 			}
