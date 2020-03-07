@@ -178,7 +178,7 @@ var intervallist = [24,7,30];
 var colourlist = ["#fc8500","#42ecf5"];
 
 function keyHandler(e) {
-	if (e.ctrlKey && e.shiftKey && e.keyCode == 90){
+	if (e.keyCode == 16){
 		$(document).off("keydown");
 		ToggleZoom();
 	}
@@ -189,7 +189,14 @@ function keyHandler(e) {
 }
 
 $(document).keydown(function(e){keyHandler(e);});
-$(document).keyup(function(e){$(document).keydown(function(e){keyHandler(e);});});
+$(document).keyup(function(e){
+	if (e.keyCode == 16){
+		ToggleZoom();
+	}
+	$(document).keydown(function(e){
+		keyHandler(e);
+	});
+});
 
 function Draw_Chart_NoData(txtchartname){
 	document.getElementById("divLineChart"+txtchartname).width="730";
