@@ -177,6 +177,38 @@ var timeunitlist = ["hour","day","day"];
 var intervallist = [24,7,30];
 var colourlist = ["#fc8500","#42ecf5"];
 
+var timer;
+
+$(document).keydown(function(e){
+	if (e.ctrlKey) {
+		if(timer) return;
+		timer = setInterval(EnableZoom, 4);
+	}
+});
+
+$(document).keyup(function(e){
+	if (e.ctrlKey){
+		clearInterval(timer);
+		timer = null;
+		chartobj.options.plugins.zoom.zoom.enabled = false;
+	}
+});
+
+function EnableZoom(){
+	if(interfacelist != ""){
+		var interfacetextarray = interfacelist.split(',');
+		for(i = 0; i < metriclist.length; i++){
+			for (i2 = 0; i2 < chartlist.length; i2++) {
+				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
+					var chartobj = window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]];
+					if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
+					chartobj.options.plugins.zoom.zoom.enabled = true;
+				}
+			}
+		}
+	}
+}
+
 function Draw_Chart_NoData(txtchartname){
 	document.getElementById("divLineChart"+txtchartname).width="730";
 	document.getElementById("divLineChart"+txtchartname).height="300";
@@ -265,7 +297,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					},
 				},
 				zoom: {
-					enabled: true,
+					enabled: false,
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
