@@ -166,16 +166,8 @@ var ShowLines=GetCookie("ShowLines");
 var ShowFill=GetCookie("ShowFill");
 Chart.defaults.global.defaultFontColor = "#CCC";
 Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
-	return coordinates;
+  return coordinates;
 };
-
-var metriclist = ["Download","Upload"];
-var titlelist = ["Download","Upload"];
-var measureunitlist = ["Mbps","Mbps";
-var chartlist = ["daily","weekly","monthly"];
-var timeunitlist = ["hour","day","day"];
-var intervallist = [24,7,30];
-var colourlist = ["#fc8500","#42ecf5"];
 
 function Draw_Chart_NoData(txtchartname){
 	document.getElementById("divLineChart"+txtchartname).width="730";
@@ -194,9 +186,10 @@ function Draw_Chart_NoData(txtchartname){
 
 function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname){
 	var objchartname=window["LineChart"+txtchartname];
-	var objdataname=window[txtchartname+"size"];
+	var txtdataname="Data"+txtchartname;
+	var objdataname=window["Data"+txtchartname];
 	if(typeof objdataname === 'undefined' || objdataname === null) { Draw_Chart_NoData(txtchartname); return; }
-	if (objdataname == 0) { Draw_Chart_NoData(txtchartname); return; }
+	if (objdataname.length == 0) { Draw_Chart_NoData(txtchartname); return; }
 	factor=0;
 	if (txtunitx=="hour"){
 		factor=60*60*1000;
@@ -209,20 +202,15 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 	var lineOptions = {
 		segmentShowStroke : false,
 		segmentStrokeColor : "#000",
-		//animationEasing : "easeOutQuart",
-		//animationSteps : 100,
-		animation: {
-			duration: 0 // general animation time
-		},
-		responsiveAnimationDuration: 0, // animation duration after a resize
+		animationEasing : "easeOutQuart",
+		animationSteps : 100,
 		maintainAspectRatio: false,
 		animateScale : true,
-		hover: { mode: "point" },
 		legend: { display: false, position: "bottom", onClick: null },
 		title: { display: true, text: txttitle },
 		tooltips: {
 			callbacks: {
-					title: function (tooltipItem, data) { return (moment(tooltipItem[0].xLabel,"X").format('YYYY-MM-DD HH:mm:ss')); },
+					title: function (tooltipItem, data) { return (moment(tooltipItem[0].xLabel).format('YYYY-MM-DD HH:mm:ss')); },
 					label: function (tooltipItem, data) { return data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index].y.toString() + ' ' + txtunity;}
 				},
 				mode: 'point',
@@ -237,7 +225,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					min: moment().subtract(numunitx, txtunitx+"s"),
 					display: true
 				},
-				time: { parser: "X", unit: txtunitx, stepSize: 1 }
+				time: { unit: txtunitx, stepSize: 1 }
 			}],
 			yAxes: [{
 				gridLines: { display: false, color: "#282828" },
@@ -257,11 +245,11 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
-						y: getLimit(txtchartname,"y","min",false) - Math.sqrt(Math.pow(getLimit(txtchartname,"y","min",false),2))*0.1,
+						y: getLimit(txtdataname,"y","min") - Math.sqrt(Math.pow(getLimit(txtdataname,"y","min"),2))*0.1,
 					},
 					rangeMax: {
 						x: new Date().getTime(),
-						y: getLimit(txtchartname,"y","max",false) + getLimit(txtchartname,"y","max",false)*0.1,
+						y: getLimit(txtdataname,"y","max") + getLimit(txtdataname,"y","max")*0.1,
 					},
 				},
 				zoom: {
@@ -269,35 +257,24 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
-						y: getLimit(txtchartname,"y","min",false) - Math.sqrt(Math.pow(getLimit(txtchartname,"y","min",false),2))*0.1,
+						y: getLimit(txtdataname,"y","min") - Math.sqrt(Math.pow(getLimit(txtdataname,"y","min"),2))*0.1,
 					},
 					rangeMax: {
 						x: new Date().getTime(),
-						y: getLimit(txtchartname,"y","max",false) + getLimit(txtchartname,"y","max",false)*0.1,
+						y: getLimit(txtdataname,"y","max") + getLimit(txtdataname,"y","max")*0.1,
 					},
 					speed: 0.1
 				},
-			},
-			datasource: {
-				type: 'csv',
-				url: '/ext/spdmerlin/csv/'+txtchartname+'.htm',
-				delimiter: ',',
-				rowMapping: 'datapoint',
-				datapointLabelMapping: {
-					_dataset: 'Metric',
-					x: 'Time',
-					y: 'Value'
-				}
 			},
 		},
 		annotation: {
 			drawTime: 'afterDatasetsDraw',
 			annotations: [{
-				//id: 'avgline',
+				id: 'avgline',
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getAverage(txtchartname),
+				value: getAverage(objdataname),
 				borderColor: colourname,
 				borderWidth: 1,
 				borderDash: [5, 5],
@@ -314,15 +291,15 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					enabled: true,
 					xAdjust: 0,
 					yAdjust: 0,
-					content: "Avg=" + round(getAverage(txtchartname),3).toFixed(3)+txtunity,
+					content: "Avg=" + round(getAverage(objdataname),3).toFixed(3)+txtunity,
 				}
 			},
 			{
-				//id: 'maxline',
+				id: 'maxline',
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getLimit(txtchartname,"y","max",true),
+				value: getLimit(txtdataname,"y","max"),
 				borderColor: colourname,
 				borderWidth: 1,
 				borderDash: [5, 5],
@@ -339,15 +316,15 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					enabled: true,
 					xAdjust: 0,
 					yAdjust: 0,
-					content: "Max=" + round(getLimit(txtchartname,"y","max",true),3).toFixed(3)+txtunity,
+					content: "Max=" + round(getLimit(txtdataname,"y","max"),3).toFixed(3)+txtunity,
 				}
 			},
 			{
-				//id: 'minline',
+				id: 'minline',
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getLimit(txtchartname,"y","min",true),
+				value: getLimit(txtdataname,"y","min"),
 				borderColor: colourname,
 				borderWidth: 1,
 				borderDash: [5, 5],
@@ -364,13 +341,14 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					enabled: true,
 					xAdjust: 0,
 					yAdjust: 0,
-					content: "Min=" + round(getLimit(txtchartname,"y","min",true),3).toFixed(3)+txtunity,
+					content: "Min=" + round(getLimit(txtdataname,"y","min"),3).toFixed(3)+txtunity,
 				}
 			}]
 		}
 	};
 	var lineDataset = {
-		datasets: [{label: txttitle,
+		datasets: [{data: objdataname,
+			label: txttitle,
 			borderWidth: 1,
 			pointRadius: 1,
 			lineTension: 0,
@@ -381,7 +359,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 	};
 	objchartname = new Chart(ctx, {
 		type: 'line',
-		plugins: [ChartDataSource,datafilterPlugin],
+		plugins: [datafilterPlugin],
 		options: lineOptions,
 		data: lineDataset
 	});
@@ -389,21 +367,17 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 }
 
 function getLimit(datasetname,axis,maxmin) {
-	var limit = 0;
-	var objdataname=window[datasetname+maxmin];
-	if(typeof objdataname === 'undefined' || objdataname === null) { limit = 0; }
-	else {limit = objdataname;}
-	if(maxmin == "max" && limit == 0 && isannotation == false){
-		limit = 1;
-	}
+	limit=0;
+	eval("limit=Math."+maxmin+".apply(Math, "+datasetname+".map(function(o) { return o."+axis+";} ))");
 	return limit;
 }
 
 function getAverage(datasetname) {
-	var avg = 0;
-	var objdataname=window[datasetname+"avg"];
-	if(typeof objdataname === 'undefined' || objdataname === null) { avg = 0; }
-	else {avg = objdataname;}
+	var total = 0;
+	for(var i = 0; i < datasetname.length; i++) {
+		total += datasetname[i].y;
+	}
+	var avg = total / datasetname.length;
 	return avg;
 }
 
@@ -421,36 +395,21 @@ function ToggleLines() {
 			ShowLines = "";
 			SetCookie("ShowLines","");
 		}
-		for(i = 0; i < metriclist.length; i++){
-			for (i2 = 0; i2 < chartlist.length; i2++) {
-				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					for (i4 = 0; i4 < 3; i4++) {
-						window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].options.annotation.annotations[i4].type=ShowLines;
-					}
-					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].update();
-			}
-		}
+		RedrawAllCharts();
 	}
 }
 
 function ToggleFill() {
 	if(interfacelist != ""){
 		if(ShowFill == "origin"){
-			ShowFill = "false";
-			SetCookie("ShowFill","false");
+			ShowFill = false;
+			SetCookie("ShowFill",false);
 		}
 		else {
 			ShowFill = "origin";
 			SetCookie("ShowFill","origin");
 		}
-			for(i = 0; i < metriclist.length; i++){
-			for (i2 = 0; i2 < chartlist.length; i2++) {
-				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].data.datasets[0].fill=ShowFill;
-					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].update();
-				}
-			}
-		}
+		RedrawAllCharts();
 	}
 }
 
@@ -458,14 +417,14 @@ function RedrawAllCharts() {
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		var i;
-		for(i = 0; i < metriclist.length; i++){
-			for (i2 = 0; i2 < chartlist.length; i2++) {
-				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					Draw_Chart(metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3],titlelist[i],measureunitlist[i],timeunitlist[i2],intervallist[i2],colourlist[i]);
-				}
-			}
+		for (i = 0; i < interfacetextarray.length; i++) {
+		Draw_Chart("DownloadDaily_"+interfacetextarray[i],"Download","Mbps","hour",24,"#fc8500");
+		Draw_Chart("UploadDaily_"+interfacetextarray[i],"Upload","Mbps","hour",24,"#42ecf5");
+		Draw_Chart("DownloadWeekly_"+interfacetextarray[i],"Download","Mbps","day",7,"#fc8500");
+		Draw_Chart("UploadWeekly_"+interfacetextarray[i],"Upload","Mbps","day",7,"#42ecf5");
+		Draw_Chart("DownloadMonthly_"+interfacetextarray[i],"Download","Mbps","day",30,"#fc8500");
+		Draw_Chart("UploadMonthly_"+interfacetextarray[i],"Upload","Mbps","day",30,"#42ecf5");
 		}
-		ResetZoom();
 	}
 }
 
@@ -497,16 +456,6 @@ function initial(){
 
 function reload() {
 	location.reload(true);
-}
-
-function ResetZoom(){
-	for(i = 0; i < metriclist.length; i++){
-		for (i2 = 0; i2 < chartlist.length; i2++) {
-			for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-				window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].resetZoom();
-			}
-		}
-	}
 }
 
 function applyRule() {
@@ -623,9 +572,9 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
 	charthtml+='<div class="collapsiblecontent">';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloaddaily_'+name+'" height="300" /></div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadDaily_'+name+'" height="300" /></div>';
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploaddaily_'+name+'" height="300" /></div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadDaily_'+name+'" height="300" /></div>';
 	charthtml+='</div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
@@ -640,9 +589,9 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
 	charthtml+='<div class="collapsiblecontent">';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadweekly_'+name+'" height="300" /></div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadWeekly_'+name+'" height="300" /></div>';
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadweekly_'+name+'" height="300" /></div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadWeekly_'+name+'" height="300" /></div>';
 	charthtml+='</div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
@@ -657,9 +606,9 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
 	charthtml+='<div class="collapsiblecontent">';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadmonthly_'+name+'" height="300" /></div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadMonthly_'+name+'" height="300" /></div>';
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadmonthly_'+name+'" height="300" /></div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadMonthly_'+name+'" height="300" /></div>';
 	charthtml+='</div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
@@ -760,7 +709,7 @@ function AddEventHandlers(){
 <td style="background-color:rgb(77, 89, 93);border:0px;">
 <input type="button" onclick="applyRule();" value="Run speedtest now" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="button">
+<input type="button" onclick="RedrawAllCharts();" value="Reset Zoom" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ToggleLines();" value="Toggle Lines" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
