@@ -178,7 +178,6 @@ var intervallist = [24,7,30];
 var colourlist = ["#fc8500","#42ecf5"];
 
 function keyHandler(e) {
-	console.log(e)
 	if (e.ctrlKey && e.shiftKey && e.keyCode == 90){
 		$(document).off("keydown");
 		ToggleZoom();
