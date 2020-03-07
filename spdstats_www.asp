@@ -413,6 +413,7 @@ function round(value, decimals) {
 
 function ToggleLines() {
 	if(interfacelist != ""){
+		var interfacetextarray = interfacelist.split(',');
 		if(ShowLines == ""){
 			ShowLines = "line";
 			SetCookie("ShowLines","line");
@@ -436,6 +437,7 @@ function ToggleLines() {
 
 function ToggleFill() {
 	if(interfacelist != ""){
+		var interfacetextarray = interfacelist.split(',');
 		if(ShowFill == "origin"){
 			ShowFill = "false";
 			SetCookie("ShowFill","false");
@@ -501,10 +503,13 @@ function reload() {
 }
 
 function ResetZoom(){
-	for(i = 0; i < metriclist.length; i++){
-		for (i2 = 0; i2 < chartlist.length; i2++) {
-			for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-				window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].resetZoom();
+	if(interfacelist != ""){
+		var interfacetextarray = interfacelist.split(',');
+		for(i = 0; i < metriclist.length; i++){
+			for (i2 = 0; i2 < chartlist.length; i2++) {
+				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
+					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].resetZoom();
+				}
 			}
 		}
 	}
