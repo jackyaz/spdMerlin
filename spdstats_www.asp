@@ -428,6 +428,7 @@ function ToggleLines() {
 						window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].options.annotation.annotations[i4].type=ShowLines;
 					}
 					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].update();
+				}
 			}
 		}
 	}
