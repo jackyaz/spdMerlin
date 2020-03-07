@@ -178,7 +178,7 @@ var intervallist = [24,7,30];
 var colourlist = ["#fc8500","#42ecf5"];
 
 function keyHandler(e) {
-	if (e.keyCode == 16){
+	if (e.keyCode == 16 && ! e.ctrlKey && e.shiftKey){
 		$(document).off("keydown");
 		ToggleZoom(true);
 	}
