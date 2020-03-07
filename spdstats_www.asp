@@ -171,7 +171,7 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
 
 var metriclist = ["Download","Upload"];
 var titlelist = ["Download","Upload"];
-var measureunitlist = ["Mbps","Mbps";
+var measureunitlist = ["Mbps","Mbps"];
 var chartlist = ["daily","weekly","monthly"];
 var timeunitlist = ["hour","day","day"];
 var intervallist = [24,7,30];
