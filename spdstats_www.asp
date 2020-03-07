@@ -180,7 +180,7 @@ var colourlist = ["#fc8500","#42ecf5"];
 function keyHandler(e) {
 	if (e.keyCode == 16 && ! e.ctrlKey && e.shiftKey){
 		$(document).off("keydown");
-		ToggleZoom(true);
+		ToggleZoomPan(true);
 	}
 	else if (e.ctrlKey && e.shiftKey && e.keyCode == 88){
 		$(document).off("keydown");
@@ -191,7 +191,7 @@ function keyHandler(e) {
 $(document).keydown(function(e){keyHandler(e);});
 $(document).keyup(function(e){
 	if (e.keyCode == 16){
-		ToggleZoom(false);
+		ToggleZoomPan(false);
 	}
 	$(document).keydown(function(e){
 		keyHandler(e);
@@ -274,7 +274,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 		plugins: {
 			zoom: {
 				pan: {
-					enabled: true,
+					enabled: false,
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
@@ -538,7 +538,7 @@ function ResetZoom(){
 	}
 }
 
-function ToggleZoom(enabledisable){
+function ToggleZoomPan(enabledisable){
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		for(i = 0; i < metriclist.length; i++){
@@ -547,6 +547,7 @@ function ToggleZoom(enabledisable){
 					var chartobj = window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]];
 					if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
 					chartobj.options.plugins.zoom.zoom.enabled = enabledisable;
+					chartobj.options.plugins.zoom.pan.enabled = enabledisable;
 					chartobj.update();
 				}
 			}
