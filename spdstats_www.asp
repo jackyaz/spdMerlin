@@ -525,7 +525,7 @@ function ResetZoom(){
 				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
 					var chartobj = window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]];
 					if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
-					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].resetZoom();
+					chartobj.resetZoom();
 				}
 			}
 		}
