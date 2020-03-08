@@ -19,9 +19,7 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v3.2.3"
-#shellcheck disable=SC2034
-readonly SPD_VERSION="v3.2.3"
+readonly SCRIPT_VERSION="v3.3.0"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
@@ -34,6 +32,7 @@ readonly OLD_SHARED_DIR="/jffs/scripts/shared-jy"
 readonly SHARED_DIR="/jffs/addons/shared-jy"
 readonly SHARED_REPO="https://raw.githubusercontent.com/jackyaz/shared-jy/master"
 readonly SHARED_WEB_DIR="$SCRIPT_WEBPAGE_DIR/shared-jy"
+readonly CSV_OUTPUT_DIR="$SCRIPT_DIR/csv"
 readonly HOME_DIR="/$(readlink "$HOME")"
 readonly OOKLA_DIR="$SCRIPT_DIR/ookla"
 readonly OOKLA_LICENSE_DIR="$SCRIPT_DIR/ooklalicense"
@@ -142,14 +141,7 @@ Update_Version(){
 		
 		Update_File "$ARCH.tar.gz"
 		Update_File "spdstats_www.asp"
-		Update_File "redirect.htm"
-		Update_File "addons.png"
-		Update_File "chart.js"
-		Update_File "chartjs-plugin-zoom.js"
-		Update_File "chartjs-plugin-annotation.js"
-		Update_File "chartjs-plugin-datasource.js"
-		Update_File "hammerjs.js"
-		Update_File "moment.js"
+		Update_File "shared-jy.tar.gz"
 		
 		if [ "$doupdate" != "false" ]; then
 			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
@@ -168,14 +160,7 @@ Update_Version(){
 			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 			Update_File "$ARCH.tar.gz"
 			Update_File "spdstats_www.asp"
-			Update_File "redirect.htm"
-			Update_File "addons.png"
-			Update_File "chart.js"
-			Update_File "chartjs-plugin-zoom.js"
-			Update_File "chartjs-plugin-annotation.js"
-			Update_File "chartjs-plugin-datasource.js"
-			Update_File "hammerjs.js"
-			Update_File "moment.js"
+			Update_File "shared-jy.tar.gz"
 			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
@@ -216,17 +201,24 @@ Update_File(){
 			Mount_WebUI
 		fi
 		rm -f "$tmpfile"
-	elif [ "$1" = "chart.js" ] || [ "$1" = "chartjs-plugin-zoom.js" ] || [ "$1" = "chartjs-plugin-annotation.js" ] || [ "$1" = "moment.js" ] || [ "$1" =  "hammerjs.js" ] || [ "$1" = "chartjs-plugin-datasource.js" ] || [ "$1" = "redirect.htm" ] || [ "$1" = "addons.png" ]; then
-		tmpfile="/tmp/$1"
-		Download_File "$SHARED_REPO/$1" "$tmpfile"
-		if [ ! -f "$SHARED_DIR/$1" ]; then
-			touch "$SHARED_DIR/$1"
-		fi
-		if ! diff -q "$tmpfile" "$SHARED_DIR/$1" >/dev/null 2>&1; then
-			Print_Output "true" "New version of $1 downloaded" "$PASS"
+	elif [ "$1" = "shared-jy.tar.gz" ]; then
+		if [ ! -f "$SHARED_DIR/$1.md5" ]; then
 			Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
+			Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
+			tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
+			rm -f "$SHARED_DIR/$1"
+			Print_Output "true" "New version of $1 downloaded" "$PASS"
+		else
+			localmd5="$(cat "$SHARED_DIR/$1.md5")"
+			remotemd5="$(curl -fsL --retry 3 "$SHARED_REPO/$1.md5")"
+			if [ "$localmd5" != "$remotemd5" ]; then
+				Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
+				Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
+				tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
+				rm -f "$SHARED_DIR/$1"
+				Print_Output "true" "New version of $1 downloaded" "$PASS"
+			fi
 		fi
-		rm -f "$tmpfile"
 	else
 		return 1
 	fi
@@ -330,9 +322,8 @@ Create_Dirs(){
 		mkdir -p "$SCRIPT_DIR"
 	fi
 	
-	if [ -d "$OLD_SCRIPT_DIR" ]; then
-		mv "$OLD_SCRIPT_DIR" "$(dirname "$SCRIPT_DIR")"
-		rm -rf "$OLD_SCRIPT_DIR"
+	if [ ! -d "$CSV_OUTPUT_DIR" ]; then
+		mkdir -p "$CSV_OUTPUT_DIR"
 	fi
 	
 	if [ ! -d "$OOKLA_DIR" ]; then
@@ -351,21 +342,12 @@ Create_Dirs(){
 		mkdir -p "$SHARED_DIR"
 	fi
 	
-	if [ -d "$OLD_SHARED_DIR" ]; then
-		mv "$OLD_SHARED_DIR" "$(dirname "$SHARED_DIR")"
-		rm -rf "$OLD_SHARED_DIR"
-	fi
-	
 	if [ ! -d "$SCRIPT_WEBPAGE_DIR" ]; then
 		mkdir -p "$SCRIPT_WEBPAGE_DIR"
 	fi
 		
 	if [ ! -d "$SCRIPT_WEB_DIR" ]; then
 		mkdir -p "$SCRIPT_WEB_DIR"
-	fi
-	
-	if [ ! -d "$SHARED_WEB_DIR" ]; then
-		mkdir -p "$SHARED_WEB_DIR"
 	fi
 }
 
@@ -406,7 +388,6 @@ Create_Symlinks(){
 	done
 	
 	rm -f "$SCRIPT_WEB_DIR/"* 2>/dev/null
-	rm -f "$SHARED_WEB_DIR/"* 2>/dev/null
 	
 	ln -s "$SCRIPT_DIR/.interfaces_user"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
@@ -414,14 +395,13 @@ Create_Symlinks(){
 	ln -s "$SCRIPT_DIR/spdlastx.js" "$SCRIPT_WEB_DIR/spdlastx.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdstatstext.js" "$SCRIPT_WEB_DIR/spdstatstext.js" 2>/dev/null
 	
-	ln -s "$SHARED_DIR/chart.js" "$SHARED_WEB_DIR/chart.js" 2>/dev/null
-	ln -s "$SHARED_DIR/chartjs-plugin-zoom.js" "$SHARED_WEB_DIR/chartjs-plugin-zoom.js" 2>/dev/null
-	ln -s "$SHARED_DIR/chartjs-plugin-annotation.js" "$SHARED_WEB_DIR/chartjs-plugin-annotation.js" 2>/dev/null
-	ln -s "$SHARED_DIR/chartjs-plugin-datasource.js" "$SHARED_WEB_DIR/chartjs-plugin-datasource.js" 2>/dev/null
-	ln -s "$SHARED_DIR/hammerjs.js" "$SHARED_WEB_DIR/hammerjs.js" 2>/dev/null
-	ln -s "$SHARED_DIR/moment.js" "$SHARED_WEB_DIR/moment.js" 2>/dev/null
-	ln -s "$SHARED_DIR/redirect.htm" "$SHARED_WEB_DIR/redirect.htm" 2>/dev/null
-	ln -s "$SHARED_DIR/addons.png" "$SHARED_WEB_DIR/addons.png" 2>/dev/null
+	if [ ! -d "$SCRIPT_WEB_DIR/csv" ]; then
+		ln -s "$CSV_OUTPUT_DIR" "$SCRIPT_WEB_DIR/csv" 2>/dev/null
+	fi
+	
+	if [ ! -d "$SHARED_WEB_DIR" ]; then
+		ln -s "$SHARED_DIR" "$SHARED_WEB_DIR" 2>/dev/null
+	fi
 }
 
 Conf_Exists(){
@@ -985,27 +965,6 @@ WritePlainData_ToJS(){
 	done
 }
 
-WriteData_ToJS(){
-	inputfile="$1"
-	outputfile="$2"
-	shift;shift
-	
-	for var in "$@"; do
-	{
-		echo "var $var;"
-		echo "$var = [];"; } >> "$outputfile"
-		contents="$var"'.unshift('
-		while IFS='' read -r line || [ -n "$line" ]; do
-			if echo "$line" | grep -q "NaN"; then continue; fi
-			datapoint="{ x: moment.unix(""$(echo "$line" | awk 'BEGIN{FS=","}{ print $1 }' | awk '{$1=$1};1')""), y: ""$(echo "$line" | awk 'BEGIN{FS=","}{ print $2 }' | awk '{$1=$1};1')"" }"
-			contents="$contents""$datapoint"","
-		done < "$inputfile"
-		contents=$(echo "$contents" | sed 's/,$//')
-		contents="$contents"");"
-		printf "%s\\r\\n\\r\\n" "$contents" >> "$outputfile"
-	done
-}
-
 WriteStats_ToJS(){
 	echo "function $3(){" > "$2"
 	html='document.getElementById("'"$4"'").innerHTML="'
@@ -1016,18 +975,22 @@ WriteStats_ToJS(){
 	printf "%s\\r\\n}\\r\\n" "$html" >> "$2"
 }
 
-#$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 sqlfile
+#$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 outputfrequency $7 interfacename $8 sqlfile $9 timestamp
 WriteSql_ToFile(){
+	timenow="$9"
+	earliest="$((24*$4/$3))"
 	{
 		echo ".mode csv"
-		echo ".output $5"
-	} >> "$6"
-	COUNTER=0
-	timenow="$(date '+%s')"
-	until [ $COUNTER -gt "$((24*$4/$3))" ]; do
-		echo "select $timenow - ((60*60*$3)*($COUNTER)),IFNULL(avg([$1]),'NaN') from $2 WHERE ([Timestamp] >= $timenow - ((60*60*$3)*($COUNTER+1))) AND ([Timestamp] <= $timenow - ((60*60*$3)*$COUNTER));" >> "$6"
-		COUNTER=$((COUNTER + 1))
-	done
+		echo ".output $5$6""_$7.tmp"
+	} >> "$8"
+	
+	{
+		echo "SELECT '$1',Min([Timestamp]) ChunkStart, IFNULL(Avg([$1]),'NaN') Value FROM"
+		echo "( SELECT NTILE($((24*$4/$3))) OVER (ORDER BY [Timestamp]) Chunk, * FROM $2 WHERE [Timestamp] >= ($timenow - ((60*60*$3)*$earliest))) AS T"
+		echo "GROUP BY Chunk"
+		echo "ORDER BY ChunkStart;"
+	} >> "$8"
+	echo "var $1$6""_$7""size = 1;" >> "$SCRIPT_DIR/spdstatsdata.js"
 }
 
 #$1 iface name
@@ -1041,6 +1004,25 @@ Generate_LastXResults(){
 	sed -i 's/,/ /g' "/tmp/spd-lastx.csv"
 	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_DIR/spdlastx.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
 	rm -f /tmp/spd-lastx.sql
+}
+
+Aggregate_Stats(){
+	metricname="$1"
+	period="$2"
+	interfacename="$3"
+	sed -i '1iMetric,Time,Value' "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
+	head -c -2 "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" > "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm"
+	dos2unix "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm"
+	cp "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm" "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
+	sed -i '1d' "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
+	min="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | head -1)"
+	max="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | tail -1)"
+	avg="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | awk '{ total += $1; count++ } END { print total/count }')"
+	{
+	echo "var $metricname$period""_$interfacename""min = $min;"
+	echo "var $metricname$period""_$interfacename""max = $max;"
+	echo "var $metricname$period""_$interfacename""avg = $avg;"
+	} >> "$SCRIPT_DIR/spdstatsdata.js"
 }
 
 Generate_SPDStats(){
@@ -1111,6 +1093,7 @@ Generate_SPDStats(){
 		if [ "$IFACELIST" != "" ]; then
 			rm -f "$SCRIPT_DIR/spdstatsdata.js"
 			rm -f "$SCRIPT_DIR/spdlastx.js"
+			rm -f "$CSV_OUTPUT_DIR/"*
 			
 			for IFACE_NAME in $IFACELIST; do
 				
@@ -1144,44 +1127,54 @@ Generate_SPDStats(){
 					TZ=$(cat /etc/TZ)
 					export TZ
 					
+					timenow=$(date +"%s")
+					timenowfriendly=$(date +"%c")
+					
 					download=$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
 					upload=$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
 					
 					{
-					echo "DROP TABLE IF EXISTS [spdstats];"
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
-					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload]) values($(date '+%s'),$download,$upload);"
+					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload]) values($timenow,$download,$upload);"
 					} > /tmp/spd-stats.sql
-
+					
 					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					{
-						echo ".mode csv"
-						echo ".output /tmp/spd-downloaddaily.csv"
-						echo "select [Timestamp],[Download] from spdstats_$IFACE_NAME WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
-						echo ".output /tmp/spd-uploaddaily.csv"
-						echo "select [Timestamp],[Upload] from spdstats_$IFACE_NAME WHERE [Timestamp] >= (strftime('%s','now') - 86400);"
+						echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));"
 					} > /tmp/spd-stats.sql
 					
 					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					rm -f /tmp/spd-stats.sql
 					
-					WriteSql_ToFile "Download" "spdstats_$IFACE_NAME" 1 7 "/tmp/spd-downloadweekly.csv" "/tmp/spd-stats.sql"
-					WriteSql_ToFile "Upload" "spdstats_$IFACE_NAME" 1 7 "/tmp/spd-uploadweekly.csv" "/tmp/spd-stats.sql"
-					WriteSql_ToFile "Download" "spdstats_$IFACE_NAME" 3 30 "/tmp/spd-downloadmonthly.csv" "/tmp/spd-stats.sql"
-					WriteSql_ToFile "Upload" "spdstats_$IFACE_NAME" 3 30 "/tmp/spd-uploadmonthly.csv" "/tmp/spd-stats.sql"
+					metriclist="Download Upload"
 					
-					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-					
-					WriteData_ToJS "/tmp/spd-downloaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadDaily_$IFACE_NAME"
-					WriteData_ToJS "/tmp/spd-uploaddaily.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadDaily_$IFACE_NAME"
-					
-					WriteData_ToJS "/tmp/spd-downloadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadWeekly_$IFACE_NAME"
-					WriteData_ToJS "/tmp/spd-uploadweekly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadWeekly_$IFACE_NAME"
-					
-					WriteData_ToJS "/tmp/spd-downloadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataDownloadMonthly_$IFACE_NAME"
-					WriteData_ToJS "/tmp/spd-uploadmonthly.csv" "$SCRIPT_DIR/spdstatsdata.js" "DataUploadMonthly_$IFACE_NAME"
+					for metric in $metriclist; do
+						{
+							echo ".mode csv"
+							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".tmp"
+							echo "select '$metric',[Timestamp],[$metric] from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
+						} > /tmp/spd-stats.sql
+
+						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+						echo "var $metric""daily_$IFACE_NAME""size = 1;" >> "$SCRIPT_DIR/spdstatsdata.js"
+						Aggregate_Stats "$metric" "daily" "$IFACE_NAME"
+						rm -f "$CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".tmp"*
+						rm -f /tmp/spd-stats.sql
+
+						WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
+						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+						Aggregate_Stats "$metric" "weekly" "$IFACE_NAME"
+						rm -f "$CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".tmp"
+						rm -f /tmp/spd-stats.sql
+
+						WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
+						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+						Aggregate_Stats "$metric" "monthly" "$IFACE_NAME"
+						rm -f "$CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".tmp"
+						rm -f /tmp/spd-stats.sql
+					done
 					
 					Generate_LastXResults "$IFACE_NAME"
 					
@@ -1191,15 +1184,14 @@ Generate_SPDStats(){
 					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 					
 					rm -f "$tmpfile"
-					rm -f "/tmp/spd-"*".csv"
 					rm -f "/tmp/spd-stats.sql"
-					
-					echo "Internet Speedtest generated on $(date +"%c")" > "/tmp/spdstatstitle.txt"
-					WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
-					
-					rm -f "/tmp/spdstatstitle.txt"
 				fi
 			done
+			
+			echo "Internet Speedtest generated on $timenowfriendly" > "/tmp/spdstatstitle.txt"
+			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
+			
+			rm -f "/tmp/spdstatstitle.txt"
 		else
 			Print_Output "true" "No interfaces enabled, exiting" "$CRIT"
 			Clear_Lock
@@ -1472,14 +1464,7 @@ Menu_Install(){
 	chmod 0755 "$OOKLA_DIR/speedtest"
 	
 	Update_File "spdstats_www.asp"
-	Update_File "redirect.htm"
-	Update_File "addons.png"
-	Update_File "chart.js"
-	Update_File "chartjs-plugin-zoom.js"
-	Update_File "chartjs-plugin-annotation.js"
-	Update_File "chartjs-plugin-datasource.js"
-	Update_File "hammerjs.js"
-	Update_File "moment.js"
+	Update_File "shared-jy.tar.gz"
 	
 	Conf_Exists
 	
