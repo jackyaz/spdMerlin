@@ -213,6 +213,7 @@ Update_File(){
 			remotemd5="$(curl -fsL --retry 3 "$SHARED_REPO/$1.md5")"
 			if [ "$localmd5" != "$remotemd5" ]; then
 				Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
+				Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
 				tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
 				rm -f "$SHARED_DIR/$1"
 				Print_Output "true" "New version of $1 downloaded" "$PASS"
