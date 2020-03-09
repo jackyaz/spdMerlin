@@ -106,6 +106,7 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-zoom.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-annotation.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-datasource.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-deferred.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
@@ -230,12 +231,12 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 	var lineOptions = {
 		segmentShowStroke : false,
 		segmentStrokeColor : "#000",
-		//animationEasing : "easeOutQuart",
-		//animationSteps : 100,
-		animation: {
+		animationEasing : "easeOutQuart",
+		animationSteps : 100,
+		/*animation: {
 			duration: 0 // general animation time
 		},
-		responsiveAnimationDuration: 0, // animation duration after a resize
+		responsiveAnimationDuration: 0, */// animation duration after a resize
 		maintainAspectRatio: false,
 		animateScale : true,
 		hover: { mode: "point" },
@@ -286,7 +287,6 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					},
 				},
 				zoom: {
-					enabled: false,
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
@@ -309,6 +309,9 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					x: 'Time',
 					y: 'Value'
 				}
+			},
+			deferred: {
+				delay: 250
 			},
 		},
 		annotation: {
