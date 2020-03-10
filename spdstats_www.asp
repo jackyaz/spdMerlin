@@ -178,27 +178,6 @@ var timeunitlist = ["hour","day","day"];
 var intervallist = [24,7,30];
 var colourlist = ["#fc8500","#42ecf5"];
 
-function keyHandler(e) {
-	if (e.keyCode == 16 && ! e.ctrlKey && e.shiftKey){
-		$(document).off("keydown");
-		ToggleZoomPan(true);
-	}
-	else if (e.ctrlKey && e.shiftKey && e.keyCode == 88){
-		$(document).off("keydown");
-		ResetZoom();
-	}
-}
-
-$(document).keydown(function(e){keyHandler(e);});
-$(document).keyup(function(e){
-	if (e.keyCode == 16){
-		ToggleZoomPan(false);
-	}
-	$(document).keydown(function(e){
-		keyHandler(e);
-	});
-});
-
 function Draw_Chart_NoData(txtchartname){
 	document.getElementById("divLineChart"+txtchartname).width="730";
 	document.getElementById("divLineChart"+txtchartname).height="300";
@@ -287,7 +266,8 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					},
 				},
 				zoom: {
-					enabled: false,
+					enabled: true,
+					drag: true,
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
@@ -542,7 +522,21 @@ function ResetZoom(){
 	}
 }
 
-function ToggleZoomPan(enabledisable){
+function DragZoom(button){
+	var drag = true;
+	var pan = false;
+	var buttonvalue = "";
+	if(button.value.indexOf("Disable") != -1){
+		drag = false;
+		pan = true;
+		buttonvalue = "Enable Drag Zoom";
+	}
+	else {
+		drag = true;
+		pan = false;
+		buttonvalue = "Disable Drag Zoom";
+	}
+	
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		for(i = 0; i < metriclist.length; i++){
@@ -550,8 +544,9 @@ function ToggleZoomPan(enabledisable){
 				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
 					var chartobj = window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]];
 					if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
-					chartobj.options.plugins.zoom.zoom.enabled = enabledisable;
-					chartobj.options.plugins.zoom.pan.enabled = enabledisable;
+					chartobj.options.plugins.zoom.zoom.drag = drag;
+					chartobj.options.plugins.zoom.pan.enabled = pan;
+					button.value = buttonvalue;
 					chartobj.update();
 				}
 			}
@@ -808,7 +803,9 @@ function AddEventHandlers(){
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
 <tr class="apply_gen" valign="top" height="35px">
 <td style="background-color:rgb(77, 89, 93);border:0px;">
-<input type="button" onclick="applyRule();" value="Run speedtest now" class="button_gen" name="button">
+<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="button">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="button" onclick="DragZoom(this);" value="Disable Drag Zoom" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
