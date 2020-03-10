@@ -178,6 +178,21 @@ var timeunitlist = ["hour","day","day"];
 var intervallist = [24,7,30];
 var colourlist = ["#fc8500","#42ecf5"];
 
+function keyHandler(e) {
+	if (e.keyCode == 27){
+		$(document).off("keydown");
+		ResetZoom();
+	}
+}
+
+$(document).keydown(function(e){keyHandler(e);});
+$(document).keyup(function(e){
+	$(document).keydown(function(e){
+		keyHandler(e);
+	});
+});
+
+
 function Draw_Chart_NoData(txtchartname){
 	document.getElementById("divLineChart"+txtchartname).width="730";
 	document.getElementById("divLineChart"+txtchartname).height="300";
