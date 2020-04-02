@@ -1105,10 +1105,8 @@ Generate_SPDStats(){
 				else
 					
 					for proto in tcp udp; do
-						iptables -I INPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -I OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle -I INPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle -I OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 					done
 					
 					if [ "$mode" = "auto" ]; then
@@ -1130,14 +1128,12 @@ Generate_SPDStats(){
 							Print_Output "true" "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
 							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
 						fi
-						
-						for proto in tcp udp; do
-							iptables -D INPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-							iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-							iptables -t mangle -D INPUT -p "$proto"-j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-							iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						done
 					fi
+					
+					for proto in tcp udp; do
+						iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					done
 					
 					TZ=$(cat /etc/TZ)
 					export TZ
