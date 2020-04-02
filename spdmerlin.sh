@@ -1103,6 +1103,12 @@ Generate_SPDStats(){
 					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
 					continue
 				else
+					
+					for proto in tcp udp; do
+						iptables -I INPUT -m  multiport -p "$proto" --sports 5060,8080 -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -I OUTPUT -m  multiport -p "$proto" --dports 5060,8080 -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					done
+					
 					if [ "$mode" = "auto" ]; then
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
@@ -1122,6 +1128,11 @@ Generate_SPDStats(){
 							Print_Output "true" "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
 							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
 						fi
+						
+						for proto in tcp udp; do
+							iptables -D INPUT -m  multiport -p "$proto" --sports 5060,8080 -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -D OUTPUT -m  multiport -p "$proto" --dports 5060,8080 -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						done
 					fi
 					
 					TZ=$(cat /etc/TZ)
