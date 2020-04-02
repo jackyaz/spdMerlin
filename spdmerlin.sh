@@ -1105,10 +1105,10 @@ Generate_SPDStats(){
 				else
 					
 					for proto in tcp udp; do
-						iptables -I INPUT -m  multiport -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -I OUTPUT -m  multiport -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle -I INPUT -m  multiport -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle -I OUTPUT -m  multiport -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -I INPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -I OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle -I INPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle -I OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 					done
 					
 					if [ "$mode" = "auto" ]; then
@@ -1132,10 +1132,10 @@ Generate_SPDStats(){
 						fi
 						
 						for proto in tcp udp; do
-							iptables -D INPUT -m  multiport -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-							iptables -D OUTPUT -m  multiport -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-							iptables -t mangle -D INPUT -m  multiport -p "$proto"-j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-							iptables -t mangle -D OUTPUT -m  multiport -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -D INPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D INPUT -p "$proto"-j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 						done
 					fi
 					
