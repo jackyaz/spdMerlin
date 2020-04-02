@@ -19,7 +19,7 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v3.3.1"
+readonly SCRIPT_VERSION="v3.3.2"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
@@ -1103,6 +1103,13 @@ Generate_SPDStats(){
 					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
 					continue
 				else
+					
+					for proto in tcp udp; do
+						iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle -A POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					done
+					
 					if [ "$mode" = "auto" ]; then
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
@@ -1123,6 +1130,12 @@ Generate_SPDStats(){
 							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
 						fi
 					fi
+					
+					for proto in tcp udp; do
+						iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle -D POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					done
 					
 					TZ=$(cat /etc/TZ)
 					export TZ
@@ -1185,6 +1198,12 @@ Generate_SPDStats(){
 					
 					rm -f "$tmpfile"
 					rm -f "/tmp/spd-stats.sql"
+					
+					#extStats
+					extStats="/jffs/addons/extstats.d/mod_spdstats.sh"
+					if [ -f "$extStats" ]; then
+						sh "$extStats" "ext" "$download" "$upload"
+					fi
 				fi
 			done
 			
