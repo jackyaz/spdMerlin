@@ -1185,6 +1185,12 @@ Generate_SPDStats(){
 					
 					rm -f "$tmpfile"
 					rm -f "/tmp/spd-stats.sql"
+					
+					#extStats
+					extStats="/jffs/addons/extstats.d/mod_spdstats.sh"
+					if [ -f "$extStats" ]; then
+						sh "$extStats" "ext" "$download" "$upload"
+					fi
 				fi
 			done
 			
