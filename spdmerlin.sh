@@ -981,7 +981,7 @@ WriteSql_ToFile(){
 	multiplier="$(echo "$3" | awk '{printf (60*60*$1)}')"
 	{
 		echo ".mode csv"
-		echo ".output $5$6""_$7.csv"
+		echo ".output $5$6""_$7.htm"
 	} >> "$8"
 	
 	echo "SELECT '$1', Min([Timestamp]), IFNULL(Avg([$1]),'NaN') FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
@@ -998,6 +998,7 @@ Generate_LastXResults(){
 	sed -i 's/,/ /g' "/tmp/spd-lastx.csv"
 	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_DIR/spdlastx.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
 	rm -f /tmp/spd-lastx.sql
+	rm -f /tmp/spd-lastx.csv
 }
 
 Generate_SPDStats(){
@@ -1140,7 +1141,7 @@ Generate_SPDStats(){
 					for metric in $metriclist; do
 						{
 							echo ".mode csv"
-							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".csv"
+							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
 							echo "select '$metric',[Timestamp],[$metric] from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 						} > /tmp/spd-stats.sql
 
