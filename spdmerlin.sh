@@ -391,7 +391,6 @@ Create_Symlinks(){
 	
 	ln -s "$SCRIPT_DIR/.interfaces_user"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
-	ln -s "$SCRIPT_DIR/spdstatsdata.js" "$SCRIPT_WEB_DIR/spdstatsdata.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdlastx.js" "$SCRIPT_WEB_DIR/spdlastx.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdstatstext.js" "$SCRIPT_WEB_DIR/spdstatstext.js" 2>/dev/null
 	
@@ -982,12 +981,10 @@ WriteSql_ToFile(){
 	multiplier="$(echo "$3" | awk '{printf (60*60*$1)}')"
 	{
 		echo ".mode csv"
-		echo ".output $5$6""_$7.tmp"
+		echo ".output $5$6""_$7.csv"
 	} >> "$8"
 	
 	echo "SELECT '$1', Min([Timestamp]), IFNULL(Avg([$1]),'NaN') FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
-	
-	echo "var $1$6""_$7""size = 1;" >> "$SCRIPT_DIR/spdstatsdata.js"
 }
 
 #$1 iface name
@@ -1001,25 +998,6 @@ Generate_LastXResults(){
 	sed -i 's/,/ /g' "/tmp/spd-lastx.csv"
 	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_DIR/spdlastx.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
 	rm -f /tmp/spd-lastx.sql
-}
-
-Aggregate_Stats(){
-	metricname="$1"
-	period="$2"
-	interfacename="$3"
-	sed -i '1iMetric,Time,Value' "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
-	head -c -2 "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" > "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm"
-	dos2unix "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm"
-	cp "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm" "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
-	sed -i '1d' "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
-	min="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | head -1)"
-	max="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | tail -1)"
-	avg="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | awk '{ total += $1; count++ } END { print total/count }')"
-	{
-	echo "var $metricname$period""_$interfacename""min = $min;"
-	echo "var $metricname$period""_$interfacename""max = $max;"
-	echo "var $metricname$period""_$interfacename""avg = $avg;"
-	} >> "$SCRIPT_DIR/spdstatsdata.js"
 }
 
 Generate_SPDStats(){
@@ -1088,7 +1066,6 @@ Generate_SPDStats(){
 		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		
 		if [ "$IFACELIST" != "" ]; then
-			rm -f "$SCRIPT_DIR/spdstatsdata.js"
 			rm -f "$SCRIPT_DIR/spdlastx.js"
 			#rm -f "$CSV_OUTPUT_DIR/"*
 			
@@ -1168,21 +1145,14 @@ Generate_SPDStats(){
 						} > /tmp/spd-stats.sql
 
 						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						echo "var $metric""daily_$IFACE_NAME""size = 1;" >> "$SCRIPT_DIR/spdstatsdata.js"
-						Aggregate_Stats "$metric" "daily" "$IFACE_NAME"
-						rm -f "$CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".tmp"*
 						rm -f /tmp/spd-stats.sql
 
 						WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
 						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						Aggregate_Stats "$metric" "weekly" "$IFACE_NAME"
-						rm -f "$CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".tmp"
 						rm -f /tmp/spd-stats.sql
 
 						WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
 						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						Aggregate_Stats "$metric" "monthly" "$IFACE_NAME"
-						rm -f "$CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".tmp"
 						rm -f /tmp/spd-stats.sql
 					done
 					
