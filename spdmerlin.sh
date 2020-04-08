@@ -1140,7 +1140,7 @@ Generate_SPDStats(){
 					for metric in $metriclist; do
 						{
 							echo ".mode csv"
-							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".tmp"
+							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".csv"
 							echo "select '$metric',[Timestamp],[$metric] from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 						} > /tmp/spd-stats.sql
 
