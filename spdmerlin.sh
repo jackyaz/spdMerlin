@@ -978,18 +978,15 @@ WriteStats_ToJS(){
 #$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 outputfrequency $7 interfacename $8 sqlfile $9 timestamp
 WriteSql_ToFile(){
 	timenow="$9"
-	earliest="$((24*$4/$3))"
+	maxcount="$(echo "$3" "$4" | awk '{printf ((24*$2)/$1)}')"
+	multiplier="$(echo "$3" | awk '{printf (60*60*$1)}')"
 	{
 		echo ".mode csv"
 		echo ".output $5$6""_$7.tmp"
 	} >> "$8"
 	
-	{
-		echo "SELECT '$1',Min([Timestamp]) ChunkStart, IFNULL(Avg([$1]),'NaN') Value FROM"
-		echo "( SELECT NTILE($((24*$4/$3))) OVER (ORDER BY [Timestamp]) Chunk, * FROM $2 WHERE [Timestamp] >= ($timenow - ((60*60*$3)*$earliest))) AS T"
-		echo "GROUP BY Chunk"
-		echo "ORDER BY ChunkStart;"
-	} >> "$8"
+	echo "SELECT '$1', Min([Timestamp]), IFNULL(Avg([$1]),'NaN') FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
+	
 	echo "var $1$6""_$7""size = 1;" >> "$SCRIPT_DIR/spdstatsdata.js"
 }
 
@@ -1093,7 +1090,7 @@ Generate_SPDStats(){
 		if [ "$IFACELIST" != "" ]; then
 			rm -f "$SCRIPT_DIR/spdstatsdata.js"
 			rm -f "$SCRIPT_DIR/spdlastx.js"
-			rm -f "$CSV_OUTPUT_DIR/"*
+			#rm -f "$CSV_OUTPUT_DIR/"*
 			
 			for IFACE_NAME in $IFACELIST; do
 				
