@@ -981,10 +981,11 @@ WriteSql_ToFile(){
 	multiplier="$(echo "$3" | awk '{printf (60*60*$1)}')"
 	{
 		echo ".mode csv"
+		echo ".headers on"
 		echo ".output $5$6""_$7.htm"
 	} >> "$8"
 	
-	echo "SELECT '$1', Min([Timestamp]), IFNULL(Avg([$1]),'NaN') FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
+	echo "SELECT '$1' Metric, Min([Timestamp]) Time, IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
 }
 
 #$1 iface name
@@ -1141,8 +1142,9 @@ Generate_SPDStats(){
 					for metric in $metriclist; do
 						{
 							echo ".mode csv"
+							echo ".headers on"
 							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
-							echo "select '$metric',[Timestamp],[$metric] from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
+							echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 						} > /tmp/spd-stats.sql
 
 						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
