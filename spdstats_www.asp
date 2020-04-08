@@ -105,7 +105,7 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/hammerjs.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-zoom.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-annotation.js"></script>
-<script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-datasource.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/shared-jy/d3.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chartjs-plugin-deferred.js"></script>
 <script language="JavaScript" type="text/javascript" src="/state.js"></script>
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
@@ -208,7 +208,10 @@ function Draw_Chart_NoData(txtchartname){
 	ctx.restore();
 }
 
-function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname){
+function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname,dataobject){
+	var chartLabels = dataobject.map(function(d) {return d.Metric});
+	var chartData = dataobject.map(function(d) {return {x: d.Time, y: d.Value}});
+	
 	var objchartname=window["LineChart"+txtchartname];
 	var objdataname=window[txtchartname+"size"];
 	if(typeof objdataname === 'undefined' || objdataname === null) { Draw_Chart_NoData(txtchartname); return; }
@@ -227,10 +230,6 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 		segmentStrokeColor : "#000",
 		animationEasing : "easeOutQuart",
 		animationSteps : 100,
-		/*animation: {
-			duration: 0 // general animation time
-		},
-		responsiveAnimationDuration: 0, */// animation duration after a resize
 		maintainAspectRatio: false,
 		animateScale : true,
 		hover: { mode: "point" },
@@ -294,17 +293,6 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 					},
 					speed: 0.1
 				},
-			},
-			datasource: {
-				type: 'csv',
-				url: '/ext/spdmerlin/csv/'+txtchartname+'.htm',
-				delimiter: ',',
-				rowMapping: 'datapoint',
-				datapointLabelMapping: {
-					_dataset: 'Metric',
-					x: 'Time',
-					y: 'Value'
-				}
 			},
 			deferred: {
 				delay: 250
@@ -390,7 +378,8 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 		}
 	};
 	var lineDataset = {
-		datasets: [{label: txttitle,
+		labels: chartLabels,
+		datasets: [{data: chartData,
 			borderWidth: 1,
 			pointRadius: 1,
 			lineTension: 0,
@@ -401,7 +390,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname)
 	};
 	objchartname = new Chart(ctx, {
 		type: 'line',
-		plugins: [ChartDataSource,datafilterPlugin],
+		plugins: datafilterPlugin,
 		options: lineOptions,
 		data: lineDataset
 	});
@@ -484,7 +473,7 @@ function RedrawAllCharts() {
 		for(i = 0; i < metriclist.length; i++){
 			for (i2 = 0; i2 < chartlist.length; i2++) {
 				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					Draw_Chart(metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3],titlelist[i],measureunitlist[i],timeunitlist[i2],intervallist[i2],colourlist[i]);
+					d3.csv('/ext/spdmerlin/csv/'+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(Draw_Chart.bind(null,metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3],titlelist[i],measureunitlist[i],timeunitlist[i2],intervallist[i2],colourlist[i]));
 				}
 			}
 		}
