@@ -1590,6 +1590,18 @@ case "$1" in
 		Menu_Uninstall
 		exit 0
 	;;
+	develop)
+		Check_Lock
+		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="develop"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
+		Menu_Update
+		exit 0
+	;;
+	stable)
+		Check_Lock
+		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="master"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
+		Menu_Update
+		exit 0
+	;;
 	*)
 		Check_Lock
 		echo "Command not recognised, please try again"
