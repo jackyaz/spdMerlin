@@ -69,18 +69,10 @@ Print_Output(){
 }
 
 Firmware_Version_Check(){
-	if [ "$1" = "install" ]; then
-		if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ "$(nvram get buildno | cut -f1 -d'.')" -ge "384" ]; then
-			return 0
-		else
-			return 1
-		fi
-	elif [ "$1" = "webui" ]; then
-		if nvram get rc_support | grep -qF "am_addons"; then
-			return 0
-		else
-			return 1
-		fi
+	if nvram get rc_support | grep -qF "am_addons"; then
+		return 0
+	else
+		return 1
 	fi
 }
 
@@ -655,15 +647,16 @@ Get_WebUI_Page () {
 }
 
 Mount_WebUI(){
-	if Firmware_Version_Check "webui"; then
-		Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
-		if [ "$MyPage" = "none" ]; then
-			Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
-			exit 1
-		fi
-		Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
-		cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
-		
+	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
+	if [ "$MyPage" = "none" ]; then
+		Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
+		exit 1
+	fi
+	Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
+	cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
+	echo "SpeedTest" > "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.')"
+	
+	if [ "$(uname -o)" = "ASUSWRT-Merlin" ]; then
 		if [ ! -f "/tmp/index_style.css" ]; then
 			cp -f "/www/index_style.css" "/tmp/"
 		fi
@@ -693,124 +686,7 @@ Mount_WebUI(){
 		
 		umount /www/require/modules/menuTree.js 2>/dev/null
 		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
-	else
-		Mount_SPD_WebUI_Old
-		Modify_WebUI_File
 	fi
-}
-
-Mount_SPD_WebUI_Old(){
-		umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
-		umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
-		
-		if [ ! -f "$SCRIPT_DIR/spdstats_www.asp" ]; then
-			Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
-		fi
-		
-		mount -o bind "$SCRIPT_DIR/spdstats_www.asp" /www/"$(Get_spdMerlin_UI)"
-}
-
-Modify_WebUI_File(){
-	### menuTree.js ###
-	umount /www/require/modules/menuTree.js 2>/dev/null
-	tmpfile=/tmp/menuTree.js
-	cp "/www/require/modules/menuTree.js" "$tmpfile"
-	
-	if [ -f "/jffs/scripts/uiDivStats" ]; then
-		sed -i '/{url: "Advanced_MultiSubnet_Content.asp", tabName: /d' "$tmpfile"
-		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_MultiSubnet_Content.asp", tabName: "Diversion Statistics"},' "$tmpfile"
-		sed -i '/retArray.push("Advanced_MultiSubnet_Content.asp");/d' "$tmpfile"
-	fi
-	
-	sed -i '/{url: "'"$(Get_spdMerlin_UI)"'", tabName: /d' "$tmpfile"
-	sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "'"$(Get_spdMerlin_UI)"'", tabName: "SpeedTest"},' "$tmpfile"
-	sed -i '/retArray.push("'"$(Get_spdMerlin_UI)"'");/d' "$tmpfile"
-	
-	if [ -f "/jffs/scripts/connmon" ]; then
-		sed -i '/{url: "Advanced_Feedback.asp", tabName: /d' "$tmpfile"
-		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_Feedback.asp", tabName: "Uptime Monitoring"},' "$tmpfile"
-		sed -i '/retArray.push("Advanced_Feedback.asp");/d' "$tmpfile"
-	fi
-	
-	if [ -f "/jffs/scripts/ntpmerlin" ]; then
-		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "NTP Daemon"},' "$tmpfile"
-	fi
-	
-	if [ -f /jffs/scripts/custom_menuTree.js ]; then
-		mv /jffs/scripts/custom_menuTree.js "$SHARED_DIR/custom_menuTree.js"
-	fi
-	
-	if [ ! -f "$SHARED_DIR/custom_menuTree.js" ]; then
-		cp "$tmpfile" "$SHARED_DIR/custom_menuTree.js"
-	fi
-	
-	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_menuTree.js" >/dev/null 2>&1; then
-		cp "$tmpfile" "$SHARED_DIR/custom_menuTree.js"
-	fi
-	
-	rm -f "$tmpfile"
-	
-	mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
-	### ###
-	
-	### state.js ###
-	umount /www/state.js 2>/dev/null
-	tmpfile=/tmp/state.js
-	cp "/www/state.js" "$tmpfile"
-	sed -i -e '/else if(location.pathname == "\/Advanced_Feedback.asp") {/,+4d' "$tmpfile"
-	
-	if [ -f /jffs/scripts/custom_state.js ]; then
-		mv /jffs/scripts/custom_state.js "$SHARED_DIR/custom_state.js"
-	fi
-	
-	if [ ! -f "$SHARED_DIR/custom_state.js" ]; then
-		cp "$tmpfile" "$SHARED_DIR/custom_state.js"
-	fi
-	
-	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_state.js" >/dev/null 2>&1; then
-		cp "$tmpfile" "$SHARED_DIR/custom_state.js"
-	fi
-	
-	rm -f "$tmpfile"
-	
-	mount -o bind "$SHARED_DIR/custom_state.js" /www/state.js
-	### ###
-	
-	### start_apply.htm ###
-	umount /www/start_apply.htm 2>/dev/null
-	tmpfile=/tmp/start_apply.htm
-	cp "/www/start_apply.htm" "$tmpfile"
-	
-	if [ -f "/jffs/scripts/uiDivStats" ]; then
-		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Advanced_MultiSubnet_Content.asp") != -1){'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
-	fi
-	
-	if [ -f /jffs/scripts/connmon ]; then
-		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Advanced_Feedback.asp") != -1){'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
-	fi
-	
-	if [ -f /jffs/scripts/ntpmerlin ]; then
-		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Feedback_Info.asp") != -1){'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
-	fi
-	
-	sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("'"$(Get_spdMerlin_UI)"'") != -1){'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
-	
-	if [ -f /jffs/scripts/custom_start_apply.htm ]; then
-		mv /jffs/scripts/custom_start_apply.htm "$SHARED_DIR/custom_start_apply.htm"
-	fi
-	
-	if [ ! -f "$SHARED_DIR/custom_start_apply.htm" ]; then
-		cp "/www/start_apply.htm" "$SHARED_DIR/custom_start_apply.htm"
-	fi
-	
-	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_start_apply.htm" >/dev/null 2>&1; then
-		cp "$tmpfile" "$SHARED_DIR/custom_start_apply.htm"
-	fi
-	
-	rm -f "$tmpfile"
-	
-	mount -o bind "$SHARED_DIR/custom_start_apply.htm" /www/start_apply.htm
-	### ###
 }
 
 GenerateServerList(){
@@ -1146,14 +1022,14 @@ Generate_SPDStats(){
 							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
 							echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 						} > /tmp/spd-stats.sql
-
+						
 						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 						rm -f /tmp/spd-stats.sql
-
+						
 						WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
 						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 						rm -f /tmp/spd-stats.sql
-
+						
 						WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
 						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 						rm -f /tmp/spd-stats.sql
@@ -1414,7 +1290,7 @@ Check_Requirements(){
 		CHECKSFAILED="true"
 	fi
 	
-	if ! Firmware_Version_Check "install" ; then
+	if ! Firmware_Version_Check; then
 		Print_Output "true" "Unsupported firmware version detected" "$ERR"
 		CHECKSFAILED="true"
 	fi
@@ -1620,27 +1496,12 @@ Menu_Uninstall(){
 	done
 	Shortcut_spdMerlin delete
 	
-	if Firmware_Version_Check "webui"; then
-		Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
-		if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f "/tmp/menuTree.js" ]; then
-			sed -i "\\~$MyPage~d" /tmp/menuTree.js
-			umount /www/require/modules/menuTree.js
-			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
-			rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage"
-		fi
-	else
-		umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
-		umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
-		sed -i '/{url: "'"$(Get_spdMerlin_UI)"'", tabName: "SpeedTest"}/d' "$SHARED_DIR/custom_menuTree.js"
-		umount /www/require/modules/menuTree.js 2>/dev/null
-		umount /www/start_apply.htm 2>/dev/null
-		if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
-			rm -f "$SHARED_DIR/custom_menuTree.js" 2>/dev/null
-			rm -f "$SHARED_DIR/custom_start_apply.htm" 2>/dev/null
-		else
-			mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
-			mount -o bind "$SHARED_DIR/custom_start_apply.htm" "/www/start_apply.htm"
-		fi
+	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
+	if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f "/tmp/menuTree.js" ]; then
+		sed -i "\\~$MyPage~d" /tmp/menuTree.js
+		umount /www/require/modules/menuTree.js
+		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
+		rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage"
 	fi
 	
 	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
