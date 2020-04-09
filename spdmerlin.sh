@@ -454,7 +454,9 @@ Get_Interface_From_Name(){
 	IFACE=""
 	case "$1" in
 		WAN)
-			if [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
+			if [ "$(nvram get sw_mode)" -ne "1" ]; then
+				IFACE="br0"
+			elif [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
 				IFACE="ppp0"
 			else
 				IFACE="$(nvram get wan0_ifname)"
