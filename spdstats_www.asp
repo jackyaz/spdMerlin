@@ -423,7 +423,6 @@ function getAverage(datasetname) {
 		total += (datasetname[i].y*1);
 	}
 	var avg = total / datasetname.length;
-	console.log(total)
 	return avg;
 }
 
