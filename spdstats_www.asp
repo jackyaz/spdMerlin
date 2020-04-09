@@ -212,9 +212,8 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname,
 	
 	var chartLabels = dataobject.map(function(d) {return d.Metric});
 	var chartData = dataobject.map(function(d) {return {x: d.Time, y: d.Value}});
-	
 	var objchartname=window["LineChart"+txtchartname];
-
+	
 	factor=0;
 	if (txtunitx=="hour"){
 		factor=60*60*1000;
@@ -398,7 +397,20 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname,
 
 function getLimit(datasetname,axis,maxmin,isannotation) {
 	var limit=0;
-	eval("limit=Math."+maxmin+".apply(Math, "+datasetname+".map(function(o) { return o."+axis+";} ))");
+	var values;
+	if(axis == "x"){
+		values = datasetname.map(function(o) { return o.x } );
+	}
+	else{
+		values = datasetname.map(function(o) { return o.y } );
+	}
+	
+	if(maxmin == "max"){
+		limit=Math.max.apply(Math, values);
+	}
+	else{
+		limit=Math.min.apply(Math, values);
+	}
 	if(maxmin == "max" && limit == 0 && isannotation == false){
 		limit = 1;
 	}
@@ -408,9 +420,10 @@ function getLimit(datasetname,axis,maxmin,isannotation) {
 function getAverage(datasetname) {
 	var total = 0;
 	for(var i = 0; i < datasetname.length; i++) {
-		total += datasetname[i].y;
+		total += (datasetname[i].y*1);
 	}
 	var avg = total / datasetname.length;
+	console.log(total)
 	return avg;
 }
 
