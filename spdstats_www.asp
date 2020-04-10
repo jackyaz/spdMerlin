@@ -540,15 +540,15 @@ function DragZoom(button){
 	var drag = true;
 	var pan = false;
 	var buttonvalue = "";
-	if(button.value.indexOf("Disable") != -1){
+	if(button.value.indexOf("On") != -1){
 		drag = false;
 		pan = true;
-		buttonvalue = "Enable Drag Zoom";
+		buttonvalue = "Drag Zoom On";
 	}
 	else {
 		drag = true;
 		pan = false;
-		buttonvalue = "Disable Drag Zoom";
+		buttonvalue = "Drag Zoom Off";
 	}
 	
 	if(interfacelist != ""){
@@ -819,7 +819,7 @@ function AddEventHandlers(){
 <td style="background-color:rgb(77, 89, 93);border:0px;">
 <input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onclick="DragZoom(this);" value="Disable Drag Zoom" class="button_gen" name="button">
+<input type="button" onclick="DragZoom(this);" value="Drag Zoom On" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
