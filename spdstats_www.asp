@@ -110,6 +110,7 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/general.js"></script>
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/shared-jy/detect.js"></script>
 <script language="JavaScript" type="text/javascript" src="/tmhist.js"></script>
 <script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
@@ -161,6 +162,8 @@ var datafilterPlugin = {
 }
 </script>
 <script>
+var $j = jQuery.noConflict();
+
 var ShowLines=GetCookie("ShowLines");
 var ShowFill=GetCookie("ShowFill");
 Chart.defaults.global.defaultFontColor = "#CCC";
@@ -178,14 +181,14 @@ var colourlist = ["#fc8500","#42ecf5"];
 
 function keyHandler(e) {
 	if (e.keyCode == 27){
-		$(document).off("keydown");
+		$j(document).off("keydown");
 		ResetZoom();
 	}
 }
 
-$(document).keydown(function(e){keyHandler(e);});
-$(document).keyup(function(e){
-	$(document).keydown(function(e){
+$j(document).keydown(function(e){keyHandler(e);});
+$j(document).keyup(function(e){
+	$j(document).keydown(function(e){
 		keyHandler(e);
 	});
 });
@@ -577,7 +580,7 @@ function applyRule() {
 }
 
 function get_conf_file(){
-	$.ajax({
+	$j.ajax({
 		url: '/ext/spdmerlin/interfaces.htm',
 		dataType: 'text',
 		error: function(xhr){
@@ -595,7 +598,7 @@ function get_conf_file(){
 					continue
 				}
 				var interfacename=interfaces[i];
-				$("#table_buttons").after(BuildInterfaceTable(interfacename));
+				$j("#table_buttons").after(BuildInterfaceTable(interfacename));
 				if(i == interfacecount-1){
 					interfacelist+=interfacename;
 				} else {
