@@ -162,7 +162,7 @@ var datafilterPlugin = {
 }
 </script>
 <script>
-var $j = jQuery.noConflict();
+var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
 
 var ShowLines=GetCookie("ShowLines");
 var ShowFill=GetCookie("ShowFill");
