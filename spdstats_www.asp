@@ -543,12 +543,12 @@ function DragZoom(button){
 	if(button.value.indexOf("On") != -1){
 		drag = false;
 		pan = true;
-		buttonvalue = "Drag Zoom On";
+		buttonvalue = "Drag Zoom Off";
 	}
 	else {
 		drag = true;
 		pan = false;
-		buttonvalue = "Drag Zoom Off";
+		buttonvalue = "Drag Zoom On";
 	}
 	
 	if(interfacelist != ""){
