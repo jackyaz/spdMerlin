@@ -98,7 +98,8 @@ td.nodata {
   transition: max-height 0.2s ease-out;
 }
 </style>
-<script language="JavaScript" type="text/javascript" src="/ext/shared-jy/jquery.js"></script>
+<script language="JavaScript" type="text/javascript" src="/js/jquery.js"></script>
+<script language="JavaScript" type="text/javascript" src="/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/moment.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/chart.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/hammerjs.js"></script>
@@ -114,7 +115,7 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/tmhist.js"></script>
 <script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
-<script language="JavaScript" type="text/javascript" src="/ext/shared-jy/validator.js"></script>
+<script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdlastx.js"></script>
 <script>
