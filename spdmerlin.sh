@@ -1140,9 +1140,14 @@ Generate_CSVs(){
 		
 		tmpoutputdir="/tmp/spdmerlinresults"
 		mkdir -p "$tmpoutputdir"
-		cp "$CSV_OUTPUT_DIR/"* "$tmpoutputdir/"*
-		find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; sox "$i" "${i%.htm}.csv"' _ {} \;
-		tar -czf /tmp/spdmerlindata.tar.gz -C "$tmpoutputdir" .
+		cp "$CSV_OUTPUT_DIR/"*.htm "$tmpoutputdir/."
+		find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm}.csv"' _ {} \;
+		if [ ! -f /opt/bin/7z ]; then
+			opkg update
+			opkg install p7zip
+		fi
+		/opt/bin/7z a -y -bsp0 -bso0 -tzip /tmp/spdmerlindata.zip "$tmpoutputdir/*"
+		mv /tmp/spdmerlindata.zip "$CSV_OUTPUT_DIR"
 		rm -rf "$tmpoutputdir"
 	fi
 }
@@ -1378,6 +1383,7 @@ Check_Requirements(){
 		opkg update
 		opkg install sqlite3-cli
 		opkg install jq
+		opkg install p7zip
 		return 0
 	else
 		return 1
@@ -1631,6 +1637,12 @@ case "$1" in
 			Check_Lock
 			Menu_GenerateStats "webui"
 		fi
+		exit 0
+	;;
+	outputcsv)
+		Check_Lock
+		Generate_CSVs
+		Clear_Lock
 		exit 0
 	;;
 	automatic)

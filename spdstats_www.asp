@@ -526,6 +526,11 @@ function DragZoom(button){
 	}
 }
 
+function ExportCSV() {
+	location.href = "ext/spdmerlin/csv/spdmerlindata.zip";
+	return 0;
+}
+
 function applyRule() {
 	var action_script_tmp = "start_spdmerlin";
 	document.form.action_script.value = action_script_tmp;
@@ -553,7 +558,7 @@ function get_conf_file(){
 					continue
 				}
 				var interfacename=interfaces[i];
-				$j("#table_buttons").after(BuildInterfaceTable(interfacename));
+				$j("#table_buttons2").after(BuildInterfaceTable(interfacename));
 				if(i == interfacecount-1){
 					interfacelist+=interfacename;
 				} else {
@@ -775,8 +780,6 @@ function AddEventHandlers(){
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
 <tr class="apply_gen" valign="top" height="35px">
 <td style="background-color:rgb(77, 89, 93);border:0px;">
-<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="button">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="DragZoom(this);" value="Drag Zoom On" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="button">
@@ -784,6 +787,15 @@ function AddEventHandlers(){
 <input type="button" onclick="ToggleLines();" value="Toggle Lines" class="button_gen" name="button">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ToggleFill();" value="Toggle Fill" class="button_gen" name="button">
+</td>
+</tr>
+</table>
+<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons2">
+<tr class="apply_gen" valign="top" height="35px">
+<td style="background-color:rgb(77, 89, 93);border:0px;">
+<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="button">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="button" onclick="ExportCSV();" value="Export to CSV" class="button_gen" name="button">
 </td>
 </tr>
 </table>
