@@ -839,7 +839,7 @@ OutputDataMode(){
 		;;
 		check)
 			OUTPUTDATAMODE=$(grep "OUTPUTDATAMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
-			return "$OUTPUTDATAMODE"
+			echo "$OUTPUTDATAMODE"
 			;;
 	esac
 }
@@ -1136,12 +1136,6 @@ Generate_CSVs(){
 			
 			Generate_LastXResults "$IFACE_NAME"
 			
-			spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
-			
-			printf "\\n"
-			Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
-			
-			rm -f "$tmpfile"
 			rm -f "/tmp/spd-stats.sql"
 		done
 	fi
