@@ -149,7 +149,6 @@ $j(document).keyup(function(e){
 	});
 });
 
-
 function Draw_Chart_NoData(txtchartname){
 	document.getElementById("divLineChart"+txtchartname).width="730";
 	document.getElementById("divLineChart"+txtchartname).height="300";
