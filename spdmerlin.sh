@@ -1446,7 +1446,7 @@ Menu_Startup(){
 }
 
 Menu_GenerateStats(){
-	Generate_SPDStats "$1"
+	Run_Speedtest "$1"
 	Clear_Lock
 }
 
