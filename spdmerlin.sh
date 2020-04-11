@@ -404,12 +404,12 @@ Conf_Exists(){
 		dos2unix "$SCRIPT_CONF"
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 6 ]; then
-			{ echo "MINUTE=*"; } >> "$SCRIPT_CONF"
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 7 ]; then
+			{ echo "OUTPUTDATAMODE=raw"; } >> "$SCRIPT_CONF"
 		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "OUTPUTDATAMODE=raw"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -827,6 +827,22 @@ TestSchedule(){
 	esac
 }
 
+OutputDataMode(){
+	case "$1" in
+		raw)
+			sed -i 's/^OUTPUTDATAMODE.*$/OUTPUTDATAMODE=raw/' "$SCRIPT_CONF"
+			Generate_CSVs
+		;;
+		average)
+			sed -i 's/^OUTPUTDATAMODE.*$/OUTPUTDATAMODE=average/' "$SCRIPT_CONF"
+			Generate_CSVs
+		;;
+		check)
+			OUTPUTDATAMODE=$(grep "OUTPUTDATAMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
+			return "$OUTPUTDATAMODE"
+			;;
+	esac
+}
 
 WritePlainData_ToJS(){
 	inputfile="$1"
@@ -880,7 +896,7 @@ Generate_LastXResults(){
 	rm -f /tmp/spd-lastx.csv
 }
 
-Generate_SPDStats(){
+Run_Speedtest(){
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -946,8 +962,6 @@ Generate_SPDStats(){
 		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		
 		if [ "$IFACELIST" != "" ]; then
-			rm -f "$SCRIPT_DIR/spdlastx.js"
-			#rm -f "$CSV_OUTPUT_DIR/"*
 			
 			for IFACE_NAME in $IFACELIST; do
 				
@@ -1004,60 +1018,17 @@ Generate_SPDStats(){
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
 					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload]) values($timenow,$download,$upload);"
 					} > /tmp/spd-stats.sql
-					
 					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
-					{
-						echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));"
-					} > /tmp/spd-stats.sql
-					
+					echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-					
 					rm -f /tmp/spd-stats.sql
-					
-					metriclist="Download Upload"
-					
-					for metric in $metriclist; do
-						{
-							echo ".mode csv"
-							echo ".headers on"
-							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
-							echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
-						} > /tmp/spd-stats.sql
-						
-						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						rm -f /tmp/spd-stats.sql
-						
-						#WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
-						{
-							echo ".mode csv"
-							echo ".headers on"
-							echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".htm"
-							echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
-						} > /tmp/spd-stats.sql
-						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						rm -f /tmp/spd-stats.sql
-						
-						#WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
-						{
-							echo ".mode csv"
-							echo ".headers on"
-							echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".htm"
-							echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
-						} > /tmp/spd-stats.sql
-						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						rm -f /tmp/spd-stats.sql
-					done
-					
-					Generate_LastXResults "$IFACE_NAME"
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
 					
 					printf "\\n"
 					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
-					
 					rm -f "$tmpfile"
-					rm -f "/tmp/spd-stats.sql"
 					
 					#extStats
 					extStats="/jffs/addons/extstats.d/mod_spdstats.sh"
@@ -1066,6 +1037,8 @@ Generate_SPDStats(){
 					fi
 				fi
 			done
+			
+			Generate_CSVs
 			
 			echo "Internet Speedtest generated on $timenowfriendly" > "/tmp/spdstatstitle.txt"
 			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
@@ -1081,6 +1054,96 @@ Generate_SPDStats(){
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
 		Clear_Lock
 		return 1
+	fi
+}
+
+Generate_CSVs(){
+	OUTPUTDATAMODE="$(OutputDataMode "check")"
+	IFACELIST=""
+	
+	while IFS='' read -r line || [ -n "$line" ]; do
+		if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+			IFACELIST="$IFACELIST"" ""$line"
+		fi
+	done < "$SCRIPT_DIR/.interfaces_user"
+	
+	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+	
+	if [ "$IFACELIST" != "" ]; then
+		rm -f "$SCRIPT_DIR/spdlastx.js"
+		
+		for IFACE_NAME in $IFACELIST; do
+			
+			IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
+				
+			TZ=$(cat /etc/TZ)
+			export TZ
+			
+			timenow=$(date +"%s")
+			timenowfriendly=$(date +"%c")
+			
+			metriclist="Download Upload"
+			
+			for metric in $metriclist; do
+				{
+					echo ".mode csv"
+					echo ".headers on"
+					echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
+					echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
+				} > /tmp/spd-stats.sql
+				
+				"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+				rm -f /tmp/spd-stats.sql
+				
+				if [ "$OUTPUTDATAMODE" = "raw" ]; then
+					{
+						echo ".mode csv"
+						echo ".headers on"
+						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".htm"
+						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
+					} > /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+					
+					{
+						echo ".mode csv"
+						echo ".headers on"
+						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".htm"
+						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
+					} > /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+				elif [ "$OUTPUTDATAMODE" = "average" ]; then
+					{
+						echo ".mode csv"
+						echo ".headers on"
+						echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
+						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
+					} > /tmp/spd-stats.sql
+					
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+					
+					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+					
+					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+				fi
+			done
+			
+			Generate_LastXResults "$IFACE_NAME"
+			
+			spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
+			
+			printf "\\n"
+			Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
+			
+			rm -f "$tmpfile"
+			rm -f "/tmp/spd-stats.sql"
+		done
 	fi
 }
 
