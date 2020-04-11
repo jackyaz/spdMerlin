@@ -1114,16 +1114,6 @@ Generate_CSVs(){
 					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 				elif [ "$OUTPUTDATAMODE" = "average" ]; then
-					{
-						echo ".mode csv"
-						echo ".headers on"
-						echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
-						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
-					} > /tmp/spd-stats.sql
-					
-					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-					
 					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
 					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
