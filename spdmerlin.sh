@@ -1135,9 +1135,15 @@ Generate_CSVs(){
 			done
 			
 			Generate_LastXResults "$IFACE_NAME"
-			
 			rm -f "/tmp/spd-stats.sql"
 		done
+		
+		tmpoutputdir="/tmp/spdmerlinresults"
+		mkdir -p "$tmpoutputdir"
+		cp "$CSV_OUTPUT_DIR/"* "$tmpoutputdir/"*
+		find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; sox "$i" "${i%.htm}.csv"' _ {} \;
+		tar -czf /tmp/spdmerlindata.tar.gz -C "$tmpoutputdir" .
+		rm -rf "$tmpoutputdir"
 	fi
 }
 
