@@ -35,7 +35,7 @@ All models supported by [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/about). Mo
 *   RT-AC3100
 
 ### Firmware versions
-You must be running firmware Merlin 384.15/384.13_4 or Fork 43D1 (or later) [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/)
+You must be running firmware Merlin 384.15/384.13_4 or Fork 43E5 (or later) [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/)
 
 ## Installation
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:

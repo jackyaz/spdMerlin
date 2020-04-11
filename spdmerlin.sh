@@ -1384,7 +1384,7 @@ Check_Requirements(){
 	
 	if ! Firmware_Version_Check; then
 		Print_Output "true" "Unsupported firmware version detected" "$ERR"
-		Print_Output "true" "$SCRIPT_NAME requires Merlin 384.15/384.13_4 or Fork 43D1 (or later)" "$ERR"
+		Print_Output "true" "$SCRIPT_NAME requires Merlin 384.15/384.13_4 or Fork 43E5 (or later)" "$ERR"
 		CHECKSFAILED="true"
 	fi
 	
