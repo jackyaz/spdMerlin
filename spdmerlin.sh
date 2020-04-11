@@ -1128,7 +1128,7 @@ Generate_CSVs(){
 			rm -f "/tmp/spd-stats.sql"
 		done
 		
-		tmpoutputdir="/tmp/spdmerlinresults"
+		tmpoutputdir="/tmp/""$SCRIPT_NAME_LOWER""results"
 		mkdir -p "$tmpoutputdir"
 		cp "$CSV_OUTPUT_DIR/"*.htm "$tmpoutputdir/."
 		find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm}.csv"' _ {} \;
@@ -1136,8 +1136,8 @@ Generate_CSVs(){
 			opkg update
 			opkg install p7zip
 		fi
-		/opt/bin/7z a -y -bsp0 -bso0 -tzip /tmp/spdmerlindata.zip "$tmpoutputdir/*"
-		mv /tmp/spdmerlindata.zip "$CSV_OUTPUT_DIR"
+		/opt/bin/7z a -y -bsp0 -bso0 -tzip "/tmp/""$SCRIPT_NAME_LOWER"".zip" "$tmpoutputdir/*"
+		mv "/tmp/""$SCRIPT_NAME_LOWER""data.zip" "$CSV_OUTPUT_DIR"
 		rm -rf "$tmpoutputdir"
 	fi
 }
