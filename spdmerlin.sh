@@ -20,7 +20,7 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
 readonly SCRIPT_VERSION="v3.4.0"
-readonly SCRIPT_BRANCH="develop"
+readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -1207,6 +1207,7 @@ MainMenu(){
 	PREFERREDSERVER_ENABLED=""
 	AUTOMATIC_ENABLED=""
 	TEST_SCHEDULE=""
+	OUTPUTDATAMODE_MENU="$(OutputDataMode "check")"
 	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
@@ -1223,6 +1224,7 @@ MainMenu(){
 		TEST_SCHEDULE2="Tests will run at 12 and 42 past the hour"
 	fi
 	
+	
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server - applies to WAN only)\\n"
 	printf "3.    Run a speedtest (select a server - applies to WAN only)\\n\\n"
@@ -1230,6 +1232,7 @@ MainMenu(){
 	printf "5.    Toggle preferred server for WAN (for automatic speedtests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
 	printf "7.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
+	printf "8.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$OUTPUTDATAMODE_MENU"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "u.    Check for updates\\n"
@@ -1290,6 +1293,13 @@ MainMenu(){
 					Menu_EditSchedule
 				fi
 				PressEnter
+				break
+			;;
+			8)
+				printf "\\n"
+				if Check_Lock "menu"; then
+					Menu_ToggleOutputDataMode
+				fi
 				break
 			;;
 			c)
@@ -1470,6 +1480,15 @@ Menu_ToggleAutomated(){
 	else
 		AutomaticMode enable
 	fi
+}
+
+Menu_ToggleOutputDataMode(){
+	if [ "$(OutputDataMode "check")" = "raw" ]; then
+		OutputDataMode "average"
+	elif [ "$(OutputDataMode "check")" = "average" ]; then
+		OutputDataMode "raw"
+	fi
+	Clear_Lock
 }
 
 Menu_EditSchedule(){
