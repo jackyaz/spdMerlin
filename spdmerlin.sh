@@ -1679,12 +1679,15 @@ case "$1" in
 		Check_Lock
 		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="develop"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
 		Menu_Update
+		Clear_Lock
+		exec "$0" "update"
 		exit 0
 	;;
 	stable)
 		Check_Lock
 		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="master"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
-		Menu_Update
+		Clear_Lock
+		exec "$0" "update"
 		exit 0
 	;;
 	*)
