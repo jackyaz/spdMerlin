@@ -19,7 +19,7 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v3.3.2"
+readonly SCRIPT_VERSION="v3.4.0"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly OLD_SCRIPT_DIR="/jffs/scripts/$SCRIPT_NAME_LOWER.d"
@@ -69,18 +69,10 @@ Print_Output(){
 }
 
 Firmware_Version_Check(){
-	if [ "$1" = "install" ]; then
-		if [ "$(uname -o)" = "ASUSWRT-Merlin" ] && [ "$(nvram get buildno | cut -f1 -d'.')" -ge "384" ]; then
-			return 0
-		else
-			return 1
-		fi
-	elif [ "$1" = "webui" ]; then
-		if nvram get rc_support | grep -qF "am_addons"; then
-			return 0
-		else
-			return 1
-		fi
+	if nvram get rc_support | grep -qF "am_addons"; then
+		return 0
+	else
+		return 1
 	fi
 }
 
@@ -391,7 +383,6 @@ Create_Symlinks(){
 	
 	ln -s "$SCRIPT_DIR/.interfaces_user"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
-	ln -s "$SCRIPT_DIR/spdstatsdata.js" "$SCRIPT_WEB_DIR/spdstatsdata.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdlastx.js" "$SCRIPT_WEB_DIR/spdlastx.js" 2>/dev/null
 	ln -s "$SCRIPT_DIR/spdstatstext.js" "$SCRIPT_WEB_DIR/spdstatstext.js" 2>/dev/null
 	
@@ -413,12 +404,12 @@ Conf_Exists(){
 		dos2unix "$SCRIPT_CONF"
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 6 ]; then
-			{ echo "MINUTE=*"; } >> "$SCRIPT_CONF"
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 7 ]; then
+			{ echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; } >> "$SCRIPT_CONF"
 		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -463,7 +454,9 @@ Get_Interface_From_Name(){
 	IFACE=""
 	case "$1" in
 		WAN)
-			if [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
+			if [ "$(nvram get sw_mode)" -ne "1" ]; then
+				IFACE="br0"
+			elif [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
 				IFACE="ppp0"
 			else
 				IFACE="$(nvram get wan0_ifname)"
@@ -656,15 +649,16 @@ Get_WebUI_Page () {
 }
 
 Mount_WebUI(){
-	if Firmware_Version_Check "webui"; then
-		Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
-		if [ "$MyPage" = "none" ]; then
-			Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
-			exit 1
-		fi
-		Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
-		cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
-		
+	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
+	if [ "$MyPage" = "none" ]; then
+		Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
+		exit 1
+	fi
+	Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
+	cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
+	echo "SpeedTest" > "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.').title"
+	
+	if [ "$(uname -o)" = "ASUSWRT-Merlin" ]; then
 		if [ ! -f "/tmp/index_style.css" ]; then
 			cp -f "/www/index_style.css" "/tmp/"
 		fi
@@ -694,124 +688,7 @@ Mount_WebUI(){
 		
 		umount /www/require/modules/menuTree.js 2>/dev/null
 		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
-	else
-		Mount_SPD_WebUI_Old
-		Modify_WebUI_File
 	fi
-}
-
-Mount_SPD_WebUI_Old(){
-		umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
-		umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
-		
-		if [ ! -f "$SCRIPT_DIR/spdstats_www.asp" ]; then
-			Download_File "$SCRIPT_REPO/spdstats_www.asp" "$SCRIPT_DIR/spdstats_www.asp"
-		fi
-		
-		mount -o bind "$SCRIPT_DIR/spdstats_www.asp" /www/"$(Get_spdMerlin_UI)"
-}
-
-Modify_WebUI_File(){
-	### menuTree.js ###
-	umount /www/require/modules/menuTree.js 2>/dev/null
-	tmpfile=/tmp/menuTree.js
-	cp "/www/require/modules/menuTree.js" "$tmpfile"
-	
-	if [ -f "/jffs/scripts/uiDivStats" ]; then
-		sed -i '/{url: "Advanced_MultiSubnet_Content.asp", tabName: /d' "$tmpfile"
-		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_MultiSubnet_Content.asp", tabName: "Diversion Statistics"},' "$tmpfile"
-		sed -i '/retArray.push("Advanced_MultiSubnet_Content.asp");/d' "$tmpfile"
-	fi
-	
-	sed -i '/{url: "'"$(Get_spdMerlin_UI)"'", tabName: /d' "$tmpfile"
-	sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "'"$(Get_spdMerlin_UI)"'", tabName: "SpeedTest"},' "$tmpfile"
-	sed -i '/retArray.push("'"$(Get_spdMerlin_UI)"'");/d' "$tmpfile"
-	
-	if [ -f "/jffs/scripts/connmon" ]; then
-		sed -i '/{url: "Advanced_Feedback.asp", tabName: /d' "$tmpfile"
-		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Advanced_Feedback.asp", tabName: "Uptime Monitoring"},' "$tmpfile"
-		sed -i '/retArray.push("Advanced_Feedback.asp");/d' "$tmpfile"
-	fi
-	
-	if [ -f "/jffs/scripts/ntpmerlin" ]; then
-		sed -i '/"Tools_OtherSettings.asp", tabName: "Other Settings"/a {url: "Feedback_Info.asp", tabName: "NTP Daemon"},' "$tmpfile"
-	fi
-	
-	if [ -f /jffs/scripts/custom_menuTree.js ]; then
-		mv /jffs/scripts/custom_menuTree.js "$SHARED_DIR/custom_menuTree.js"
-	fi
-	
-	if [ ! -f "$SHARED_DIR/custom_menuTree.js" ]; then
-		cp "$tmpfile" "$SHARED_DIR/custom_menuTree.js"
-	fi
-	
-	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_menuTree.js" >/dev/null 2>&1; then
-		cp "$tmpfile" "$SHARED_DIR/custom_menuTree.js"
-	fi
-	
-	rm -f "$tmpfile"
-	
-	mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
-	### ###
-	
-	### state.js ###
-	umount /www/state.js 2>/dev/null
-	tmpfile=/tmp/state.js
-	cp "/www/state.js" "$tmpfile"
-	sed -i -e '/else if(location.pathname == "\/Advanced_Feedback.asp") {/,+4d' "$tmpfile"
-	
-	if [ -f /jffs/scripts/custom_state.js ]; then
-		mv /jffs/scripts/custom_state.js "$SHARED_DIR/custom_state.js"
-	fi
-	
-	if [ ! -f "$SHARED_DIR/custom_state.js" ]; then
-		cp "$tmpfile" "$SHARED_DIR/custom_state.js"
-	fi
-	
-	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_state.js" >/dev/null 2>&1; then
-		cp "$tmpfile" "$SHARED_DIR/custom_state.js"
-	fi
-	
-	rm -f "$tmpfile"
-	
-	mount -o bind "$SHARED_DIR/custom_state.js" /www/state.js
-	### ###
-	
-	### start_apply.htm ###
-	umount /www/start_apply.htm 2>/dev/null
-	tmpfile=/tmp/start_apply.htm
-	cp "/www/start_apply.htm" "$tmpfile"
-	
-	if [ -f "/jffs/scripts/uiDivStats" ]; then
-		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Advanced_MultiSubnet_Content.asp") != -1){'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
-	fi
-	
-	if [ -f /jffs/scripts/connmon ]; then
-		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Advanced_Feedback.asp") != -1){'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
-	fi
-	
-	if [ -f /jffs/scripts/ntpmerlin ]; then
-		sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("Feedback_Info.asp") != -1){'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
-	fi
-	
-	sed -i -e '/else if(current_page.indexOf("Feedback") != -1){/i else if(current_page.indexOf("'"$(Get_spdMerlin_UI)"'") != -1){'"\\r\\n"'setTimeout(getXMLAndRedirect, restart_time*1000);'"\\r\\n"'}' "$tmpfile"
-	
-	if [ -f /jffs/scripts/custom_start_apply.htm ]; then
-		mv /jffs/scripts/custom_start_apply.htm "$SHARED_DIR/custom_start_apply.htm"
-	fi
-	
-	if [ ! -f "$SHARED_DIR/custom_start_apply.htm" ]; then
-		cp "/www/start_apply.htm" "$SHARED_DIR/custom_start_apply.htm"
-	fi
-	
-	if ! diff -q "$tmpfile" "$SHARED_DIR/custom_start_apply.htm" >/dev/null 2>&1; then
-		cp "$tmpfile" "$SHARED_DIR/custom_start_apply.htm"
-	fi
-	
-	rm -f "$tmpfile"
-	
-	mount -o bind "$SHARED_DIR/custom_start_apply.htm" /www/start_apply.htm
-	### ###
 }
 
 GenerateServerList(){
@@ -950,6 +827,39 @@ TestSchedule(){
 	esac
 }
 
+OutputDataMode(){
+	case "$1" in
+		raw)
+			sed -i 's/^OUTPUTDATAMODE.*$/OUTPUTDATAMODE=raw/' "$SCRIPT_CONF"
+			Generate_CSVs
+		;;
+		average)
+			sed -i 's/^OUTPUTDATAMODE.*$/OUTPUTDATAMODE=average/' "$SCRIPT_CONF"
+			Generate_CSVs
+		;;
+		check)
+			OUTPUTDATAMODE=$(grep "OUTPUTDATAMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$OUTPUTDATAMODE"
+		;;
+	esac
+}
+
+OutputTimeMode(){
+	case "$1" in
+		unix)
+			sed -i 's/^OUTPUTTIMEMODE.*$/OUTPUTTIMEMODE=unix/' "$SCRIPT_CONF"
+			Generate_CSVs
+		;;
+		non-unix)
+			sed -i 's/^OUTPUTTIMEMODE.*$/OUTPUTTIMEMODE=non-unix/' "$SCRIPT_CONF"
+			Generate_CSVs
+		;;
+		check)
+			OUTPUTTIMEMODE=$(grep "OUTPUTTIMEMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$OUTPUTTIMEMODE"
+		;;
+	esac
+}
 
 WritePlainData_ToJS(){
 	inputfile="$1"
@@ -978,19 +888,15 @@ WriteStats_ToJS(){
 #$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 outputfrequency $7 interfacename $8 sqlfile $9 timestamp
 WriteSql_ToFile(){
 	timenow="$9"
-	earliest="$((24*$4/$3))"
+	maxcount="$(echo "$3" "$4" | awk '{printf ((24*$2)/$1)}')"
+	multiplier="$(echo "$3" | awk '{printf (60*60*$1)}')"
 	{
 		echo ".mode csv"
-		echo ".output $5$6""_$7.tmp"
+		echo ".headers on"
+		echo ".output $5$6""_$7.htm"
 	} >> "$8"
 	
-	{
-		echo "SELECT '$1',Min([Timestamp]) ChunkStart, IFNULL(Avg([$1]),'NaN') Value FROM"
-		echo "( SELECT NTILE($((24*$4/$3))) OVER (ORDER BY [Timestamp]) Chunk, * FROM $2 WHERE [Timestamp] >= ($timenow - ((60*60*$3)*$earliest))) AS T"
-		echo "GROUP BY Chunk"
-		echo "ORDER BY ChunkStart;"
-	} >> "$8"
-	echo "var $1$6""_$7""size = 1;" >> "$SCRIPT_DIR/spdstatsdata.js"
+	echo "SELECT '$1' Metric, Min([Timestamp]) Time, IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
 }
 
 #$1 iface name
@@ -1004,28 +910,10 @@ Generate_LastXResults(){
 	sed -i 's/,/ /g' "/tmp/spd-lastx.csv"
 	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_DIR/spdlastx.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
 	rm -f /tmp/spd-lastx.sql
+	rm -f /tmp/spd-lastx.csv
 }
 
-Aggregate_Stats(){
-	metricname="$1"
-	period="$2"
-	interfacename="$3"
-	sed -i '1iMetric,Time,Value' "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
-	head -c -2 "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" > "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm"
-	dos2unix "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm"
-	cp "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.htm" "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
-	sed -i '1d' "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp"
-	min="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | head -1)"
-	max="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | tail -1)"
-	avg="$(cut -f3 -d"," "$CSV_OUTPUT_DIR/$metricname$period""_$interfacename.tmp" | sort -n | awk '{ total += $1; count++ } END { print total/count }')"
-	{
-	echo "var $metricname$period""_$interfacename""min = $min;"
-	echo "var $metricname$period""_$interfacename""max = $max;"
-	echo "var $metricname$period""_$interfacename""avg = $avg;"
-	} >> "$SCRIPT_DIR/spdstatsdata.js"
-}
-
-Generate_SPDStats(){
+Run_Speedtest(){
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -1091,9 +979,6 @@ Generate_SPDStats(){
 		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		
 		if [ "$IFACELIST" != "" ]; then
-			rm -f "$SCRIPT_DIR/spdstatsdata.js"
-			rm -f "$SCRIPT_DIR/spdlastx.js"
-			rm -f "$CSV_OUTPUT_DIR/"*
 			
 			for IFACE_NAME in $IFACELIST; do
 				
@@ -1150,54 +1035,17 @@ Generate_SPDStats(){
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
 					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload]) values($timenow,$download,$upload);"
 					} > /tmp/spd-stats.sql
-					
 					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
-					{
-						echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));"
-					} > /tmp/spd-stats.sql
-					
+					echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-					
 					rm -f /tmp/spd-stats.sql
-					
-					metriclist="Download Upload"
-					
-					for metric in $metriclist; do
-						{
-							echo ".mode csv"
-							echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".tmp"
-							echo "select '$metric',[Timestamp],[$metric] from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
-						} > /tmp/spd-stats.sql
-
-						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						echo "var $metric""daily_$IFACE_NAME""size = 1;" >> "$SCRIPT_DIR/spdstatsdata.js"
-						Aggregate_Stats "$metric" "daily" "$IFACE_NAME"
-						rm -f "$CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".tmp"*
-						rm -f /tmp/spd-stats.sql
-
-						WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
-						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						Aggregate_Stats "$metric" "weekly" "$IFACE_NAME"
-						rm -f "$CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".tmp"
-						rm -f /tmp/spd-stats.sql
-
-						WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
-						"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
-						Aggregate_Stats "$metric" "monthly" "$IFACE_NAME"
-						rm -f "$CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".tmp"
-						rm -f /tmp/spd-stats.sql
-					done
-					
-					Generate_LastXResults "$IFACE_NAME"
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
 					
 					printf "\\n"
 					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
-					
 					rm -f "$tmpfile"
-					rm -f "/tmp/spd-stats.sql"
 					
 					#extStats
 					extStats="/jffs/addons/extstats.d/mod_spdstats.sh"
@@ -1206,6 +1054,8 @@ Generate_SPDStats(){
 					fi
 				fi
 			done
+			
+			Generate_CSVs
 			
 			echo "Internet Speedtest generated on $timenowfriendly" > "/tmp/spdstatstitle.txt"
 			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdstatstext.js" "SetSPDStatsTitle" "statstitle"
@@ -1221,6 +1071,103 @@ Generate_SPDStats(){
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
 		Clear_Lock
 		return 1
+	fi
+}
+
+Generate_CSVs(){
+	OUTPUTDATAMODE="$(OutputDataMode "check")"
+	OUTPUTTIMEMODE="$(OutputTimeMode "check")"
+	IFACELIST=""
+	
+	while IFS='' read -r line || [ -n "$line" ]; do
+		if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+			IFACELIST="$IFACELIST"" ""$line"
+		fi
+	done < "$SCRIPT_DIR/.interfaces_user"
+	
+	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+	
+	if [ "$IFACELIST" != "" ]; then
+		rm -f "$SCRIPT_DIR/spdlastx.js"
+		
+		for IFACE_NAME in $IFACELIST; do
+			
+			IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
+				
+			TZ=$(cat /etc/TZ)
+			export TZ
+			
+			timenow=$(date +"%s")
+			timenowfriendly=$(date +"%c")
+			
+			metriclist="Download Upload"
+			
+			for metric in $metriclist; do
+				{
+					echo ".mode csv"
+					echo ".headers on"
+					echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
+					echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
+				} > /tmp/spd-stats.sql
+				
+				"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+				rm -f /tmp/spd-stats.sql
+				
+				if [ "$OUTPUTDATAMODE" = "raw" ]; then
+					{
+						echo ".mode csv"
+						echo ".headers on"
+						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".htm"
+						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
+					} > /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+					
+					{
+						echo ".mode csv"
+						echo ".headers on"
+						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".htm"
+						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
+					} > /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+				elif [ "$OUTPUTDATAMODE" = "average" ]; then
+					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+					
+					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
+					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					rm -f /tmp/spd-stats.sql
+				fi
+			done
+			
+			Generate_LastXResults "$IFACE_NAME"
+			rm -f "/tmp/spd-stats.sql"
+		done
+		
+		tmpoutputdir="/tmp/""$SCRIPT_NAME_LOWER""results"
+		mkdir -p "$tmpoutputdir"
+		cp "$CSV_OUTPUT_DIR/"*.htm "$tmpoutputdir/."
+		
+		if [ "$OUTPUTTIMEMODE" = "unix" ]; then
+			find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm}.csv"' _ {} \;
+		elif [ "$OUTPUTTIMEMODE" = "non-unix" ]; then
+			for i in "$tmpoutputdir/"*".htm"; do
+				awk -F"," 'NR==1 {OFS=","; print} NR>1 {OFS=","; $2=strftime("%Y-%m-%d %H:%M:%S", $2); print }' "$i" > "$i.out"
+			done
+			
+			find "$tmpoutputdir/" -name '*.htm.out' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm.out}.csv"' _ {} \;
+			rm -f "$tmpoutputdir/"*.htm
+		fi
+		
+		if [ ! -f /opt/bin/7z ]; then
+			opkg update
+			opkg install p7zip
+		fi
+		/opt/bin/7z a -y -bsp0 -bso0 -tzip "/tmp/""$SCRIPT_NAME_LOWER""data.zip" "$tmpoutputdir/*"
+		mv "/tmp/""$SCRIPT_NAME_LOWER""data.zip" "$CSV_OUTPUT_DIR"
+		rm -rf "$tmpoutputdir"
 	fi
 }
 
@@ -1279,6 +1226,8 @@ MainMenu(){
 	PREFERREDSERVER_ENABLED=""
 	AUTOMATIC_ENABLED=""
 	TEST_SCHEDULE=""
+	OUTPUTDATAMODE_MENU="$(OutputDataMode "check")"
+	OUTPUTTIMEMODE_MENU="$(OutputTimeMode "check")"
 	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
@@ -1295,6 +1244,7 @@ MainMenu(){
 		TEST_SCHEDULE2="Tests will run at 12 and 42 past the hour"
 	fi
 	
+	
 	printf "1.    Run a speedtest now (auto select server)\\n"
 	printf "2.    Run a speedtest now (use preferred server - applies to WAN only)\\n"
 	printf "3.    Run a speedtest (select a server - applies to WAN only)\\n\\n"
@@ -1302,6 +1252,8 @@ MainMenu(){
 	printf "5.    Toggle preferred server for WAN (for automatic speedtests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
 	printf "6.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
 	printf "7.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
+	printf "8.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$OUTPUTDATAMODE_MENU"
+	printf "9.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$OUTPUTTIMEMODE_MENU"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "u.    Check for updates\\n"
@@ -1362,6 +1314,20 @@ MainMenu(){
 					Menu_EditSchedule
 				fi
 				PressEnter
+				break
+			;;
+			8)
+				printf "\\n"
+				if Check_Lock "menu"; then
+					Menu_ToggleOutputDataMode
+				fi
+				break
+			;;
+			9)
+				printf "\\n"
+				if Check_Lock "menu"; then
+					Menu_ToggleOutputTimeMode
+				fi
 				break
 			;;
 			c)
@@ -1444,8 +1410,9 @@ Check_Requirements(){
 		CHECKSFAILED="true"
 	fi
 	
-	if ! Firmware_Version_Check "install" ; then
+	if ! Firmware_Version_Check; then
 		Print_Output "true" "Unsupported firmware version detected" "$ERR"
+		Print_Output "true" "$SCRIPT_NAME requires Merlin 384.15/384.13_4 or Fork 43E5 (or later)" "$ERR"
 		CHECKSFAILED="true"
 	fi
 	
@@ -1454,6 +1421,7 @@ Check_Requirements(){
 		opkg update
 		opkg install sqlite3-cli
 		opkg install jq
+		opkg install p7zip
 		return 0
 	else
 		return 1
@@ -1522,7 +1490,7 @@ Menu_Startup(){
 }
 
 Menu_GenerateStats(){
-	Generate_SPDStats "$1"
+	Run_Speedtest "$1"
 	Clear_Lock
 }
 
@@ -1540,6 +1508,24 @@ Menu_ToggleAutomated(){
 	else
 		AutomaticMode enable
 	fi
+}
+
+Menu_ToggleOutputDataMode(){
+	if [ "$(OutputDataMode "check")" = "raw" ]; then
+		OutputDataMode "average"
+	elif [ "$(OutputDataMode "check")" = "average" ]; then
+		OutputDataMode "raw"
+	fi
+	Clear_Lock
+}
+
+Menu_ToggleOutputTimeMode(){
+	if [ "$(OutputTimeMode "check")" = "unix" ]; then
+		OutputTimeMode "non-unix"
+	elif [ "$(OutputTimeMode "check")" = "non-unix" ]; then
+		OutputTimeMode "unix"
+	fi
+	Clear_Lock
 }
 
 Menu_EditSchedule(){
@@ -1650,27 +1636,12 @@ Menu_Uninstall(){
 	done
 	Shortcut_spdMerlin delete
 	
-	if Firmware_Version_Check "webui"; then
-		Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
-		if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f "/tmp/menuTree.js" ]; then
-			sed -i "\\~$MyPage~d" /tmp/menuTree.js
-			umount /www/require/modules/menuTree.js
-			mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
-			rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage"
-		fi
-	else
-		umount /www/AiMesh_Node_FirmwareUpgrade.asp 2>/dev/null
-		umount /www/AdaptiveQoS_ROG.asp 2>/dev/null
-		sed -i '/{url: "'"$(Get_spdMerlin_UI)"'", tabName: "SpeedTest"}/d' "$SHARED_DIR/custom_menuTree.js"
-		umount /www/require/modules/menuTree.js 2>/dev/null
-		umount /www/start_apply.htm 2>/dev/null
-		if [ ! -f "/jffs/scripts/ntpmerlin" ] && [ ! -f "/jffs/scripts/connmon" ]; then
-			rm -f "$SHARED_DIR/custom_menuTree.js" 2>/dev/null
-			rm -f "$SHARED_DIR/custom_start_apply.htm" 2>/dev/null
-		else
-			mount -o bind "$SHARED_DIR/custom_menuTree.js" "/www/require/modules/menuTree.js"
-			mount -o bind "$SHARED_DIR/custom_start_apply.htm" "/www/start_apply.htm"
-		fi
+	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
+	if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f "/tmp/menuTree.js" ]; then
+		sed -i "\\~$MyPage~d" /tmp/menuTree.js
+		umount /www/require/modules/menuTree.js
+		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
+		rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage"
 	fi
 	
 	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
@@ -1724,6 +1695,12 @@ case "$1" in
 		fi
 		exit 0
 	;;
+	outputcsv)
+		Check_Lock
+		Generate_CSVs
+		Clear_Lock
+		exit 0
+	;;
 	automatic)
 		Check_Lock
 		Menu_ToggleAutomated
@@ -1743,6 +1720,20 @@ case "$1" in
 	uninstall)
 		Check_Lock
 		Menu_Uninstall
+		exit 0
+	;;
+	develop)
+		Check_Lock
+		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="develop"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
+		Clear_Lock
+		exec "$0" "update"
+		exit 0
+	;;
+	stable)
+		Check_Lock
+		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="master"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
+		Clear_Lock
+		exec "$0" "update"
 		exit 0
 	;;
 	*)
