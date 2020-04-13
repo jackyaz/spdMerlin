@@ -409,6 +409,9 @@ Conf_Exists(){
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 7 ]; then
 			{ echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; } >> "$SCRIPT_CONF"
 		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 8 ]; then
+			{ echo "OUTPUTTIMEMODE=unix"; } >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; } >> "$SCRIPT_CONF"
