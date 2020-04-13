@@ -405,11 +405,11 @@ Conf_Exists(){
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 7 ]; then
-			{ echo "OUTPUTDATAMODE=raw"; } >> "$SCRIPT_CONF"
+			{ echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; } >> "$SCRIPT_CONF"
 		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "OUTPUTDATAMODE=raw"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -840,7 +840,24 @@ OutputDataMode(){
 		check)
 			OUTPUTDATAMODE=$(grep "OUTPUTDATAMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
 			echo "$OUTPUTDATAMODE"
-			;;
+		;;
+	esac
+}
+
+OutputTimeMode(){
+	case "$1" in
+		unix)
+			sed -i 's/^OUTPUTTIMEMODE.*$/OUTPUTTIMEMODE=unix/' "$SCRIPT_CONF"
+			Generate_CSVs
+		;;
+		non-unix)
+			sed -i 's/^OUTPUTTIMEMODE.*$/OUTPUTTIMEMODE=non-unix/' "$SCRIPT_CONF"
+			Generate_CSVs
+		;;
+		check)
+			OUTPUTTIMEMODE=$(grep "OUTPUTTIMEMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$OUTPUTTIMEMODE"
+		;;
 	esac
 }
 
@@ -1059,6 +1076,7 @@ Run_Speedtest(){
 
 Generate_CSVs(){
 	OUTPUTDATAMODE="$(OutputDataMode "check")"
+	OUTPUTTIMEMODE="$(OutputTimeMode "check")"
 	IFACELIST=""
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
@@ -1131,7 +1149,18 @@ Generate_CSVs(){
 		tmpoutputdir="/tmp/""$SCRIPT_NAME_LOWER""results"
 		mkdir -p "$tmpoutputdir"
 		cp "$CSV_OUTPUT_DIR/"*.htm "$tmpoutputdir/."
-		find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm}.csv"' _ {} \;
+		
+		if [ "$OUTPUTTIMEMODE" = "unix" ]; then
+			find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm}.csv"' _ {} \;
+		elif [ "$OUTPUTTIMEMODE" = "non-unix" ]; then
+			for i in "$tmpoutputdir/"*".htm"; do
+				awk -F"," 'NR==1 {OFS=","; print} NR>1 {OFS=","; $2=strftime("%Y-%m-%d %H:%M:%S", $2); print }' "$i" > "$i.out"
+			done
+			
+			find "$tmpoutputdir/" -name '*.htm.out' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm.out}.csv"' _ {} \;
+			rm -f "$tmpoutputdir/"*.htm
+		fi
+		
 		if [ ! -f /opt/bin/7z ]; then
 			opkg update
 			opkg install p7zip
@@ -1198,6 +1227,7 @@ MainMenu(){
 	AUTOMATIC_ENABLED=""
 	TEST_SCHEDULE=""
 	OUTPUTDATAMODE_MENU="$(OutputDataMode "check")"
+	OUTPUTTIMEMODE_MENU="$(OutputTimeMode "check")"
 	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
@@ -1223,6 +1253,7 @@ MainMenu(){
 	printf "6.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
 	printf "7.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
 	printf "8.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$OUTPUTDATAMODE_MENU"
+	printf "9.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$OUTPUTTIMEMODE_MENU"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "u.    Check for updates\\n"
@@ -1289,6 +1320,13 @@ MainMenu(){
 				printf "\\n"
 				if Check_Lock "menu"; then
 					Menu_ToggleOutputDataMode
+				fi
+				break
+			;;
+			9)
+				printf "\\n"
+				if Check_Lock "menu"; then
+					Menu_ToggleOutputTimeMode
 				fi
 				break
 			;;
@@ -1477,6 +1515,15 @@ Menu_ToggleOutputDataMode(){
 		OutputDataMode "average"
 	elif [ "$(OutputDataMode "check")" = "average" ]; then
 		OutputDataMode "raw"
+	fi
+	Clear_Lock
+}
+
+Menu_ToggleOutputTimeMode(){
+	if [ "$(OutputTimeMode "check")" = "unix" ]; then
+		OutputTimeMode "non-unix"
+	elif [ "$(OutputTimeMode "check")" = "non-unix" ]; then
+		OutputTimeMode "unix"
 	fi
 	Clear_Lock
 }
