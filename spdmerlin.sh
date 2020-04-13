@@ -1678,7 +1678,6 @@ case "$1" in
 	develop)
 		Check_Lock
 		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="develop"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
-		Menu_Update
 		Clear_Lock
 		exec "$0" "update"
 		exit 0
