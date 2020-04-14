@@ -1151,6 +1151,8 @@ Generate_CSVs(){
 			rm -f "/tmp/spd-stats.sql"
 		done
 		
+		dos2unix "$CSV_OUTPUT_DIR/"*.htm
+		
 		tmpoutputdir="/tmp/""$SCRIPT_NAME_LOWER""results"
 		mkdir -p "$tmpoutputdir"
 		cp "$CSV_OUTPUT_DIR/"*.htm "$tmpoutputdir/."
