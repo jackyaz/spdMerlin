@@ -444,7 +444,6 @@ function RedrawAllCharts() {
 				}
 			}
 		}
-		ResetZoom();
 	}
 }
 
