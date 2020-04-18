@@ -115,8 +115,7 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/validator.js"></script>
-<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdstatstext.js"></script>
-<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdlastx.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdjs.js"></script>
 <script>
 var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
 
