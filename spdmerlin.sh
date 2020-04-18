@@ -1514,7 +1514,6 @@ Menu_Install(){
 	Update_File "spdstats_www.asp"
 	Update_File "shared-jy.tar.gz"
 	
-	
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
