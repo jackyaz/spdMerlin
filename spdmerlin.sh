@@ -1713,6 +1713,12 @@ Menu_Uninstall(){
 
 ### function based on @Adamm00's Skynet USB wait function ###
 Entware_Ready(){
+	if [ "$1" = "generate" ]; then
+		if [ -n "$2" ] && [ "$3" != "$SCRIPT_NAME_LOWER" ]; then
+			exit 0
+		fi
+	fi
+		
 	if [ ! -f "/opt/bin/opkg" ] && ! echo "$@" | grep -wqE "(install|uninstall|update|forceupdate)"; then
 		Check_Lock
 		sleepcount=1
