@@ -393,7 +393,7 @@ Create_Symlinks(){
 		COUNTER=$((COUNTER + 1))
 	done
 	
-	rm -rf "$SCRIPT_WEB_DIR" 2>/dev/null
+	rm -rf "${SCRIPT_WEB_DIR:?}/*" 2>/dev/null
 	
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
@@ -952,9 +952,9 @@ Generate_LastXResults(){
 		echo ".output /tmp/spd-lastx.csv"
 	} > /tmp/spd-lastx.sql
 	echo "select[Timestamp],[Download],[Upload] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
-	"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-lastx.sql
+	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	sed -i 's/,/ /g' "/tmp/spd-lastx.csv"
-	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
+	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
 	rm -f /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.csv
 }
@@ -1082,10 +1082,10 @@ Run_Speedtest(){
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
 					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload]) values($timenow,$download,$upload);"
 					} > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));" > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
@@ -1105,7 +1105,7 @@ Run_Speedtest(){
 			Generate_CSVs
 			
 			echo "Internet Speedtest generated on $timenowfriendly" > "/tmp/spdstatstitle.txt"
-			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_DIR/spdjs.js" "SetSPDStatsTitle" "statstitle"
+			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_STORAGE_DIR/spdjs.js" "SetSPDStatsTitle" "statstitle"
 			
 			rm -f "/tmp/spdstatstitle.txt"
 		else
@@ -1135,7 +1135,7 @@ Generate_CSVs(){
 	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 	
 	if [ "$IFACELIST" != "" ]; then
-		rm -f "$SCRIPT_DIR/spdjs.js"
+		rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
 		
 		for IFACE_NAME in $IFACELIST; do
 			
@@ -1157,7 +1157,7 @@ Generate_CSVs(){
 					echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 				} > /tmp/spd-stats.sql
 				
-				"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 				rm -f /tmp/spd-stats.sql
 				
 				if [ "$OUTPUTDATAMODE" = "raw" ]; then
@@ -1167,7 +1167,7 @@ Generate_CSVs(){
 						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".htm"
 						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
 					} > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 					
 					{
@@ -1176,15 +1176,15 @@ Generate_CSVs(){
 						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".htm"
 						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
 					} > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 				elif [ "$OUTPUTDATAMODE" = "average" ]; then
 					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
-					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 					
 					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
-					"$SQLITE3_PATH" "$SCRIPT_DIR/spdstats.db" < /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 				fi
 			done
