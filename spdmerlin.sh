@@ -393,7 +393,7 @@ Create_Symlinks(){
 		COUNTER=$((COUNTER + 1))
 	done
 	
-	rm -rf "${SCRIPT_WEB_DIR:?}/*" 2>/dev/null
+	rm -rf "${SCRIPT_WEB_DIR:?}/"* 2>/dev/null
 	
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
 	
