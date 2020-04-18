@@ -34,18 +34,6 @@ readonly OOKLA_DIR="$SCRIPT_DIR/ookla"
 readonly OOKLA_LICENSE_DIR="$SCRIPT_DIR/ooklalicense"
 readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 
-if [ -f "/opt/share/$SCRIPT_NAME_LOWER.d/config" ]; then
-	SCRIPT_CONF="/opt/share/$SCRIPT_NAME_LOWER.d/config"
-	SCRIPT_STORAGE_DIR="/opt/share/$SCRIPT_NAME_LOWER.d"
-else
-	SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME_LOWER.d/config"
-	SCRIPT_STORAGE_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
-fi
-
-SCRIPT_INTERFACES="$SCRIPT_STORAGE_DIR/.interfaces"
-SCRIPT_INTERFACES_USER="$SCRIPT_STORAGE_DIR/.interfaces_user"
-CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
-
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 [ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
@@ -1722,6 +1710,42 @@ Menu_Uninstall(){
 	Clear_Lock
 	Print_Output "true" "Uninstall completed" "$PASS"
 }
+
+### function based on @Adamm00's Skynet USB wait function ###
+Entware_Ready(){
+	if [ ! -f "/opt/bin/opkg" ] && ! echo "$@" | grep -wqE "(install|uninstall|update|forceupdate)"; then
+		Check_Lock
+		sleepcount=1
+		while [ ! -f "/opt/bin/opkg" ] && [ "$sleepcount" -le 10 ]; do
+			Print_Output "true" "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
+			sleepcount="$((sleepcount + 1))"
+			sleep 10
+		done
+		if [ ! -f "/opt/bin/opkg" ]; then
+			Print_Output "true" "Entware not found and is required for $SCRIPT_NAME to run, please resolve" "$CRIT"
+			Clear_Lock
+			exit 1
+		else
+			Print_Output "true" "Entware found, $SCRIPT_NAME will now continue" "$PASS"
+			Clear_Lock
+		fi
+	fi
+}
+### ###
+
+Entware_Ready "$@"
+
+if [ -f "/opt/share/$SCRIPT_NAME_LOWER.d/config" ]; then
+	SCRIPT_CONF="/opt/share/$SCRIPT_NAME_LOWER.d/config"
+	SCRIPT_STORAGE_DIR="/opt/share/$SCRIPT_NAME_LOWER.d"
+else
+	SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME_LOWER.d/config"
+	SCRIPT_STORAGE_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
+fi
+
+SCRIPT_INTERFACES="$SCRIPT_STORAGE_DIR/.interfaces"
+SCRIPT_INTERFACES_USER="$SCRIPT_STORAGE_DIR/.interfaces_user"
+CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 
 if [ -z "$1" ]; then
 	if [ ! -f /opt/bin/sqlite3 ]; then
