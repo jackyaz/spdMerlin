@@ -1836,6 +1836,7 @@ case "$1" in
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
 			Check_Lock
 			updatecheckresult="$(Update_Check)"
+			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""startupdate" ]; then
 			Check_Lock
@@ -1870,6 +1871,7 @@ case "$1" in
 	checkupdate)
 		Check_Lock
 		updatecheckresult="$(Update_Check)"
+		Clear_Lock
 		exit 0
 	;;
 	uninstall)
