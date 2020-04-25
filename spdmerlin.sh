@@ -1094,7 +1094,7 @@ Run_Speedtest(){
 			
 			Generate_CSVs
 			
-			echo "Internet Speedtest generated on $timenowfriendly" > "/tmp/spdstatstitle.txt"
+			echo "Stats last updated: $timenowfriendly" > "/tmp/spdstatstitle.txt"
 			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_STORAGE_DIR/spdjs.js" "SetSPDStatsTitle" "statstitle"
 			
 			rm -f "/tmp/spdstatstitle.txt"
