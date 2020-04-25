@@ -105,6 +105,36 @@ Check_Swap () {
 	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then return 0; else return 1; fi
 }
 
+Set_Version_Custom_Settings(){
+	SETTINGSFILE="/jffs/addons/custom_settings.txt"
+	case "$1" in
+		local)
+			if [ -f "$SETTINGSFILE" ]; then
+				if [ "$(grep -c "spdmerlin_version" $SETTINGSFILE)" -gt 0 ]; then
+					if [ "$SCRIPT_VERSION" != "$(grep "spdmerlin_version_local" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]; then
+						sed -i "s/spdmerlin_version_local.*/spdmerlin_version_local $SCRIPT_VERSION/" "$SETTINGSFILE"
+					fi
+				else
+					echo "spdmerlin_version_local $SCRIPT_VERSION" >> "$SETTINGSFILE"
+				fi
+			else
+				echo "spdmerlin_version_local $SCRIPT_VERSION" >> "$SETTINGSFILE"
+			fi
+		;;
+		server)
+			if [ -f "$SETTINGSFILE" ]; then
+				if [ "$(grep -c "spdmerlin_version" $SETTINGSFILE)" -gt 0 ]; then
+					sed -i "s/spdmerlin_version_server.*/spdmerlin_version_server $2/" "$SETTINGSFILE"
+				else
+					echo "spdmerlin_version_server $2" >> "$SETTINGSFILE"
+				fi
+			else
+				echo "spdmerlin_version_server $2" >> "$SETTINGSFILE"
+			fi
+		;;
+	esac
+}
+
 Update_Check(){
 	doupdate="false"
 	localver=$(grep "SCRIPT_VERSION=" /jffs/scripts/"$SCRIPT_NAME_LOWER" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
@@ -112,31 +142,20 @@ Update_Check(){
 	serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 	if [ "$localver" != "$serverver" ]; then
 		doupdate="version"
+		Set_Version_Custom_Settings "server" "$serverver"
 	else
 		localmd5="$(md5sum "/jffs/scripts/$SCRIPT_NAME_LOWER" | awk '{print $1}')"
 		remotemd5="$(curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | md5sum | awk '{print $1}')"
 		if [ "$localmd5" != "$remotemd5" ]; then
 			doupdate="md5"
+			Set_Version_Custom_Settings "server" "$serverver-hotfix"
 		fi
-	fi
-	SETTINGSFILE="/jffs/addons/custom_settings.txt"
-	if [ -f "$SETTINGSFILE" ]; then
-		if [ "$(grep -c "spdmerlin_version" $SETTINGSFILE)" -gt 0 ]; then
-			sed -i "s/spdmerlin_version_local.*/spdmerlin_version_local $localver/" "$SETTINGSFILE"
-			sed -i "s/spdmerlin_version_server.*/spdmerlin_version_server $serverver/" "$SETTINGSFILE"
-		else
-			echo "spdmerlin_version_local $localver" >> "$SETTINGSFILE"
-			echo "spdmerlin_version_server $serverver" >> "$SETTINGSFILE"
-		fi
-	else
-		echo "spdmerlin_version_local $localver" >> "$SETTINGSFILE"
-		echo "spdmerlin_version_server $serverver" >> "$SETTINGSFILE"
 	fi
 	echo "$doupdate,$localver,$serverver"
 }
 
 Update_Version(){
-	if [ -z "$1" ]; then
+	if [ -z "$1" ] || [ "$1" = "unattended" ]; then
 		updatecheckresult="$(Update_Check)"
 		isupdate="$(echo "$updatecheckresult" | cut -f1 -d',')"
 		localver="$(echo "$updatecheckresult" | cut -f2 -d',')"
@@ -156,7 +175,11 @@ Update_Version(){
 			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
-			exec "$0"
+			if [ -z "$2" ]; then
+				exec "$0"
+			elif [ "$2" = "unattended" ]; then
+				exec "$0" "setversion"
+			fi
 			exit 0
 		else
 			Print_Output "true" "No new version - latest is $localver" "$WARN"
@@ -164,32 +187,22 @@ Update_Version(){
 		fi
 	fi
 	
-	case "$1" in
-		force)
-			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
-			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
-			Update_File "$ARCH.tar.gz"
-			Update_File "spdstats_www.asp"
-			Update_File "shared-jy.tar.gz"
-			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
-			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
-			Clear_Lock
+	if [ "$1" = "force" ]; then
+		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+		Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
+		Update_File "$ARCH.tar.gz"
+		Update_File "spdstats_www.asp"
+		Update_File "shared-jy.tar.gz"
+		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
+		chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
+		Clear_Lock
+		if [ -z "$2" ]; then
 			exec "$0"
-			exit 0
-		;;
-		service)
-			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
-			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
-			Update_File "$ARCH.tar.gz"
-			Update_File "spdstats_www.asp"
-			Update_File "shared-jy.tar.gz"
-			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
-			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
-			Clear_Lock
-			exec "$0" "checkupdate"
-			exit 0
-		;;
-	esac
+		elif [ "$2" = "unattended" ]; then
+			exec "$0" "setversion"
+		fi
+		exit 0
+	fi
 }
 ############################################################################
 
@@ -985,6 +998,7 @@ Generate_LastXResults(){
 Run_Speedtest(){
 	Create_Dirs
 	Conf_Exists
+	Set_Version_Custom_Settings "local"
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -1524,6 +1538,7 @@ Menu_Install(){
 	
 	Create_Dirs
 	Conf_Exists
+	Set_Version_Custom_Settings "local"
 	ScriptStorageLocation "load"
 	Create_Symlinks
 	
@@ -1561,6 +1576,7 @@ Menu_Startup(){
 	Create_Dirs
 	Create_Symlinks
 	Conf_Exists
+	Set_Version_Custom_Settings "local"
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -1799,6 +1815,7 @@ if [ -z "$1" ]; then
 	Create_Dirs
 	Process_Upgrade
 	Conf_Exists
+	Set_Version_Custom_Settings "local"
 	ScriptStorageLocation "load"
 	Create_Symlinks
 	
@@ -1840,7 +1857,7 @@ case "$1" in
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""startupdate" ]; then
 			Check_Lock
-			Update_Version "service"
+			Update_Version "force" "unattended"
 			Clear_Lock
 			exit 0
 		fi
@@ -1860,13 +1877,20 @@ case "$1" in
 	;;
 	update)
 		Check_Lock
-		Menu_Update
+		Update_Version "unattended"
+		Clear_Lock
 		exit 0
 	;;
 	forceupdate)
 		Check_Lock
-		Menu_ForceUpdate
+		Update_Version "force" "unattended"
+		Clear_Lock
 		exit 0
+	;;
+	setversion)
+		Check_Lock
+		Set_Version_Custom_Settings "local"
+		Clear_Lock
 	;;
 	checkupdate)
 		Check_Lock
