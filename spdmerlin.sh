@@ -105,33 +105,54 @@ Check_Swap () {
 	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then return 0; else return 1; fi
 }
 
+Update_Check(){
+	doupdate="false"
+	localver=$(grep "SCRIPT_VERSION=" /jffs/scripts/"$SCRIPT_NAME_LOWER" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+	/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep -qF "jackyaz" || { Print_Output "true" "404 error detected - stopping update" "$ERR"; return 1; }
+	serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+	if [ "$localver" != "$serverver" ]; then
+		doupdate="version"
+	else
+		localmd5="$(md5sum "/jffs/scripts/$SCRIPT_NAME_LOWER" | awk '{print $1}')"
+		remotemd5="$(curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | md5sum | awk '{print $1}')"
+		if [ "$localmd5" != "$remotemd5" ]; then
+			doupdate="md5"
+		fi
+	fi
+	SETTINGSFILE="/jffs/addons/custom_settings.txt"
+	if [ -f "$SETTINGSFILE" ]; then
+		if [ "$(grep -c "spdmerlin_version" $SETTINGSFILE)" -gt 0 ]; then
+			sed -i "s/spdmerlin_version_local.*/spdmerlin_version_local $localver/" "$SETTINGSFILE"
+			sed -i "s/spdmerlin_version_server.*/spdmerlin_version_server $serverver/" "$SETTINGSFILE"
+		else
+			echo "spdmerlin_version_local $localver" >> "$SETTINGSFILE"
+			echo "spdmerlin_version_server $serverver" >> "$SETTINGSFILE"
+		fi
+	else
+		echo "spdmerlin_version_local $localver" >> "$SETTINGSFILE"
+		echo "spdmerlin_version_server $serverver" >> "$SETTINGSFILE"
+	fi
+	echo "$doupdate,$localver,$serverver"
+}
+
 Update_Version(){
 	if [ -z "$1" ]; then
-		doupdate="false"
-		localver=$(grep "SCRIPT_VERSION=" /jffs/scripts/"$SCRIPT_NAME_LOWER" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
-		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep -qF "jackyaz" || { Print_Output "true" "404 error detected - stopping update" "$ERR"; return 1; }
-		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
-		if [ "$localver" != "$serverver" ]; then
-			doupdate="version"
-		else
-			localmd5="$(md5sum "/jffs/scripts/$SCRIPT_NAME_LOWER" | awk '{print $1}')"
-			remotemd5="$(curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | md5sum | awk '{print $1}')"
-			if [ "$localmd5" != "$remotemd5" ]; then
-				doupdate="md5"
-			fi
-		fi
+		updatecheckresult="$(Update_Check)"
+		isupdate="$(echo "$updatecheckresult" | cut -f1 -d',')"
+		localver="$(echo "$updatecheckresult" | cut -f2 -d',')"
+		serverver="$(echo "$updatecheckresult" | cut -f3 -d',')"
 		
-		if [ "$doupdate" = "version" ]; then
+		if [ "$isupdate" = "version" ]; then
 			Print_Output "true" "New version of $SCRIPT_NAME available - updating to $serverver" "$PASS"
-		elif [ "$doupdate" = "md5" ]; then
+		elif [ "$isupdate" = "md5" ]; then
 			Print_Output "true" "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
 		fi
 		
 		Update_File "$ARCH.tar.gz"
 		Update_File "spdstats_www.asp"
 		Update_File "shared-jy.tar.gz"
-		
-		if [ "$doupdate" != "false" ]; then
+			
+		if [ "$isupdate" != "false" ]; then
 			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
@@ -154,6 +175,18 @@ Update_Version(){
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
 			exec "$0"
+			exit 0
+		;;
+		service)
+			serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+			Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
+			Update_File "$ARCH.tar.gz"
+			Update_File "spdstats_www.asp"
+			Update_File "shared-jy.tar.gz"
+			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
+			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
+			Clear_Lock
+			exec "$0" "checkupdate"
 			exit 0
 		;;
 	esac
@@ -421,7 +454,7 @@ Auto_ServiceEvent(){
 			if [ -f /jffs/scripts/service-event ]; then
 				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				# shellcheck disable=SC2016
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER generate"' "$1" "$2" &'' # '"$SCRIPT_NAME" /jffs/scripts/service-event)
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$1" "$2" &'' # '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
@@ -429,13 +462,13 @@ Auto_ServiceEvent(){
 				
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
 					# shellcheck disable=SC2016
-					echo "/jffs/scripts/$SCRIPT_NAME_LOWER generate"' "$1" "$2" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
+					echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$1" "$2" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event
 				echo "" >> /jffs/scripts/service-event
 				# shellcheck disable=SC2016
-				echo "/jffs/scripts/$SCRIPT_NAME_LOWER generate"' "$1" "$2" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
+				echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$1" "$2" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				chmod 0755 /jffs/scripts/service-event
 			fi
 		;;
@@ -1791,12 +1824,24 @@ case "$1" in
 		exit 0
 	;;
 	generate)
-		if [ -z "$2" ] && [ -z "$3" ]; then
-			Check_Lock
-			Menu_GenerateStats "schedule"
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
+		Check_Lock
+		Menu_GenerateStats "schedule"
+		exit 0
+	;;
+	service_event)
+		if [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
 			Check_Lock
 			Menu_GenerateStats "webui"
+			exit 0
+		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
+			Check_Lock
+			updatecheckresult="$(Update_Check)"
+			exit 0
+		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""startupdate" ]; then
+			Check_Lock
+			Update_Version "service"
+			Clear_Lock
+			exit 0
 		fi
 		exit 0
 	;;
@@ -1820,6 +1865,11 @@ case "$1" in
 	forceupdate)
 		Check_Lock
 		Menu_ForceUpdate
+		exit 0
+	;;
+	checkupdate)
+		Check_Lock
+		updatecheckresult="$(Update_Check)"
 		exit 0
 	;;
 	uninstall)
