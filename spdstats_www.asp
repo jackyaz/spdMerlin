@@ -777,22 +777,22 @@ function AddEventHandlers(){
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
 <tr class="apply_gen" valign="top" height="35px">
 <td style="background-color:rgb(77, 89, 93);border:0px;">
-<input type="button" onclick="DragZoom(this);" value="Drag Zoom On" class="button_gen" name="button">
+<input type="button" onclick="DragZoom(this);" value="Drag Zoom On" class="button_gen" name="btnDragZoom">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="button">
+<input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="btnResetZoom">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onclick="ToggleLines();" value="Toggle Lines" class="button_gen" name="button">
+<input type="button" onclick="ToggleLines();" value="Toggle Lines" class="button_gen" name="btnToggleLines">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onclick="ToggleFill();" value="Toggle Fill" class="button_gen" name="button">
+<input type="button" onclick="ToggleFill();" value="Toggle Fill" class="button_gen" name="btnToggleFill">
 </td>
 </tr>
 </table>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons2">
 <tr class="apply_gen" valign="top" height="35px">
 <td style="background-color:rgb(77, 89, 93);border:0px;">
-<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="button">
+<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onclick="ExportCSV();" value="Export to CSV" class="button_gen" name="button">
+<input type="button" onclick="ExportCSV();" value="Export to CSV" class="button_gen" name="btnExport">
 </td>
 </tr>
 </table>
