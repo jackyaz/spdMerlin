@@ -7,7 +7,7 @@
 <meta http-equiv="Expires" content="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>Internet Speedtest</title>
+<title>spdMerlin - Internet Speedtest Stats</title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <style>
@@ -773,10 +773,32 @@ function AddEventHandlers(){
 <tr bgcolor="#4D595D">
 <td valign="top">
 <div>&nbsp;</div>
-<div class="formfonttitle" id="statstitle">Internet Speedtest Stats</div>
-<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
-<tr class="apply_gen" valign="top" height="35px">
-<td style="background-color:rgb(77, 89, 93);border:0px;">
+<div class="formfonttitle" id="scripttitle" style="text-align:center;">spdMerlin</div>
+<div id="statstitle" style="text-align:center;">Stats last updated:</div>
+<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
+<div class="formfontdesc">spdMerlin is an automatic speedtest tool for AsusWRT Merlin - with charts.</div>
+<table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
+<thead class="collapsible expanded" id="spd_scripttools">
+<tr><td colspan="2">Script Utilities</td></tr>
+</thead>
+<tr class="apply_gen" valign="top">
+<td style="background-color:rgb(77, 89, 93);">
+<div class="collapsiblecontent">
+<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="button" onclick="ExportCSV();" value="Export to CSV" class="button_gen" name="btnExport">
+</div>
+</td>
+</tr>
+</table>
+<div style="line-height:10px;">&nbsp;</div>
+<table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons2">
+<thead class="collapsible expanded" id="spd_charttools">
+<tr><td colspan="2">Chart Configuration</td></tr>
+</thead>
+<tr class="apply_gen" valign="top">
+<td style="background-color:rgb(77, 89, 93);">
+<div class="collapsiblecontent">
 <input type="button" onclick="DragZoom(this);" value="Drag Zoom On" class="button_gen" name="btnDragZoom">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="btnResetZoom">
@@ -784,15 +806,7 @@ function AddEventHandlers(){
 <input type="button" onclick="ToggleLines();" value="Toggle Lines" class="button_gen" name="btnToggleLines">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ToggleFill();" value="Toggle Fill" class="button_gen" name="btnToggleFill">
-</td>
-</tr>
-</table>
-<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons2">
-<tr class="apply_gen" valign="top" height="35px">
-<td style="background-color:rgb(77, 89, 93);border:0px;">
-<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onclick="ExportCSV();" value="Export to CSV" class="button_gen" name="btnExport">
+</div>
 </td>
 </tr>
 </table>
