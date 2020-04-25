@@ -126,6 +126,8 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
 	return coordinates;
 };
 
+var custom_settings = <% get_custom_settings(); %>;
+
 var metriclist = ["Download","Upload"];
 var titlelist = ["Download","Upload"];
 var measureunitlist = ["Mbps","Mbps"];
@@ -468,8 +470,11 @@ function SetCurrentPage(){
 function initial(){
 	SetCurrentPage();
 	show_menu();
-	get_conf_file();
+	var localver = GetVersionNumber("local");
+	var serverver = GetVersionNumber("server");
+	$j("#scripttitle").text($j("#scripttitle").text()+" - "+localver);
 	SetSPDStatsTitle();
+	get_conf_file();
 }
 
 function reload() {
@@ -534,6 +539,25 @@ function applyRule() {
 	var restart_time = document.form.action_wait.value*1;
 	showLoading();
 	document.form.submit();
+}
+
+function GetVersionNumber(versiontype)
+{
+	var versionprop;
+	if(versiontype == "local"){
+		versionprop = custom_settings.spdmerlin_version_local;
+	}
+	else if(versiontype == "server"){
+		versionprop = custom_settings.spdmerlin_version_server;
+	}
+	
+	if(typeof versionprop === 'undefined' || versionprop === null)
+	{
+		return "N/A";
+	}
+	else {
+		return versionprop;
+	}
 }
 
 function get_conf_file(){
