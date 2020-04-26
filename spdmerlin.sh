@@ -167,11 +167,12 @@ Update_Version(){
 			Print_Output "true" "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
 		fi
 		
-		Update_File "$ARCH.tar.gz"
-		Update_File "spdstats_www.asp"
 		Update_File "shared-jy.tar.gz"
-			
+		
 		if [ "$isupdate" != "false" ]; then
+			Update_File "$ARCH.tar.gz"
+			Update_File "spdstats_www.asp"
+			
 			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
