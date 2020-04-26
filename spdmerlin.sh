@@ -1890,6 +1890,7 @@ case "$1" in
 	setversion)
 		Check_Lock
 		Set_Version_Custom_Settings "local"
+		Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
 		Clear_Lock
 	;;
 	checkupdate)
