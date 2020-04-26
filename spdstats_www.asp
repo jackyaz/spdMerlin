@@ -144,7 +144,8 @@ var measureunitlist = ["Mbps","Mbps"];
 var chartlist = ["daily","weekly","monthly"];
 var timeunitlist = ["hour","day","day"];
 var intervallist = [24,7,30];
-var colourlist = ["#fc8500","#42ecf5"];
+var bordercolourlist = ["#fc8500","#42ecf5"];
+var backgroundcolourlist = ["rgba(252,133,0,0.5)","rgba(66,236,245,0.5)"];
 
 function keyHandler(e) {
 	if (e.keyCode == 27){
@@ -175,7 +176,7 @@ function Draw_Chart_NoData(txtchartname){
 	ctx.restore();
 }
 
-function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname,dataobject){
+function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolourname,backgroundcolourname,dataobject){
 	if(typeof dataobject === 'undefined' || dataobject === null) { Draw_Chart_NoData(txtchartname); return; }
 	if (dataobject.length == 0) { Draw_Chart_NoData(txtchartname); return; }
 	
@@ -281,7 +282,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
 				value: getAverage(chartData),
-				borderColor: colourname,
+				borderColor: bordercolourname,
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -306,7 +307,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
 				value: getLimit(chartData,"y","max",true),
-				borderColor: colourname,
+				borderColor: bordercolourname,
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -331,7 +332,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
 				value: getLimit(chartData,"y","min",true),
-				borderColor: colourname,
+				borderColor: bordercolourname,
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -359,8 +360,8 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,colourname,
 			pointRadius: 1,
 			lineTension: 0,
 			fill: ShowFill,
-			backgroundColor: colourname,
-			borderColor: colourname,
+			backgroundColor: backgroundcolourname,
+			borderColor: bordercolourname,
 		}]
 	};
 	objchartname = new Chart(ctx, {
@@ -459,7 +460,7 @@ function RedrawAllCharts() {
 		for(i = 0; i < metriclist.length; i++){
 			for (i2 = 0; i2 < chartlist.length; i2++) {
 				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					d3.csv('/ext/spdmerlin/csv/'+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(Draw_Chart.bind(null,metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3],titlelist[i],measureunitlist[i],timeunitlist[i2],intervallist[i2],colourlist[i]));
+					d3.csv('/ext/spdmerlin/csv/'+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(Draw_Chart.bind(null,metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3],titlelist[i],measureunitlist[i],timeunitlist[i2],intervallist[i2],bordercolourlist[i],backgroundcolourlist[i]));
 				}
 			}
 		}
