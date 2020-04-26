@@ -1731,20 +1731,6 @@ Menu_Uninstall(){
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
 	Auto_ServiceEvent delete 2>/dev/null
-	while true; do
-		printf "\\n\\e[1mDo you want to delete %s stats and config? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
-		read -r "confirm"
-		case "$confirm" in
-			y|Y)
-				rm -rf "$SCRIPT_DIR" 2>/dev/null
-				break
-			;;
-			*)
-				break
-			;;
-		esac
-	done
-	Shortcut_spdMerlin delete
 	
 	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
 	if [ -n "$MyPage" ] && [ "$MyPage" != "none" ] && [ -f "/tmp/menuTree.js" ]; then
@@ -1754,8 +1740,24 @@ Menu_Uninstall(){
 		rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage"
 	fi
 	
-	rm -f "$SHARED_DIR/custom_state.js" 2>/dev/null
 	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
+	
+	while true; do
+		printf "\\n\\e[1mDo you want to delete %s stats and config? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
+		read -r "confirm"
+		case "$confirm" in
+			y|Y)
+				rm -rf "$SCRIPT_DIR" 2>/dev/null
+				rm -rf "$SCRIPT_STORAGE_DIR" 2>/dev/null
+				break
+			;;
+			*)
+				break
+			;;
+		esac
+	done
+	Shortcut_spdMerlin delete
+	
 	rm -rf "$SCRIPT_WEB_DIR" 2>/dev/null
 	rm -rf "$OOKLA_DIR" 2>/dev/null
 	rm -rf "$OOKLA_LICENSE_DIR" 2>/dev/null
