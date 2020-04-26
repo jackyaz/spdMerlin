@@ -486,15 +486,17 @@ function initial(){
 }
 
 function ScriptUpdateLayout(){
-var localver = GetVersionNumber("local");
-var serverver = GetVersionNumber("server");
-$j("#scripttitle").text($j("#scripttitle").text()+" - "+localver);
-$j("#spdmerlin_version_local").text(localver);
-if (localver != serverver && serverver != "N/A"){
-	$j("#spdmerlin_version_server").text("Updated version available: "+serverver);
-	showhide("btnChkUpdate", false);
-	showhide("spdmerlin_version_server", true);
-	showhide("btnDoUpdate", true);
+	var localver = GetVersionNumber("local");
+	var serverver = GetVersionNumber("server");
+	$j("#scripttitle").text($j("#scripttitle").text()+" - "+localver);
+	$j("#spdmerlin_version_local").text(localver);
+	
+	if (localver != serverver && serverver != "N/A"){
+		$j("#spdmerlin_version_server").text("Updated version available: "+serverver);
+		showhide("btnChkUpdate", false);
+		showhide("spdmerlin_version_server", true);
+		showhide("btnDoUpdate", true);
+	}
 }
 
 function reload() {
