@@ -12,7 +12,7 @@
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <style>
 p {
-font-weight: bolder;
+  font-weight: bolder;
 }
 
 thead.collapsible {
@@ -26,6 +26,16 @@ thead.collapsible {
 }
 
 thead.collapsibleparent {
+  color: white;
+  padding: 0px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  cursor: pointer;
+}
+
+thead.collapsible-jquery {
   color: white;
   padding: 0px;
   width: 100%;
@@ -470,11 +480,21 @@ function SetCurrentPage(){
 function initial(){
 	SetCurrentPage();
 	show_menu();
-	var localver = GetVersionNumber("local");
-	var serverver = GetVersionNumber("server");
-	$j("#scripttitle").text($j("#scripttitle").text()+" - "+localver);
+	ScriptUpdateLayout();
 	SetSPDStatsTitle();
 	get_conf_file();
+}
+
+function ScriptUpdateLayout(){
+var localver = GetVersionNumber("local");
+var serverver = GetVersionNumber("server");
+$j("#scripttitle").text($j("#scripttitle").text()+" - "+localver);
+$j("#spdmerlin_version_local").text(localver);
+if (localver != serverver && serverver != "N/A"){
+	$j("#spdmerlin_version_server").text("Updated version available: "+serverver);
+	showhide("btnChkUpdate", false);
+	showhide("spdmerlin_version_server", true);
+	showhide("btnDoUpdate", true);
 }
 
 function reload() {
@@ -533,10 +553,29 @@ function ExportCSV() {
 	return 0;
 }
 
+function CheckUpdate(){
+	var action_script_tmp = "start_spdmerlincheckupdate";
+	document.form.action_script.value = action_script_tmp;
+	var restart_time = 10;
+	document.form.action_wait.value = restart_time;
+	showLoading();
+	document.form.submit();
+}
+
+function DoUpdate(){
+	var action_script_tmp = "start_spdmerlindoupdate";
+	document.form.action_script.value = action_script_tmp;
+	var restart_time = 20;
+	document.form.action_wait.value = restart_time;
+	showLoading();
+	document.form.submit();
+}
+
 function applyRule() {
 	var action_script_tmp = "start_spdmerlin";
 	document.form.action_script.value = action_script_tmp;
-	var restart_time = document.form.action_wait.value*1;
+	var restart_time = 90;
+	document.form.action_wait.value = restart_time;
 	showLoading();
 	document.form.submit();
 }
@@ -716,6 +755,10 @@ function BuildInterfaceTable(name){
 }
 
 function AddEventHandlers(){
+	$j(".collapsible-jquery").click(function(){
+		$j(this).siblings().toggle("fast")
+	});
+	
 	var coll = document.getElementsByClassName("collapsible");
 	var i;
 	var height = 0;
@@ -762,7 +805,6 @@ function AddEventHandlers(){
 		}
 	}
 }
-
 </script>
 </head>
 <body onload="initial();" onunload="return unload_body();">
@@ -802,27 +844,44 @@ function AddEventHandlers(){
 <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 <div class="formfontdesc">spdMerlin is an automatic speedtest tool for AsusWRT Merlin - with charts.</div>
 <table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
-<thead class="collapsible expanded" id="spd_scripttools">
-<tr><td colspan="2">Script Utilities</td></tr>
+<thead class="collapsible-jquery" id="spd_scripttools">
+<tr><td colspan="2">Script Utilities (click to expand/collapse)</td></tr>
 </thead>
-<tr class="apply_gen" valign="top">
-<td style="background-color:rgb(77, 89, 93);">
 <div class="collapsiblecontent">
-<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<input type="button" onclick="ExportCSV();" value="Export to CSV" class="button_gen" name="btnExport">
-</div>
+<tr>
+<th width="20%">Version information</th>
+<td>
+<span id="spdmerlin_version_local" style="color:#FFFFFF;"></span>
+&nbsp;&nbsp;&nbsp;
+<span id="spdmerlin_version_server" style="display:none;">Update version</span>
+&nbsp;&nbsp;&nbsp;
+<input type="button" class="button_gen" onclick="CheckUpdate();" value="Check" id="btnChkUpdate">
+<input type="button" class="button_gen" onclick="DoUpdate();" value="Update" id="btnDoUpdate" style="display:none;">
+&nbsp;&nbsp;&nbsp;
 </td>
 </tr>
+<tr>
+<th width="20%">Update stats</th>
+<td>
+<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest">
+</td>
+</tr>
+<tr>
+<th width="20%">Export</th>
+<td>
+<input type="button" onclick="ExportCSV();" value="Export to CSV" class="button_gen" name="btnExport">
+</td>
+</tr>
+</div>
 </table>
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons2">
-<thead class="collapsible expanded" id="spd_charttools">
-<tr><td colspan="2">Chart Configuration</td></tr>
+<thead class="collapsible-jquery" id="spd_charttools">
+<tr><td colspan="2">Chart Configuration (click to expand/collapse)</td></tr>
 </thead>
+<div class="collapsiblecontent">
 <tr class="apply_gen" valign="top">
 <td style="background-color:rgb(77, 89, 93);">
-<div class="collapsiblecontent">
 <input type="button" onclick="DragZoom(this);" value="Drag Zoom On" class="button_gen" name="btnDragZoom">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="btnResetZoom">
@@ -830,9 +889,9 @@ function AddEventHandlers(){
 <input type="button" onclick="ToggleLines();" value="Toggle Lines" class="button_gen" name="btnToggleLines">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ToggleFill();" value="Toggle Fill" class="button_gen" name="btnToggleFill">
-</div>
 </td>
 </tr>
+</div>
 </table>
 
 <!-- Charts inserted here -->
