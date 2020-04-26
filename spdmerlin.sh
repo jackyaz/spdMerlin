@@ -1768,8 +1768,8 @@ Menu_Uninstall(){
 
 ### function based on @Adamm00's Skynet USB wait function ###
 Entware_Ready(){
-	if [ "$1" = "generate" ]; then
-		if [ -n "$2" ] && [ "$3" != "$SCRIPT_NAME_LOWER" ]; then
+	if [ "$1" = "service_event" ]; then
+		if [ -n "$2" ] && [ "$(echo "$3" | grep -c "$SCRIPT_NAME_LOWER")" -eq 0 ]; then
 			exit 0
 		fi
 	fi
