@@ -124,7 +124,9 @@ Set_Version_Custom_Settings(){
 		server)
 			if [ -f "$SETTINGSFILE" ]; then
 				if [ "$(grep -c "spdmerlin_version_server" $SETTINGSFILE)" -gt 0 ]; then
-					sed -i "s/spdmerlin_version_server.*/spdmerlin_version_server $2/" "$SETTINGSFILE"
+					if [ "$2" != "$(grep "spdmerlin_version_server" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]; then
+						sed -i "s/spdmerlin_version_server.*/spdmerlin_version_server $2/" "$SETTINGSFILE"
+					fi
 				else
 					echo "spdmerlin_version_server $2" >> "$SETTINGSFILE"
 				fi
@@ -1000,6 +1002,7 @@ Run_Speedtest(){
 	Create_Dirs
 	Conf_Exists
 	Set_Version_Custom_Settings "local"
+	Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -1817,6 +1820,7 @@ if [ -z "$1" ]; then
 	Process_Upgrade
 	Conf_Exists
 	Set_Version_Custom_Settings "local"
+	Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
 	ScriptStorageLocation "load"
 	Create_Symlinks
 	
