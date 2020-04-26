@@ -1855,7 +1855,7 @@ case "$1" in
 			updatecheckresult="$(Update_Check)"
 			Clear_Lock
 			exit 0
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""startupdate" ]; then
+		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""doupdate" ]; then
 			Check_Lock
 			Update_Version "force" "unattended"
 			Clear_Lock
