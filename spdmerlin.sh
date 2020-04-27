@@ -178,9 +178,9 @@ Update_Version(){
 			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
-			if [ -z "$2" ]; then
+			if [ -z "$1" ]; then
 				exec "$0"
-			elif [ "$2" = "unattended" ]; then
+			elif [ "$1" = "unattended" ]; then
 				exec "$0" "setversion"
 			fi
 			exit 0
@@ -1722,7 +1722,7 @@ Menu_Update(){
 }
 
 Menu_ForceUpdate(){
-	Update_Version force
+	Update_Version "force"
 	Clear_Lock
 }
 
