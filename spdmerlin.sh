@@ -1002,7 +1002,6 @@ Run_Speedtest(){
 	Create_Dirs
 	Conf_Exists
 	Set_Version_Custom_Settings "local"
-	Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -1822,7 +1821,6 @@ if [ -z "$1" ]; then
 	Process_Upgrade
 	Conf_Exists
 	Set_Version_Custom_Settings "local"
-	Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
 	ScriptStorageLocation "load"
 	Create_Symlinks
 	
