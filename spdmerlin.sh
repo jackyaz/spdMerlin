@@ -179,9 +179,9 @@ Update_Version(){
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
 			if [ -z "$1" ]; then
-				exec "$0"
-			elif [ "$1" = "unattended" ]; then
 				exec "$0" "setversion"
+			elif [ "$1" = "unattended" ]; then
+				exec "$0" "setversion" "unattended"
 			fi
 			exit 0
 		else
@@ -200,9 +200,9 @@ Update_Version(){
 		chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 		Clear_Lock
 		if [ -z "$2" ]; then
-			exec "$0"
-		elif [ "$2" = "unattended" ]; then
 			exec "$0" "setversion"
+		elif [ "$2" = "unattended" ]; then
+			exec "$0" "setversion" "unattended"
 		fi
 		exit 0
 	fi
@@ -1925,6 +1925,10 @@ case "$1" in
 		Set_Version_Custom_Settings "local"
 		Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
 		Clear_Lock
+		if [ -z "$2" ]; then
+			exec "$0"
+		fi
+		exit 0
 	;;
 	checkupdate)
 		Check_Lock
