@@ -1771,23 +1771,24 @@ NTP_Ready(){
 			exit 0
 		fi
 	fi
-	
-	ntpwaitcount="0"
-	while [ "$(nvram get ntp_ready)" = "0" ] && [ "$ntpwaitcount" -lt "300" ]; do
-		Check_Lock
-		ntpwaitcount="$((ntpwaitcount + 1))"
-		if [ "$ntpwaitcount" = "60" ]; then
-			Print_Output "true" "Waiting for NTP to sync..." "$WARN"
+	if [ "$(nvram get ntp_ready)" = "0" ]; then
+		ntpwaitcount="0"
+		while [ "$(nvram get ntp_ready)" = "0" ] && [ "$ntpwaitcount" -lt "300" ]; do
+			Check_Lock
+			ntpwaitcount="$((ntpwaitcount + 1))"
+			if [ "$ntpwaitcount" = "60" ]; then
+				Print_Output "true" "Waiting for NTP to sync..." "$WARN"
+			fi
+			sleep 1
+		done
+		if [ "$ntpwaitcount" -ge "300" ]; then
+			Print_Output "true" "NTP failed to sync after 5 minutes. Please resolve!" "$CRIT"
+			Clear_Lock
+			exit 1
+		else
+			Print_Output "true" "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
+			Clear_Lock
 		fi
-		sleep 1
-	done
-	if [ "$ntpwaitcount" -ge "300" ]; then
-		Print_Output "true" "NTP failed to sync after 5 minutes. Please resolve!" "$CRIT"
-		Clear_Lock
-		exit 1
-	else
-		Print_Output "true" "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
-		Clear_Lock
 	fi
 }
 
