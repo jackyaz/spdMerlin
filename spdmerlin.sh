@@ -76,8 +76,8 @@ Firmware_Version_Check(){
 Check_Lock(){
 	if [ -f "/tmp/$SCRIPT_NAME.lock" ]; then
 		ageoflock=$(($(date +%s) - $(date +%s -r /tmp/$SCRIPT_NAME.lock)))
-		if [ "$ageoflock" -gt 120 ]; then
-			Print_Output "true" "Stale lock file found (>120 seconds old) - purging lock" "$ERR"
+		if [ "$ageoflock" -gt 600 ]; then
+			Print_Output "true" "Stale lock file found (>600 seconds old) - purging lock" "$ERR"
 			kill "$(sed -n '1p' /tmp/$SCRIPT_NAME.lock)" >/dev/null 2>&1
 			Clear_Lock
 			echo "$$" > "/tmp/$SCRIPT_NAME.lock"
@@ -1765,6 +1765,32 @@ Menu_Uninstall(){
 	Print_Output "true" "Uninstall completed" "$PASS"
 }
 
+NTP_Ready(){
+	if [ "$1" = "service_event" ]; then
+		if [ -n "$2" ] && [ "$(echo "$3" | grep -c "$SCRIPT_NAME_LOWER")" -eq 0 ]; then
+			exit 0
+		fi
+	fi
+	
+	ntpwaitcount="0"
+	while [ "$(nvram get ntp_ready)" = "0" ] && [ "$ntpwaitcount" -lt "300" ]; do
+		Check_Lock
+		ntpwaitcount="$((ntpwaitcount + 1))"
+		if [ "$ntpwaitcount" = "60" ]; then
+			Print_Output "true" "Waiting for NTP to sync..." "$WARN"
+		fi
+		sleep 1
+	done
+	if [ "$ntpwaitcount" -ge "300" ]; then
+		Print_Output "true" "NTP failed to sync after 5 minutes. Please resolve!" "$CRIT"
+		Clear_Lock
+		exit 1
+	else
+		Print_Output "true" "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
+		Clear_Lock
+	fi
+}
+
 ### function based on @Adamm00's Skynet USB wait function ###
 Entware_Ready(){
 	if [ "$1" = "service_event" ]; then
@@ -1793,6 +1819,7 @@ Entware_Ready(){
 }
 ### ###
 
+NTP_Ready "$@"
 Entware_Ready "$@"
 
 if [ -f "/opt/share/$SCRIPT_NAME_LOWER.d/config" ]; then
