@@ -19,7 +19,7 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v3.5.1"
+readonly SCRIPT_VERSION="v3.5.2"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -76,8 +76,8 @@ Firmware_Version_Check(){
 Check_Lock(){
 	if [ -f "/tmp/$SCRIPT_NAME.lock" ]; then
 		ageoflock=$(($(date +%s) - $(date +%s -r /tmp/$SCRIPT_NAME.lock)))
-		if [ "$ageoflock" -gt 120 ]; then
-			Print_Output "true" "Stale lock file found (>120 seconds old) - purging lock" "$ERR"
+		if [ "$ageoflock" -gt 600 ]; then
+			Print_Output "true" "Stale lock file found (>600 seconds old) - purging lock" "$ERR"
 			kill "$(sed -n '1p' /tmp/$SCRIPT_NAME.lock)" >/dev/null 2>&1
 			Clear_Lock
 			echo "$$" > "/tmp/$SCRIPT_NAME.lock"
@@ -179,9 +179,9 @@ Update_Version(){
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
 			if [ -z "$1" ]; then
-				exec "$0"
-			elif [ "$1" = "unattended" ]; then
 				exec "$0" "setversion"
+			elif [ "$1" = "unattended" ]; then
+				exec "$0" "setversion" "unattended"
 			fi
 			exit 0
 		else
@@ -200,9 +200,9 @@ Update_Version(){
 		chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 		Clear_Lock
 		if [ -z "$2" ]; then
-			exec "$0"
-		elif [ "$2" = "unattended" ]; then
 			exec "$0" "setversion"
+		elif [ "$2" = "unattended" ]; then
+			exec "$0" "setversion" "unattended"
 		fi
 		exit 0
 	fi
@@ -1631,8 +1631,10 @@ Menu_ToggleOutputTimeMode(){
 Menu_ToggleStorageLocation(){
 	if [ "$(ScriptStorageLocation "check")" = "jffs" ]; then
 		ScriptStorageLocation "usb"
+		Create_Symlinks
 	elif [ "$(ScriptStorageLocation "check")" = "usb" ]; then
 		ScriptStorageLocation "jffs"
+		Create_Symlinks
 	fi
 	Clear_Lock
 }
@@ -1765,6 +1767,33 @@ Menu_Uninstall(){
 	Print_Output "true" "Uninstall completed" "$PASS"
 }
 
+NTP_Ready(){
+	if [ "$1" = "service_event" ]; then
+		if [ -n "$2" ] && [ "$(echo "$3" | grep -c "$SCRIPT_NAME_LOWER")" -eq 0 ]; then
+			exit 0
+		fi
+	fi
+	if [ "$(nvram get ntp_ready)" = "0" ]; then
+		ntpwaitcount="0"
+		while [ "$(nvram get ntp_ready)" = "0" ] && [ "$ntpwaitcount" -lt "300" ]; do
+			Check_Lock
+			ntpwaitcount="$((ntpwaitcount + 1))"
+			if [ "$ntpwaitcount" = "60" ]; then
+				Print_Output "true" "Waiting for NTP to sync..." "$WARN"
+			fi
+			sleep 1
+		done
+		if [ "$ntpwaitcount" -ge "300" ]; then
+			Print_Output "true" "NTP failed to sync after 5 minutes. Please resolve!" "$CRIT"
+			Clear_Lock
+			exit 1
+		else
+			Print_Output "true" "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
+			Clear_Lock
+		fi
+	fi
+}
+
 ### function based on @Adamm00's Skynet USB wait function ###
 Entware_Ready(){
 	if [ "$1" = "service_event" ]; then
@@ -1793,6 +1822,7 @@ Entware_Ready(){
 }
 ### ###
 
+NTP_Ready "$@"
 Entware_Ready "$@"
 
 if [ -f "/opt/share/$SCRIPT_NAME_LOWER.d/config" ]; then
@@ -1897,6 +1927,10 @@ case "$1" in
 		Set_Version_Custom_Settings "local"
 		Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
 		Clear_Lock
+		if [ -z "$2" ]; then
+			exec "$0"
+		fi
+		exit 0
 	;;
 	checkupdate)
 		Check_Lock
