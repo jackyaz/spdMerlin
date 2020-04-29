@@ -1631,8 +1631,10 @@ Menu_ToggleOutputTimeMode(){
 Menu_ToggleStorageLocation(){
 	if [ "$(ScriptStorageLocation "check")" = "jffs" ]; then
 		ScriptStorageLocation "usb"
+		Create_Symlinks
 	elif [ "$(ScriptStorageLocation "check")" = "usb" ]; then
 		ScriptStorageLocation "jffs"
+		Create_Symlinks
 	fi
 	Clear_Lock
 }
