@@ -73,12 +73,17 @@ Firmware_Version_Check(){
 }
 
 ### Code for these functions inspired by https://github.com/Adamm00 - credit to @Adamm ###
-Check_Lock() {
-	if [ -f "/tmp/$SCRIPT_NAME.lock" ] && [ -d "/proc/$(sed -n '1p' "/tmp/$SCRIPT_NAME.lock")" ] && [ "$(sed -n '1p' "/tmp/$SCRIPT_NAME.lock")" != "$$" ]; then
-		if [ "$(($(date +%s) - $(sed -n '2p' "/tmp/$SCRIPT_NAME.lock")))" -gt "300" ]; then
+Check_Lock(){
+	if [ -f "/tmp/$SCRIPT_NAME.lock" ]; then
+		ageoflock=$(($(date +%s) - $(date +%s -r /tmp/$SCRIPT_NAME.lock)))
+		if [ "$ageoflock" -gt 120 ]; then
+			Print_Output "true" "Stale lock file found (>120 seconds old) - purging lock" "$ERR"
+			kill "$(sed -n '1p' /tmp/$SCRIPT_NAME.lock)" >/dev/null 2>&1
 			Clear_Lock
+			echo "$$" > "/tmp/$SCRIPT_NAME.lock"
+			return 0
 		else
-			Print_Output "true" "Lock file found (pid=$(sed -n '1p' "/tmp/$SCRIPT_NAME.lock")) - stopping to prevent duplicate runs (cpid=$$)"
+			Print_Output "true" "Lock file found (age: $ageoflock seconds) - stopping to prevent duplicate runs" "$ERR"
 			if [ -z "$1" ]; then
 				exit 1
 			else
@@ -86,19 +91,14 @@ Check_Lock() {
 			fi
 		fi
 	else
-		echo "$$" >> "/tmp/$SCRIPT_NAME.lock"
-		date +%s >> "/tmp/$SCRIPT_NAME.lock"
+		echo "$$" > "/tmp/$SCRIPT_NAME.lock"
 		return 0
 	fi
 }
 
-Clear_Lock() {
-	if [ -f "/tmp/$SCRIPT_NAME.lock" ] && [ -d "/proc/$(sed -n '1p' "/tmp/$SCRIPT_NAME.lock")" ]; then
-		Print_Output "true" "Stale lock file found (>300 seconds old) - purging lock" "$ERR"
-		kill "$(sed -n '1p' "/tmp/$SCRIPT_NAME.lock")"
-		rm -f "/tmp/$SCRIPT_NAME.lock" 2>/dev/null
-		return 0
-	fi
+Clear_Lock(){
+	rm -f "/tmp/$SCRIPT_NAME.lock" 2>/dev/null
+	return 0
 }
 
 Check_Swap () {
