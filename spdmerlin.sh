@@ -1872,6 +1872,9 @@ case "$1" in
 	;;
 	startup)
 		Check_Lock
+	        if [ "$(nvram get ntp_ready)" = "0" ]; then
+		   Clear_Lock
+	        fi
 		Menu_Startup
 		exit 0
 	;;
