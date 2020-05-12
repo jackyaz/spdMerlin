@@ -1875,6 +1875,7 @@ case "$1" in
 	;;
 	startup)
 		Check_Lock
+		sleep 3
 		Menu_Startup
 		exit 0
 	;;
