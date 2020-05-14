@@ -457,9 +457,12 @@ Conf_Exists(){
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 9 ]; then
 			echo "STORAGELOCATION=jffs" >> "$SCRIPT_CONF"
 		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 10 ]; then
+			echo "TESTFREQUENCY=halfhourly" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -1692,8 +1695,7 @@ Menu_EditSchedule(){
 	
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
-			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m"
-			printf "\\n\\e[1mN.B. the test will run at half hour intervals\\e[0m\\n"
+			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m\\n"
 			read -r "minute"
 			
 			if [ "$minute" = "e" ]; then
@@ -1714,7 +1716,34 @@ Menu_EditSchedule(){
 	fi
 	
 	if [ "$exitmenu" != "exit" ]; then
-		TestSchedule "update" "$starthour" "$endhour" "$startminute"
+		while true; do
+			printf "\\n\\e[1mPlease select the frequency for speedtests:\\e[0m\\n"
+			printf "1.    Every hour (60 minutes)\\n"
+			printf "2.    Every half hour (30 minutes)\\n\\n"
+			printf "Choose an option:    "
+			read -r "frequency"
+			case "$frequency" in
+				1)
+					testfrequency="halfhourly"
+					break
+				;;
+				2)
+					testfrequency="hourly"
+					break
+				;;
+				e)
+					exitmenu="exit"
+					break
+				;;
+				*)
+					printf "\\nPlease choose a valid option\\n\\n"
+				;;
+			esac
+		done
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		TestSchedule "update" "$starthour" "$endhour" "$startminute" "$testfrequency"
 	fi
 	
 	Clear_Lock
