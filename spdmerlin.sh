@@ -52,6 +52,7 @@ servername=""
 schedulestart=""
 scheduleend=""
 minutestart=""
+frequencytest=""
 ### End of Speedtest Server Variables ###
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
@@ -853,6 +854,7 @@ TestSchedule(){
 			sed -i 's/^'"SCHEDULESTART"'.*$/SCHEDULESTART='"$2"'/' "$SCRIPT_CONF"
 			sed -i 's/^'"SCHEDULEEND"'.*$/SCHEDULEEND='"$3"'/' "$SCRIPT_CONF"
 			sed -i 's/^'"MINUTE"'.*$/MINUTE='"$4"'/' "$SCRIPT_CONF"
+			sed -i 's/^'"TESTFREQUENCY"'.*$/TESTFREQUENCY='"$5"'/' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
@@ -860,10 +862,12 @@ TestSchedule(){
 			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
 			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
 			MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+			TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ] && [ "$MINUTESTART" != "*" ]; then
 				schedulestart="$SCHEDULESTART"
 				scheduleend="$SCHEDULEEND"
 				minutestart="$MINUTESTART"
+				frequencytest="$TESTFREQUENCY"
 				return 0
 			else
 				return 1
@@ -1327,12 +1331,16 @@ MainMenu(){
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
-		minuteend=$((minutestart + 30))
-		[ "$minuteend" -gt 60 ] && minuteend=$((minuteend - 60))
-		if [ "$minutestart" -lt "$minuteend" ]; then
-			TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
-		else
-			TEST_SCHEDULE2="Tests will run at $minuteend and $minutestart past the hour"
+		if [ "$frequencytest" = "halfhourly" ]; then
+			minuteend=$((minutestart + 30))
+			[ "$minuteend" -gt 60 ] && minuteend=$((minuteend - 60))
+			if [ "$minutestart" -lt "$minuteend" ]; then
+				TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
+			else
+				TEST_SCHEDULE2="Tests will run at $minuteend and $minutestart past the hour"
+			fi
+		elif [ "$frequencytest" = "hourly" ]; then
+			TEST_SCHEDULE2="Tests will run at $minutestart past the hour"
 		fi
 	else
 		TEST_SCHEDULE="No defined schedule - tests run every hour"
@@ -1649,6 +1657,7 @@ Menu_EditSchedule(){
 	exitmenu="false"
 	starthour=""
 	startminute=""
+	testfrequency=""
 	ScriptHeader
 	
 	while true; do
