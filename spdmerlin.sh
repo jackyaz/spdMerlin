@@ -652,10 +652,11 @@ Auto_Cron(){
 				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
 				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
 				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+				TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
 				if [ "$MINUTESTART" = "*" ]; then
 					MINUTESTART=12
 				fi
-				if [ "$frequencytest" = "halfhourly" ]; then
+				if [ "$TESTFREQUENCY" = "halfhourly" ]; then
 					MINUTEEND=$((MINUTESTART + 30))
 					[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
 					
@@ -668,7 +669,7 @@ Auto_Cron(){
 							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 						fi
 					fi
-				elif [ "$frequencytest" = "hourly" ]; then
+				elif [ "$TESTFREQUENCY" = "hourly" ]; then
 					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
 						cru a "$SCRIPT_NAME" "$MINUTESTART * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 					else
