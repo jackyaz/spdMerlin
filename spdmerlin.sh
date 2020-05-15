@@ -655,16 +655,28 @@ Auto_Cron(){
 				if [ "$MINUTESTART" = "*" ]; then
 					MINUTESTART=12
 				fi
-				MINUTEEND=$((MINUTESTART + 30))
-				[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
-				
-				if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-					cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-				else
-					if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+				if [ "$frequencytest" = "halfhourly" ]; then
+					MINUTEEND=$((MINUTESTART + 30))
+					[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
+					
+					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 					else
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						else
+							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						fi
+					fi
+				elif [ "$frequencytest" = "hourly" ]; then
+					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+						cru a "$SCRIPT_NAME" "$MINUTESTART * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					else
+						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+							cru a "$SCRIPT_NAME" "$MINUTESTART ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						else
+							cru a "$SCRIPT_NAME" "$MINUTESTART ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						fi
 					fi
 				fi
 			fi
