@@ -1727,17 +1727,19 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
 			printf "\\n\\e[1mPlease select the frequency for speedtests:\\e[0m\\n"
-			printf "1.    Every hour (60 minutes)\\n"
-			printf "2.    Every half hour (30 minutes)\\n\\n"
+			printf "1.    Every half hour (30 minutes)\\n"
+			printf "2.    Every hour (60 minutes)\\n\\n"
 			printf "Choose an option:    "
 			read -r "frequency"
 			case "$frequency" in
 				1)
 					testfrequency="halfhourly"
+					printf "\\n"
 					break
 				;;
 				2)
 					testfrequency="hourly"
+					printf "\\n"
 					break
 				;;
 				e)
