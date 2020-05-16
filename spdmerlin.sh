@@ -19,7 +19,7 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v3.5.2"
+readonly SCRIPT_VERSION="v3.5.3"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -52,6 +52,7 @@ servername=""
 schedulestart=""
 scheduleend=""
 minutestart=""
+frequencytest=""
 ### End of Speedtest Server Variables ###
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
@@ -457,9 +458,12 @@ Conf_Exists(){
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 9 ]; then
 			echo "STORAGELOCATION=jffs" >> "$SCRIPT_CONF"
 		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 10 ]; then
+			echo "TESTFREQUENCY=halfhourly" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -648,19 +652,32 @@ Auto_Cron(){
 				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
 				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
 				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+				TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
 				if [ "$MINUTESTART" = "*" ]; then
 					MINUTESTART=12
 				fi
-				MINUTEEND=$((MINUTESTART + 30))
-				[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
-				
-				if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-					cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-				else
-					if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+				if [ "$TESTFREQUENCY" = "halfhourly" ]; then
+					MINUTEEND=$((MINUTESTART + 30))
+					[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
+					
+					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 					else
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						else
+							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						fi
+					fi
+				elif [ "$TESTFREQUENCY" = "hourly" ]; then
+					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+						cru a "$SCRIPT_NAME" "$MINUTESTART * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					else
+						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+							cru a "$SCRIPT_NAME" "$MINUTESTART ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						else
+							cru a "$SCRIPT_NAME" "$MINUTESTART ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						fi
 					fi
 				fi
 			fi
@@ -850,6 +867,7 @@ TestSchedule(){
 			sed -i 's/^'"SCHEDULESTART"'.*$/SCHEDULESTART='"$2"'/' "$SCRIPT_CONF"
 			sed -i 's/^'"SCHEDULEEND"'.*$/SCHEDULEEND='"$3"'/' "$SCRIPT_CONF"
 			sed -i 's/^'"MINUTE"'.*$/MINUTE='"$4"'/' "$SCRIPT_CONF"
+			sed -i 's/^'"TESTFREQUENCY"'.*$/TESTFREQUENCY='"$5"'/' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
@@ -857,10 +875,12 @@ TestSchedule(){
 			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
 			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
 			MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+			TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ] && [ "$MINUTESTART" != "*" ]; then
 				schedulestart="$SCHEDULESTART"
 				scheduleend="$SCHEDULEEND"
 				minutestart="$MINUTESTART"
+				frequencytest="$TESTFREQUENCY"
 				return 0
 			else
 				return 1
@@ -1295,21 +1315,21 @@ ScriptHeader(){
 	clear
 	
 	printf "\\n"
-	printf "\\e[1m############################################################\\e[0m\\n"
-	printf "\\e[1m##                   _  __  __              _  _          ##\\e[0m\\n"
-	printf "\\e[1m##                  | ||  \/  |            | |(_)         ##\\e[0m\\n"
-	printf "\\e[1m##   ___  _ __    __| || \  / |  ___  _ __ | | _  _ __    ##\\e[0m\\n"
-	printf "\\e[1m##  / __|| '_ \  / _  || |\/| | / _ \| '__|| || || '_ \   ##\\e[0m\\n"
-	printf "\\e[1m##  \__ \| |_) || (_| || |  | ||  __/| |   | || || | | |  ##\\e[0m\\n"
-	printf "\\e[1m##  |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_|  ##\\e[0m\\n"
-	printf "\\e[1m##      | |                                               ##\\e[0m\\n"
-	printf "\\e[1m##      |_|                                               ##\\e[0m\\n"
-	printf "\\e[1m##                                                        ##\\e[0m\\n"
-	printf "\\e[1m##                 %s on %-9s                    ##\\e[0m\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
-	printf "\\e[1m##                                                        ##\\e[0m\\n"
-	printf "\\e[1m##        https://github.com/jackyaz/spdMerlin            ##\\e[0m\\n"
-	printf "\\e[1m##                                                        ##\\e[0m\\n"
-	printf "\\e[1m############################################################\\e[0m\\n"
+	printf "\\e[1m####################################################################\\e[0m\\n"
+	printf "\\e[1m##                       _  __  __              _  _              ##\\e[0m\\n"
+	printf "\\e[1m##                      | ||  \/  |            | |(_)             ##\\e[0m\\n"
+	printf "\\e[1m##       ___  _ __    __| || \  / |  ___  _ __ | | _  _ __        ##\\e[0m\\n"
+	printf "\\e[1m##      / __|| '_ \  / _  || |\/| | / _ \| '__|| || || '_ \       ##\\e[0m\\n"
+	printf "\\e[1m##      \__ \| |_) || (_| || |  | ||  __/| |   | || || | | |      ##\\e[0m\\n"
+	printf "\\e[1m##      |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_|      ##\\e[0m\\n"
+	printf "\\e[1m##          | |                                                   ##\\e[0m\\n"
+	printf "\\e[1m##          |_|                                                   ##\\e[0m\\n"
+	printf "\\e[1m##                                                                ##\\e[0m\\n"
+	printf "\\e[1m##                       %s on %-9s                      ##\\e[0m\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
+	printf "\\e[1m##                                                                ##\\e[0m\\n"
+	printf "\\e[1m##              https://github.com/jackyaz/spdMerlin              ##\\e[0m\\n"
+	printf "\\e[1m##                                                                ##\\e[0m\\n"
+	printf "\\e[1m####################################################################\\e[0m\\n"
 	printf "\\n"
 }
 
@@ -1324,12 +1344,16 @@ MainMenu(){
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
-		minuteend=$((minutestart + 30))
-		[ "$minuteend" -gt 60 ] && minuteend=$((minuteend - 60))
-		if [ "$minutestart" -lt "$minuteend" ]; then
-			TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
-		else
-			TEST_SCHEDULE2="Tests will run at $minuteend and $minutestart past the hour"
+		if [ "$frequencytest" = "halfhourly" ]; then
+			minuteend=$((minutestart + 30))
+			[ "$minuteend" -gt 60 ] && minuteend=$((minuteend - 60))
+			if [ "$minutestart" -lt "$minuteend" ]; then
+				TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
+			else
+				TEST_SCHEDULE2="Tests will run at $minuteend and $minutestart past the hour"
+			fi
+		elif [ "$frequencytest" = "hourly" ]; then
+			TEST_SCHEDULE2="Tests will run at $minutestart past the hour"
 		fi
 	else
 		TEST_SCHEDULE="No defined schedule - tests run every hour"
@@ -1353,7 +1377,7 @@ MainMenu(){
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
 	printf "z.    Uninstall %s\\n" "$SCRIPT_NAME"
 	printf "\\n"
-	printf "\\e[1m############################################################\\e[0m\\n"
+	printf "\\e[1m####################################################################\\e[0m\\n"
 	printf "\\n"
 	
 	while true; do
@@ -1646,6 +1670,7 @@ Menu_EditSchedule(){
 	exitmenu="false"
 	starthour=""
 	startminute=""
+	testfrequency=""
 	ScriptHeader
 	
 	while true; do
@@ -1692,8 +1717,7 @@ Menu_EditSchedule(){
 	
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
-			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m"
-			printf "\\n\\e[1mN.B. the test will run at half hour intervals\\e[0m\\n"
+			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m\\n"
 			read -r "minute"
 			
 			if [ "$minute" = "e" ]; then
@@ -1714,7 +1738,36 @@ Menu_EditSchedule(){
 	fi
 	
 	if [ "$exitmenu" != "exit" ]; then
-		TestSchedule "update" "$starthour" "$endhour" "$startminute"
+		while true; do
+			printf "\\n\\e[1mPlease select the frequency for speedtests:\\e[0m\\n"
+			printf "1.    Every half hour (30 minutes)\\n"
+			printf "2.    Every hour (60 minutes)\\n\\n"
+			printf "Choose an option:    "
+			read -r "frequency"
+			case "$frequency" in
+				1)
+					testfrequency="halfhourly"
+					printf "\\n"
+					break
+				;;
+				2)
+					testfrequency="hourly"
+					printf "\\n"
+					break
+				;;
+				e)
+					exitmenu="exit"
+					break
+				;;
+				*)
+					printf "\\nPlease choose a valid option\\n\\n"
+				;;
+			esac
+		done
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		TestSchedule "update" "$starthour" "$endhour" "$startminute" "$testfrequency"
 	fi
 	
 	Clear_Lock
