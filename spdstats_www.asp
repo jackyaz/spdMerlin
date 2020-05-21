@@ -737,7 +737,7 @@ function BuildInterfaceTable(name){
 		
 		for(i = 0; i < objdataname.length; i++){
 			charthtml+='<tr>';
-			charthtml+='<td>'+moment(window["DataTimestamp_"+name][i]*1000).format('YYYY-MM-DD HH:mm:ss')+'</td>';
+			charthtml+='<td>'+moment.unix(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
 			charthtml+='<td>'+window["DataDownload_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
 			charthtml+='</tr>';
