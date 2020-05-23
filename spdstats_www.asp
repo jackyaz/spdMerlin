@@ -132,11 +132,14 @@ var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
 var maxNoCharts = 0;
 var currentNoCharts = 0;
 
-var ShowLines=GetCookie("ShowLines","string");
-var ShowFill=GetCookie("ShowFill","string");
+var ShowLines = GetCookie("ShowLines","string");
+var ShowFill = GetCookie("ShowFill","string");
 if( ShowFill == "" ){
 	ShowFill = "origin";
 }
+
+var DragZoom = true;
+var ChartPan = false;
 
 Chart.defaults.global.defaultFontColor = "#CCC";
 Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
@@ -190,7 +193,7 @@ function Draw_Chart(txtchartname){
 	if (dataobject.length == 0) { Draw_Chart_NoData(txtchartname); return; }
 	
 	//var chartLabels = dataobject.map(function(d) {return d.Metric});
-	//var chartData = dataobject.map(function(d) {return {x: d.Time, y: d.Value}});
+	var chartData = dataobject.map(function(d) {return {x: d.Time, y: d.Value}});
 	
 	var unique = [];
 	var chartTrafficTypes = [];
@@ -303,28 +306,28 @@ function Draw_Chart(txtchartname){
 		plugins: {
 			zoom: {
 				pan: {
-					enabled: false,
+					enabled: ChartPan,
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
-						//y: getLimit(chartData,"y","min",false) - Math.sqrt(Math.pow(getLimit(chartData,"y","min",false),2))*0.1,
+						y: 0,
 					},
 					rangeMax: {
 						x: new Date().getTime(),
-						//y: getLimit(chartData,"y","max",false) + getLimit(chartData,"y","max",false)*0.1,
+						y: getLimit(chartData,"y","max",false) + getLimit(chartData,"y","max",false)*0.1,
 					},
 				},
 				zoom: {
 					enabled: true,
-					drag: true,
+					drag: DragZoom,
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
-						//y: getLimit(chartData,"y","min",false) - Math.sqrt(Math.pow(getLimit(chartData,"y","min",false),2))*0.1,
+						y: 0,
 					},
 					rangeMax: {
 						x: new Date().getTime(),
-						//y: getLimit(chartData,"y","max",false) + getLimit(chartData,"y","max",false)*0.1,
+						y: getLimit(chartData,"y","max",false) + getLimit(chartData,"y","max",false)*0.1,
 					},
 					speed: 0.1
 				},
@@ -718,18 +721,22 @@ function ResetZoom(){
 	}
 }
 
-function DragZoom(button){
+function ToggleDragZoom(button){
 	var drag = true;
 	var pan = false;
 	var buttonvalue = "";
 	if(button.value.indexOf("On") != -1){
 		drag = false;
 		pan = true;
+		DragZoom = false;
+		ChartPan = true;
 		buttonvalue = "Drag Zoom Off";
 	}
 	else {
 		drag = true;
 		pan = false;
+		DragZoom = true;
+		ChartPan = false;
 		buttonvalue = "Drag Zoom On";
 	}
 	
@@ -837,7 +844,12 @@ function changeAllCharts(e) {
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
-	RedrawAllCharts();
+	if(interfacelist != ""){
+		var interfacetextarray = interfacelist.split(',');
+		for (i = 0; i < interfacetextarray.length; i++) {
+			Draw_Chart(interfacetextarray[i]);
+		}
+	}
 }
 
 function changeChart(e) {
@@ -1044,7 +1056,7 @@ function AddEventHandlers(){
 </tr>
 <tr class="apply_gen" valign="top">
 <td colspan="2" style="background-color:rgb(77, 89, 93);">
-<input type="button" onclick="DragZoom(this);" value="Drag Zoom On" class="button_gen" name="btnDragZoom">
+<input type="button" onclick="ToggleDragZoom(this);" value="Drag Zoom On" class="button_gen" name="btnDragZoom">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="btnResetZoom">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
