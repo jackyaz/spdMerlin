@@ -272,9 +272,12 @@ function Draw_Chart(txtchartname){
 					title: function (tooltipItem, data) { return (moment(tooltipItem[0].xLabel,"X").format(timetooltipformat)); },
 					label: function (tooltipItem, data) { return round(data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index].y,2).toFixed(2) + ' ' + txtunity;}
 				},
-				mode: 'x',
-				position: 'nearest',
-				intersect: false
+			itemSort: function(a, b) {
+				return b.datasetIndex - a.datasetIndex;
+			},
+			mode: 'x',
+			position: 'nearest',
+			intersect: false
 		},
 		scales: {
 			xAxes: [{
