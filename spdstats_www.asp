@@ -129,8 +129,15 @@ td.nodata {
 <script>
 var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
 
+var maxNoCharts = 0;
+var currentNoCharts = 0;
+
 var ShowLines=GetCookie("ShowLines","string");
 var ShowFill=GetCookie("ShowFill","string");
+if( ShowFill == "" ){
+	ShowFill = "origin";
+}
+
 Chart.defaults.global.defaultFontColor = "#CCC";
 Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
 	return coordinates;
@@ -138,9 +145,6 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
 
 var custom_settings = <% get_custom_settings(); %>;
 
-var metriclist = ["Download","Upload"];
-var titlelist = ["Download","Upload"];
-var measureunitlist = ["Mbps","Mbps"];
 var chartlist = ["daily","weekly","monthly"];
 var timeunitlist = ["hour","day","day"];
 var intervallist = [24,7,30];
@@ -162,27 +166,50 @@ $j(document).keyup(function(e){
 });
 
 function Draw_Chart_NoData(txtchartname){
-	document.getElementById("divLineChart"+txtchartname).width="730";
-	document.getElementById("divLineChart"+txtchartname).height="300";
-	document.getElementById("divLineChart"+txtchartname).style.width="730px";
-	document.getElementById("divLineChart"+txtchartname).style.height="300px";
-	var ctx = document.getElementById("divLineChart"+txtchartname).getContext("2d");
+	document.getElementById("divLineChart_"+txtchartname).width="730";
+	document.getElementById("divLineChart_"+txtchartname).height="500";
+	document.getElementById("divLineChart_"+txtchartname).style.width="730px";
+	document.getElementById("divLineChart_"+txtchartname).style.height="500px";
+	var ctx = document.getElementById("divLineChart_"+txtchartname).getContext("2d");
 	ctx.save();
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 	ctx.font = "normal normal bolder 48px Arial";
 	ctx.fillStyle = 'white';
-	ctx.fillText('No data to display', 365, 150);
+	ctx.fillText('No data to display', 365, 250);
 	ctx.restore();
 }
 
-function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolourname,backgroundcolourname,dataobject){
+function Draw_Chart(txtchartname){
+	var chartperiod = getChartPeriod($j("#" + txtchartname + "_Period option:selected").val());
+	var txtunity = "Mbps";
+	var txtunitx = timeunitlist[$j("#" + txtchartname + "_Period option:selected").val()];
+	var numunitx = intervallist[$j("#" + txtchartname + "_Period option:selected").val()];
+	var dataobject = window[chartperiod+"_"+txtchartname];
 	if(typeof dataobject === 'undefined' || dataobject === null) { Draw_Chart_NoData(txtchartname); return; }
 	if (dataobject.length == 0) { Draw_Chart_NoData(txtchartname); return; }
 	
-	var chartLabels = dataobject.map(function(d) {return d.Metric});
-	var chartData = dataobject.map(function(d) {return {x: d.Time, y: d.Value}});
-	var objchartname=window["LineChart"+txtchartname];
+	//var chartLabels = dataobject.map(function(d) {return d.Metric});
+	//var chartData = dataobject.map(function(d) {return {x: d.Time, y: d.Value}});
+	
+	var unique = [];
+	var chartTrafficTypes = [];
+	for( let i = 0; i < dataobject.length; i++ ){
+		if( !unique[dataobject[i].Metric]){
+			chartTrafficTypes.push(dataobject[i].Metric);
+			unique[dataobject[i].Metric] = 1;
+		}
+	}
+	
+	var chartDataDownload = dataobject.filter(function(item) {
+		return item.Metric == "Download";
+	}).map(function(d) {return {x: d.Time, y: d.Value}});
+	
+	var chartDataUpload = dataobject.filter(function(item) {
+		return item.Metric == "Upload";
+	}).map(function(d) {return {x: d.Time, y: d.Value}});
+	
+	var objchartname=window["LineChart_"+txtchartname];
 	
 	var timeaxisformat = getTimeFormat($j("#Time_Format option:selected").val(),"axis");
 	var timetooltipformat = getTimeFormat($j("#Time_Format option:selected").val(),"tooltip");
@@ -195,7 +222,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 		factor=60*60*24*1000;
 	}
 	if (objchartname != undefined) objchartname.destroy();
-	var ctx = document.getElementById("divLineChart"+txtchartname).getContext("2d");
+	var ctx = document.getElementById("divLineChart_"+txtchartname).getContext("2d");
 	var lineOptions = {
 		segmentShowStroke : false,
 		segmentStrokeColor : "#000",
@@ -204,12 +231,43 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 		maintainAspectRatio: false,
 		animateScale : true,
 		hover: { mode: "point" },
-		legend: { display: false, position: "bottom", onClick: null },
-		title: { display: true, text: txttitle },
+		legend: {
+			display: true,
+			position: "top",
+			reverse: true,
+			onClick: function (e, legendItem) {
+				var index = legendItem.datasetIndex;
+				var ci = this.chart;
+				var meta = ci.getDatasetMeta(index);
+				
+				meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+				
+				if( ShowLines == "line" ){
+					var annotationline = ""
+					if(meta.hidden != true){
+						annotationline = "line";
+					}
+					
+					if ( index == 0 ){
+						for (aindex = 3; aindex < 6; aindex++) {
+							ci.options.annotation.annotations[aindex].type=annotationline;
+						}
+					}
+					else if (index == 1){
+						for (aindex = 0; aindex < 3; aindex++) {
+							ci.options.annotation.annotations[aindex].type=annotationline;
+						}
+					}
+				}
+					
+				ci.update();
+			}
+		},
+		title: { display: true, text: "Bandwidth" },
 		tooltips: {
 			callbacks: {
 					title: function (tooltipItem, data) { return (moment(tooltipItem[0].xLabel,"X").format(timetooltipformat)); },
-					label: function (tooltipItem, data) { return round(data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index].y,3).toFixed(3) + ' ' + txtunity;}
+					label: function (tooltipItem, data) { return round(data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index].y,2).toFixed(2) + ' ' + txtunity;}
 				},
 				mode: 'x',
 				position: 'nearest',
@@ -232,11 +290,12 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 			}],
 			yAxes: [{
 				gridLines: { display: false, color: "#282828" },
-				scaleLabel: { display: false, labelString: txttitle },
+				scaleLabel: { display: false, labelString: "" },
 				ticks: {
 					display: true,
+					beginAtZero: true,
 					callback: function (value, index, values) {
-						return round(value,3).toFixed(3) + ' ' + txtunity;
+						return round(value,2).toFixed(2) + ' ' + txtunity;
 					}
 				},
 			}]
@@ -248,11 +307,11 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
-						y: getLimit(chartData,"y","min",false) - Math.sqrt(Math.pow(getLimit(chartData,"y","min",false),2))*0.1,
+						//y: getLimit(chartData,"y","min",false) - Math.sqrt(Math.pow(getLimit(chartData,"y","min",false),2))*0.1,
 					},
 					rangeMax: {
 						x: new Date().getTime(),
-						y: getLimit(chartData,"y","max",false) + getLimit(chartData,"y","max",false)*0.1,
+						//y: getLimit(chartData,"y","max",false) + getLimit(chartData,"y","max",false)*0.1,
 					},
 				},
 				zoom: {
@@ -261,11 +320,11 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 					mode: 'xy',
 					rangeMin: {
 						x: new Date().getTime() - (factor * numunitx),
-						y: getLimit(chartData,"y","min",false) - Math.sqrt(Math.pow(getLimit(chartData,"y","min",false),2))*0.1,
+						//y: getLimit(chartData,"y","min",false) - Math.sqrt(Math.pow(getLimit(chartData,"y","min",false),2))*0.1,
 					},
 					rangeMax: {
 						x: new Date().getTime(),
-						y: getLimit(chartData,"y","max",false) + getLimit(chartData,"y","max",false)*0.1,
+						//y: getLimit(chartData,"y","max",false) + getLimit(chartData,"y","max",false)*0.1,
 					},
 					speed: 0.1
 				},
@@ -281,8 +340,8 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getAverage(chartData),
-				borderColor: bordercolourname,
+				value: getAverage(chartDataDownload),
+				borderColor: bordercolourlist[0],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -298,7 +357,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 					enabled: true,
 					xAdjust: 0,
 					yAdjust: 0,
-					content: "Avg=" + round(getAverage(chartData),3).toFixed(3)+txtunity,
+					content: "Avg. Download=" + round(getAverage(chartDataDownload),2).toFixed(2)+txtunity,
 				}
 			},
 			{
@@ -306,8 +365,8 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getLimit(chartData,"y","max",true),
-				borderColor: bordercolourname,
+				value: getLimit(chartDataDownload,"y","max",true),
+				borderColor: bordercolourlist[0],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -323,7 +382,7 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 					enabled: true,
 					xAdjust: 0,
 					yAdjust: 0,
-					content: "Max=" + round(getLimit(chartData,"y","max",true),3).toFixed(3)+txtunity,
+					content: "Max. Download=" + round(getLimit(chartDataDownload,"y","max",true),2).toFixed(2)+txtunity,
 				}
 			},
 			{
@@ -331,8 +390,8 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getLimit(chartData,"y","min",true),
-				borderColor: bordercolourname,
+				value: getLimit(chartDataDownload,"y","min",true),
+				borderColor: bordercolourlist[0],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -348,28 +407,110 @@ function Draw_Chart(txtchartname,txttitle,txtunity,txtunitx,numunitx,bordercolou
 					enabled: true,
 					xAdjust: 0,
 					yAdjust: 0,
-					content: "Min=" + round(getLimit(chartData,"y","min",true),3).toFixed(3)+txtunity,
+					content: "Min. Download=" + round(getLimit(chartDataDownload,"y","min",true),2).toFixed(2)+txtunity,
 				}
-			}]
-		}
+			},
+			{
+				//id: 'avgline',
+				type: ShowLines,
+				mode: 'horizontal',
+				scaleID: 'y-axis-0',
+				value: getAverage(chartDataUpload),
+				borderColor: bordercolourlist[0],
+				borderWidth: 1,
+				borderDash: [5, 5],
+				label: {
+					backgroundColor: 'rgba(0,0,0,0.3)',
+					fontFamily: "sans-serif",
+					fontSize: 10,
+					fontStyle: "bold",
+					fontColor: "#fff",
+					xPadding: 6,
+					yPadding: 6,
+					cornerRadius: 6,
+					position: "center",
+					enabled: true,
+					xAdjust: 0,
+					yAdjust: 0,
+					content: "Avg. Upload=" + round(getAverage(chartDataUpload),2).toFixed(2)+txtunity,
+				}
+			},
+			{
+				//id: 'maxline',
+				type: ShowLines,
+				mode: 'horizontal',
+				scaleID: 'y-axis-0',
+				value: getLimit(chartDataUpload,"y","max",true),
+				borderColor: bordercolourlist[0],
+				borderWidth: 1,
+				borderDash: [5, 5],
+				label: {
+					backgroundColor: 'rgba(0,0,0,0.3)',
+					fontFamily: "sans-serif",
+					fontSize: 10,
+					fontStyle: "bold",
+					fontColor: "#fff",
+					xPadding: 6,
+					yPadding: 6,
+					cornerRadius: 6,
+					position: "center",
+					enabled: true,
+					xAdjust: 0,
+					yAdjust: 0,
+					content: "Max. Upload=" + round(getLimit(chartDataUpload,"y","max",true),2).toFixed(2)+txtunity,
+				}
+			},
+			{
+				//id: 'minline',
+				type: ShowLines,
+				mode: 'horizontal',
+				scaleID: 'y-axis-0',
+				value: getLimit(chartDataUpload,"y","min",true),
+				borderColor: bordercolourlist[0],
+				borderWidth: 1,
+				borderDash: [5, 5],
+				label: {
+					backgroundColor: 'rgba(0,0,0,0.3)',
+					fontFamily: "sans-serif",
+					fontSize: 10,
+					fontStyle: "bold",
+					fontColor: "#fff",
+					xPadding: 6,
+					yPadding: 6,
+					cornerRadius: 6,
+					position: "center",
+					enabled: true,
+					xAdjust: 0,
+					yAdjust: 0,
+					content: "Min. Upload=" + round(getLimit(chartDataUpload,"y","min",true),2).toFixed(2)+txtunity,
+				}
+			}
+		]}
 	};
 	var lineDataset = {
-		labels: chartLabels,
-		datasets: [{data: chartData,
-			borderWidth: 1,
-			pointRadius: 1,
-			lineTension: 0,
-			fill: ShowFill,
-			backgroundColor: backgroundcolourname,
-			borderColor: bordercolourname,
-		}]
+		datasets: getDataSets(txtchartname, dataobject, chartTrafficTypes)
 	};
 	objchartname = new Chart(ctx, {
 		type: 'line',
 		options: lineOptions,
 		data: lineDataset
 	});
-	window["LineChart"+txtchartname]=objchartname;
+	window["LineChart_"+txtchartname]=objchartname;
+}
+
+function getDataSets(txtchartname, objdata, objTrafficTypes) {
+	var datasets = [];
+	colourname="#fc8500";
+	
+	for(var i = 0; i < objTrafficTypes.length; i++) {
+		var traffictypedata = objdata.filter(function(item) {
+			return item.Metric == objTrafficTypes[i];
+		}).map(function(d) {return {x: d.Time, y: d.Value}});
+		
+		datasets.push({ label: objTrafficTypes[i], data: traffictypedata, borderWidth: 1, pointRadius: 1, lineTension: 0, fill: true, backgroundColor: backgroundcolourlist[i], borderColor: bordercolourlist[i]});
+	}
+	datasets.reverse();
+	return datasets;
 }
 
 function getLimit(datasetname,axis,maxmin,isannotation) {
@@ -418,15 +559,11 @@ function ToggleLines() {
 			ShowLines = "";
 			SetCookie("ShowLines","");
 		}
-		for(i = 0; i < metriclist.length; i++){
-			for (i2 = 0; i2 < chartlist.length; i2++) {
-				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					for (i4 = 0; i4 < 3; i4++) {
-						window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].options.annotation.annotations[i4].type=ShowLines;
-					}
-					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].update();
-				}
+		for (i3 = 0; i3 < interfacetextarray.length; i3++) {
+			for (i4 = 0; i4 < 6; i4++) {
+				window["LineChart_"+interfacetextarray[i3]].options.annotation.annotations[i4].type=ShowLines;
 			}
+			window["LineChart_"+interfacetextarray[i3]].update();
 		}
 	}
 }
@@ -442,13 +579,11 @@ function ToggleFill() {
 			ShowFill = "origin";
 			SetCookie("ShowFill","origin");
 		}
-			for(i = 0; i < metriclist.length; i++){
-			for (i2 = 0; i2 < chartlist.length; i2++) {
-				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].data.datasets[0].fill=ShowFill;
-					window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]].update();
-				}
-			}
+		
+		for (i3 = 0; i3 < interfacetextarray.length; i3++) {
+			window["LineChart_"+interfacetextarray[i3]].data.datasets[0].fill=ShowFill;
+			window["LineChart_"+interfacetextarray[i3]].data.datasets[1].fill=ShowFill;
+			window["LineChart_"+interfacetextarray[i3]].update();
 		}
 	}
 }
@@ -457,11 +592,11 @@ function RedrawAllCharts() {
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		var i;
-		for(i = 0; i < metriclist.length; i++){
-			for (i2 = 0; i2 < chartlist.length; i2++) {
-				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					d3.csv('/ext/spdmerlin/csv/'+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(Draw_Chart.bind(null,metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3],titlelist[i],measureunitlist[i],timeunitlist[i2],intervallist[i2],bordercolourlist[i],backgroundcolourlist[i]));
-				}
+		for (i2 = 0; i2 < chartlist.length; i2++) {
+			for (i3 = 0; i3 < interfacetextarray.length; i3++) {
+				$j("#"+interfacetextarray[i3]+"_Period").val(GetCookie(interfacetextarray[i3]+"_Period","number"));
+				//d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(Draw_Chart.bind(null,"Combined"+chartlist[i2]+"_"+interfacetextarray[i3],measureunitlist[i],timeunitlist[i2],intervallist[i2],bordercolourlist[i],backgroundcolourlist[i]));
+				d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]));
 			}
 		}
 	}
@@ -533,6 +668,19 @@ function initial(){
 	get_conf_file();
 }
 
+function SetGlobalDataset(txtchartname,dataobject){
+	window[txtchartname] = dataobject;
+	currentNoCharts++;
+	if(currentNoCharts == maxNoCharts) {
+		if(interfacelist != ""){
+			var interfacetextarray = interfacelist.split(',');
+			for (i = 0; i < interfacetextarray.length; i++) {
+				Draw_Chart(interfacetextarray[i]);
+			}
+		}
+	}
+}
+
 function ScriptUpdateLayout(){
 	var localver = GetVersionNumber("local");
 	var serverver = GetVersionNumber("server");
@@ -551,17 +699,21 @@ function reload() {
 	location.reload(true);
 }
 
+function getChartPeriod(period) {
+	var chartperiod = "daily";
+	if (period == 0) chartperiod = "daily";
+	else if (period == 1) chartperiod = "weekly";
+	else if (period == 2) chartperiod = "monthly";
+	return chartperiod;
+}
+
 function ResetZoom(){
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
-		for(i = 0; i < metriclist.length; i++){
-			for (i2 = 0; i2 < chartlist.length; i2++) {
-				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					var chartobj = window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]];
-					if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
-					chartobj.resetZoom();
-				}
-			}
+			for (i3 = 0; i3 < interfacetextarray.length; i3++) {
+				var chartobj = window["LineChart_"+interfacetextarray[i3]];
+				if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
+				chartobj.resetZoom();
 		}
 	}
 }
@@ -583,17 +735,13 @@ function DragZoom(button){
 	
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
-		for(i = 0; i < metriclist.length; i++){
-			for (i2 = 0; i2 < chartlist.length; i2++) {
-				for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-					var chartobj = window["LineChart"+metriclist[i]+chartlist[i2]+"_"+interfacetextarray[i3]];
-					if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
-					chartobj.options.plugins.zoom.zoom.drag = drag;
-					chartobj.options.plugins.zoom.pan.enabled = pan;
-					button.value = buttonvalue;
-					chartobj.update();
-				}
-			}
+		for (i3 = 0; i3 < interfacetextarray.length; i3++) {
+			var chartobj = window["LineChart_"+interfacetextarray[i3]];
+			if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
+			chartobj.options.plugins.zoom.zoom.drag = drag;
+			chartobj.options.plugins.zoom.pan.enabled = pan;
+			button.value = buttonvalue;
+			chartobj.update();
 		}
 	}
 }
@@ -677,6 +825,7 @@ function get_conf_file(){
 			}
 			
 			if(interfacelist != ""){
+				maxNoCharts = interfacelist.split(',').length*3;
 				AddEventHandlers();
 				RedrawAllCharts();
 			}
@@ -684,32 +833,38 @@ function get_conf_file(){
 	});
 }
 
-function changeChart(e) {
+function changeAllCharts(e) {
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
 	RedrawAllCharts();
 }
 
+function changeChart(e) {
+	value = e.value * 1;
+	name = e.id.substring(0, e.id.indexOf("_"));
+	SetCookie(e.id,value);
+	Draw_Chart(name);
+}
+
 function BuildInterfaceTable(name){
 	var charthtml = '<div style="line-height:10px;">&nbsp;</div>';
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_interfaces_'+name+'">';
-	charthtml+='<thead class="collapsibleparent" id="'+name+'">';
+	charthtml+='<thead class="collapsible-jquery" id="'+name+'">';
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2">'+name+' (click to expand/collapse)</td>';
 	charthtml+='</tr>';
 	charthtml+='</thead>';
+	charthtml+='<div class="collapsiblecontent">';
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
-	charthtml+='<div class="collapsiblecontent">';
-	
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
-	charthtml+='<thead class="collapsible expanded" id="spd_resulttable_'+name+'">';
+	charthtml+='<thead class="collapsible-jquery" id="resulttable_'+name+'">';
 	charthtml+='<tr><td colspan="2">Last 10 speedtest results (click to expand/collapse)</td></tr>';
 	charthtml+='</thead>';
+	charthtml+='<div class="collapsiblecontent">';
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
-	charthtml+='<div class="collapsiblecontent">';
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">';
 	var nodata="";
 	var objdataname = window["DataTimestamp_"+name];
@@ -744,68 +899,39 @@ function BuildInterfaceTable(name){
 		};
 	}
 	charthtml+='</table>';
-	charthtml+='</div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
+	charthtml+='</div>';
 	charthtml+='</table>';
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
 		
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
+	charthtml+='<thead class="collapsible-jquery" id="'+name+'_Chart">';
 	charthtml+='<tr>';
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='</tr>';
-	charthtml+='<thead class="collapsible" id="last24_'+name+'">';
-	charthtml+='<tr>';
-	charthtml+='<td colspan="2">Last 24 Hours (click to expand/collapse)</td>';
+	charthtml+='<td colspan="2">Chart (click to expand/collapse)</td>';
 	charthtml+='</tr>';
 	charthtml+='</thead>';
+	charthtml+='<div class="collapsiblecontent">';
+	charthtml+='<tr class="even">';
+	charthtml+='<th width="40%">Period to display</th>';
+	charthtml+='<td>';
+	charthtml+='<select style="width:125px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period">';
+	charthtml+='<option value=0>Last 24 hours</option>';
+	charthtml+='<option value=1>Last 7 days</option>';
+	charthtml+='<option value=2>Last 30 days</option>';
+	charthtml+='</select>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
-	charthtml+='<div class="collapsiblecontent">';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloaddaily_'+name+'" height="300" /></div>';
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploaddaily_'+name+'" height="300" /></div>';
-	charthtml+='</div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;height:500px;padding-left:5px;"><canvas id="divLineChart_'+name+'" height="500" /></div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
+	charthtml+='</div>';
 	charthtml+='</table>';
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
-	charthtml+='<thead class="collapsible" id="last7_'+name+'">';
-	charthtml+='<tr>';
-	charthtml+='<td colspan="2">Last 7 days (click to expand/collapse)</td>';
-	charthtml+='</tr>';
-	charthtml+='</thead>';
-	charthtml+='<tr>';
-	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
-	charthtml+='<div class="collapsiblecontent">';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadweekly_'+name+'" height="300" /></div>';
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadweekly_'+name+'" height="300" /></div>';
-	charthtml+='</div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
-	charthtml+='</table>';
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
-	charthtml+='<thead class="collapsible" id="last30_'+name+'">';
-	charthtml+='<tr>';
-	charthtml+='<td colspan="2">Last 30 days (click to expand/collapse)</td>';
-	charthtml+='</tr>';
-	charthtml+='</thead>';
-	charthtml+='<tr>';
-	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
-	charthtml+='<div class="collapsiblecontent">';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartDownloadmonthly_'+name+'" height="300" /></div>';
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;padding-left:5px;"><canvas id="divLineChartUploadmonthly_'+name+'" height="300" /></div>';
 	charthtml+='</div>';
-	charthtml+='</td>';
-	charthtml+='</tr>';
-	charthtml+='</table>';
-	charthtml+='</div>';
-	charthtml+='</td>';
-	charthtml+='</tr>';
 	charthtml+='</table>';
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
 	return charthtml;
@@ -813,54 +939,24 @@ function BuildInterfaceTable(name){
 
 function AddEventHandlers(){
 	$j(".collapsible-jquery").click(function(){
-		$j(this).siblings().toggle("fast")
+		$j(this).siblings().toggle("fast",function(){
+			if($j(this).css("display") == "none"){
+				SetCookie($j(this).siblings()[0].id,"collapsed");
+			}
+			else {
+				SetCookie($j(this).siblings()[0].id,"expanded");
+			}
+		})
 	});
 	
-	var coll = document.getElementsByClassName("collapsible");
-	var i;
-	var height = 0;
-
-	for (i = 0; i < coll.length; i++) {
-		coll[i].addEventListener("click", function() {
-			this.classList.toggle("active");
-			var content = this.nextElementSibling.firstElementChild.firstElementChild.firstElementChild;
-			if (content.style.maxHeight){
-					content.style.maxHeight = null;
-					SetCookie(this.id,"collapsed")
-			} else {
-					content.style.maxHeight = content.scrollHeight + "px";
-					this.parentElement.parentElement.style.maxHeight = (this.parentElement.parentElement.style.maxHeight.substring(0,this.parentElement.parentElement.style.maxHeight.length-2)*1) + content.scrollHeight + "px";
-					SetCookie(this.id,"expanded");
-				}
-		});
-		
-		if(GetCookie(coll[i].id,"string") == "expanded" || GetCookie(coll[i].id,"string") == ""){
-			coll[i].click();
+	$j(".collapsible-jquery").each(function(index,element){
+		if(GetCookie($j(this)[0].id,"string") == "collapsed"){
+			$j(this).siblings().toggle(false);
 		}
-		height=(coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.substring(0,coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight.length-2)*1) + height + 21 + 10 + 10 + 10 + 10 + 10;
-	}
-	
-	var coll = document.getElementsByClassName("collapsibleparent");
-	var i;
-	
-	for (i = 0; i < coll.length; i++) {
-		coll[i].addEventListener("click", function() {
-			this.classList.toggle("active");
-			var content = this.nextElementSibling.firstElementChild.firstElementChild.firstElementChild;
-			if (content.style.maxHeight){
-				content.style.maxHeight = null;
-				SetCookie(this.id,"collapsed");
-			} else {
-				content.style.maxHeight = content.scrollHeight + "px";
-				SetCookie(this.id,"expanded");
-			}
-		});
-		if(GetCookie(coll[i].id,"string") == "expanded" || GetCookie(coll[i].id,"string") == ""){
-			coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight = height + "px";
-		} else {
-			coll[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.style.maxHeight = null;
+		else {
+			$j(this).siblings().toggle(true);
 		}
-	}
+	});
 }
 </script>
 </head>
@@ -901,7 +997,7 @@ function AddEventHandlers(){
 <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 <div class="formfontdesc">spdMerlin is an automatic speedtest tool for AsusWRT Merlin - with charts.</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
-<thead class="collapsible-jquery" id="spd_scripttools">
+<thead class="collapsible-jquery" id="scripttools">
 <tr><td colspan="2">Script Utilities (click to expand/collapse)</td></tr>
 </thead>
 <div class="collapsiblecontent">
@@ -933,14 +1029,14 @@ function AddEventHandlers(){
 </table>
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons2">
-<thead class="collapsible-jquery" id="spd_charttools">
+<thead class="collapsible-jquery" id="charttools">
 <tr><td colspan="2">Chart Configuration (click to expand/collapse)</td></tr>
 </thead>
 <div class="collapsiblecontent">
 <tr>
 <th width="20%"><span style="color:#FFFFFF;">Time format</span><br /><span style="color:#FFFFFF;">for tooltips and Last 24h chart axis</span></th>
 <td>
-<select style="width:100px" class="input_option" onchange="changeChart(this)" id="Time_Format">
+<select style="width:100px" class="input_option" onchange="changeAllCharts(this)" id="Time_Format">
 <option value="0">24h</option>
 <option value="1">12h</option>
 </select>
