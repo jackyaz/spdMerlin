@@ -999,8 +999,8 @@ WriteSql_ToFile(){
 	multiplier="$(echo "$3" | awk '{printf (60*60*$1)}')"
 	{
 		echo ".mode csv"
-		echo ".headers on"
-		echo ".output $5$6""_$7.htm"
+		echo ".headers off"
+		echo ".output $5$6""_$7.tmp"
 	} >> "$8"
 	
 	echo "SELECT '$1' Metric, Min([Timestamp]) Time, IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
@@ -1214,19 +1214,18 @@ Generate_CSVs(){
 			for metric in $metriclist; do
 				{
 					echo ".mode csv"
-					echo ".headers on"
-					echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".htm"
+					echo ".headers off"
+					echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".tmp"
 					echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 				} > /tmp/spd-stats.sql
-				
 				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 				rm -f /tmp/spd-stats.sql
 				
 				if [ "$OUTPUTDATAMODE" = "raw" ]; then
 					{
 						echo ".mode csv"
-						echo ".headers on"
-						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".htm"
+						echo ".headers off"
+						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".tmp"
 						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
 					} > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1234,8 +1233,8 @@ Generate_CSVs(){
 					
 					{
 						echo ".mode csv"
-						echo ".headers on"
-						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".htm"
+						echo ".headers off"
+						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".tmp"
 						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
 					} > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1250,6 +1249,16 @@ Generate_CSVs(){
 					rm -f /tmp/spd-stats.sql
 				fi
 			done
+			
+			cat "$CSV_OUTPUT_DIR/Downloaddaily_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Uploaddaily_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME"".htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Downloadweekly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Uploadweekly_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME"".htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Downloadmonthly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Uploadmonthly_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME"".htm" 2> /dev/null
+			rm -f "$CSV_OUTPUT_DIR/Download"*
+			rm -f "$CSV_OUTPUT_DIR/Upload"*
+			
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME"".htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME"".htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME"".htm"
 			
 			Generate_LastXResults "$IFACE_NAME"
 			rm -f "/tmp/spd-stats.sql"
