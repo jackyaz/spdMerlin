@@ -21,7 +21,7 @@ The speedtest is scheduled to run at 12 past and 42 past the hour, every hour, b
 
 ![Menu UI](https://puu.sh/EUb1y/e1be02cfe7.png)
 
-![Graph example](https://puu.sh/EUb2D/fde7562804.png)
+![Graph example](https://puu.sh/FOl8U/adf5aad58e.png)
 
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
