@@ -2,8 +2,8 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
-## v3.6.0
-### Updated on 2020-05-24
+## v3.6.1
+### Updated on 2020-05-25
 ## About
 Run automated speedtests for your Internet on your router with graphs available on the Addons page of the WebUI.
 
@@ -19,12 +19,12 @@ A swap file is required to ensure smooth operation of the script.
 
 The speedtest is scheduled to run at 12 past and 42 past the hour, every hour, by default.
 
-![Menu UI](https://puu.sh/FOli0/6f1f708fca.png)
-
-![Graph example](https://puu.sh/FOl8U/adf5aad58e.png)
-
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
+
+![Menu UI](https://puu.sh/FOli0/6f1f708fca.png)
+
+![Graph example](https://puu.sh/FOwBz/bf40227c34.png)
 
 [**PayPal donation**](https://paypal.me/jackyaz21)
 
