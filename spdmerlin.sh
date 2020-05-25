@@ -19,8 +19,8 @@ readonly SCRIPT_NAME="spdMerlin"
 #shellcheck disable=SC2019
 #shellcheck disable=SC2018
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v3.6.0"
-readonly SCRIPT_BRANCH="master"
+readonly SCRIPT_VERSION="v3.6.1"
+readonly SCRIPT_BRANCH="develop"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/spdMerlin/""$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_WEBPAGE_DIR="$(readlink /www/user)"
@@ -105,6 +105,8 @@ Clear_Lock(){
 Check_Swap () {
 	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then return 0; else return 1; fi
 }
+
+############################################################################
 
 Set_Version_Custom_Settings(){
 	SETTINGSFILE="/jffs/addons/custom_settings.txt"
@@ -208,7 +210,6 @@ Update_Version(){
 		exit 0
 	fi
 }
-############################################################################
 
 Update_File(){
 	if [ "$1" = "$ARCH.tar.gz" ]; then
