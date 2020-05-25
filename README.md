@@ -19,12 +19,12 @@ A swap file is required to ensure smooth operation of the script.
 
 The speedtest is scheduled to run at 12 past and 42 past the hour, every hour, by default.
 
-![Menu UI](https://puu.sh/FOli0/6f1f708fca.png)
-
-![Graph example](https://puu.sh/FOl8U/adf5aad58e.png)
-
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
+
+![Menu UI](https://puu.sh/FOli0/6f1f708fca.png)
+
+![Graph example](https://puu.sh/FOwBz/bf40227c34.png)
 
 [**PayPal donation**](https://paypal.me/jackyaz21)
 
