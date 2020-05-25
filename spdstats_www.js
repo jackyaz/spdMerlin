@@ -206,9 +206,6 @@ function Draw_Chart(txtchartname){
 					speed: 0.1
 				},
 			},
-			deferred: {
-				delay: 250
-			},
 		},
 		annotation: {
 			drawTime: 'afterDatasetsDraw',
@@ -257,7 +254,7 @@ function Draw_Chart(txtchartname){
 					cornerRadius: 6,
 					position: "right",
 					enabled: true,
-					xAdjust: 0,
+					xAdjust: 15,
 					yAdjust: 0,
 					content: "Max. Download=" + round(getLimit(chartDataDownload,"y","max",true),2).toFixed(2)+txtunity,
 				}
@@ -282,7 +279,7 @@ function Draw_Chart(txtchartname){
 					cornerRadius: 6,
 					position: "left",
 					enabled: true,
-					xAdjust: 0,
+					xAdjust: 15,
 					yAdjust: 0,
 					content: "Min. Download=" + round(getLimit(chartDataDownload,"y","min",true),2).toFixed(2)+txtunity,
 				}
@@ -293,7 +290,7 @@ function Draw_Chart(txtchartname){
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
 				value: getAverage(chartDataUpload),
-				borderColor: bordercolourlist[0],
+				borderColor: bordercolourlist[1],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -318,7 +315,7 @@ function Draw_Chart(txtchartname){
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
 				value: getLimit(chartDataUpload,"y","max",true),
-				borderColor: bordercolourlist[0],
+				borderColor: bordercolourlist[1],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -332,7 +329,7 @@ function Draw_Chart(txtchartname){
 					cornerRadius: 6,
 					position: "right",
 					enabled: true,
-					xAdjust: 0,
+					xAdjust: 15,
 					yAdjust: 0,
 					content: "Max. Upload=" + round(getLimit(chartDataUpload,"y","max",true),2).toFixed(2)+txtunity,
 				}
@@ -343,7 +340,7 @@ function Draw_Chart(txtchartname){
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
 				value: getLimit(chartDataUpload,"y","min",true),
-				borderColor: bordercolourlist[0],
+				borderColor: bordercolourlist[1],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -357,7 +354,7 @@ function Draw_Chart(txtchartname){
 					cornerRadius: 6,
 					position: "left",
 					enabled: true,
-					xAdjust: 0,
+					xAdjust: 15,
 					yAdjust: 0,
 					content: "Min. Upload=" + round(getLimit(chartDataUpload,"y","min",true),2).toFixed(2)+txtunity,
 				}
