@@ -22,8 +22,12 @@ Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
 var chartlist = ["daily","weekly","monthly"];
 var timeunitlist = ["hour","day","day"];
 var intervallist = [24,7,30];
-var bordercolourlist = ["#fc8500","#42ecf5"];
-var backgroundcolourlist = ["rgba(252,133,0,0.5)","rgba(66,236,245,0.5)"];
+var bordercolourlist_Combined = ["#fc8500","#42ecf5"];
+var backgroundcolourlist_Combined = ["rgba(252,133,0,0.5)","rgba(66,236,245,0.5)"];
+var bordercolourlist_Quality = ["#53047a","#07f242","#ffffff"];
+var backgroundcolourlist_Quality = ["rgba(83,4,122,0.5)","rgba(7,242,66,0.5)","rgba(255,255,255,0.5)"];
+
+var typelist = ["Combined","Quality"];
 
 function keyHandler(e) {
 	if (e.keyCode == 27){
@@ -39,12 +43,12 @@ $j(document).keyup(function(e){
 	});
 });
 
-function Draw_Chart_NoData(txtchartname){
-	document.getElementById("divLineChart_"+txtchartname).width="730";
-	document.getElementById("divLineChart_"+txtchartname).height="500";
-	document.getElementById("divLineChart_"+txtchartname).style.width="730px";
-	document.getElementById("divLineChart_"+txtchartname).style.height="500px";
-	var ctx = document.getElementById("divLineChart_"+txtchartname).getContext("2d");
+function Draw_Chart_NoData(txtchartname,txtcharttype){
+	document.getElementById("divLineChart_"+txtchartname+"_"+txtcharttype).width="730";
+	document.getElementById("divLineChart_"+txtchartname+"_"+txtcharttype).height="500";
+	document.getElementById("divLineChart_"+txtchartname+"_"+txtcharttype).style.width="730px";
+	document.getElementById("divLineChart_"+txtchartname+"_"+txtcharttype).style.height="500px";
+	var ctx = document.getElementById("divLineChart_"+txtchartname+"_"+txtcharttype).getContext("2d");
 	ctx.save();
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
@@ -54,16 +58,32 @@ function Draw_Chart_NoData(txtchartname){
 	ctx.restore();
 }
 
-function Draw_Chart(txtchartname){
+function Draw_Chart(txtchartname,txtcharttype){
+	var txtunity = "";
+	var txttitle = "";
+	var metric0 = "";
+	var metric1 = "";
+	
+	if(txtcharttype == "Combined"){
+		txtunity = "Mbps";
+		txttitle = "Bandwidth";
+		metric0 = "Download";
+		metric1 = "Upload";
+	}
+	else if(txtcharttype == "Quality"){
+		txtunity = "ms";
+		txttitle = "Quality";
+		metric0 = "Latency";
+		metric1 = "Jitter";
+	}
+	
 	var chartperiod = getChartPeriod($j("#" + txtchartname + "_Period option:selected").val());
-	var txtunity = "Mbps";
 	var txtunitx = timeunitlist[$j("#" + txtchartname + "_Period option:selected").val()];
 	var numunitx = intervallist[$j("#" + txtchartname + "_Period option:selected").val()];
-	var dataobject = window[chartperiod+"_"+txtchartname];
-	if(typeof dataobject === 'undefined' || dataobject === null) { Draw_Chart_NoData(txtchartname); return; }
-	if (dataobject.length == 0) { Draw_Chart_NoData(txtchartname); return; }
+	var dataobject = window[chartperiod+"_"+txtchartname+"_"+txtcharttype];
+	if(typeof dataobject === 'undefined' || dataobject === null) { Draw_Chart_NoData(txtchartname,txtcharttype); return; }
+	if (dataobject.length == 0) { Draw_Chart_NoData(txtchartname,txtcharttype); return; }
 	
-	//var chartLabels = dataobject.map(function(d) {return d.Metric});
 	var chartData = dataobject.map(function(d) {return {x: d.Time, y: d.Value}});
 	
 	var unique = [];
@@ -75,15 +95,15 @@ function Draw_Chart(txtchartname){
 		}
 	}
 	
-	var chartDataDownload = dataobject.filter(function(item) {
-		return item.Metric == "Download";
+	var chartData0 = dataobject.filter(function(item) {
+		return item.Metric == metric0;
 	}).map(function(d) {return {x: d.Time, y: d.Value}});
 	
-	var chartDataUpload = dataobject.filter(function(item) {
-		return item.Metric == "Upload";
+	var chartData1 = dataobject.filter(function(item) {
+		return item.Metric == metric1;
 	}).map(function(d) {return {x: d.Time, y: d.Value}});
 	
-	var objchartname=window["LineChart_"+txtchartname];
+	var objchartname=window["LineChart_"+txtchartname+"_"+txtcharttype];
 	
 	var timeaxisformat = getTimeFormat($j("#Time_Format option:selected").val(),"axis");
 	var timetooltipformat = getTimeFormat($j("#Time_Format option:selected").val(),"tooltip");
@@ -96,7 +116,7 @@ function Draw_Chart(txtchartname){
 		factor=60*60*24*1000;
 	}
 	if (objchartname != undefined) objchartname.destroy();
-	var ctx = document.getElementById("divLineChart_"+txtchartname).getContext("2d");
+	var ctx = document.getElementById("divLineChart_"+txtchartname+"_"+txtcharttype).getContext("2d");
 	var lineOptions = {
 		segmentShowStroke : false,
 		segmentStrokeColor : "#000",
@@ -137,7 +157,7 @@ function Draw_Chart(txtchartname){
 				ci.update();
 			}
 		},
-		title: { display: true, text: "Bandwidth" },
+		title: { display: true, text: txttitle },
 		tooltips: {
 			callbacks: {
 					title: function (tooltipItem, data) { return (moment(tooltipItem[0].xLabel,"X").format(timetooltipformat)); },
@@ -214,8 +234,8 @@ function Draw_Chart(txtchartname){
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getAverage(chartDataDownload),
-				borderColor: bordercolourlist[0],
+				value: getAverage(chartData0),
+				borderColor: window["bordercolourlist_"+txtcharttype][0],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -231,7 +251,7 @@ function Draw_Chart(txtchartname){
 					enabled: true,
 					xAdjust: 0,
 					yAdjust: 0,
-					content: "Avg. Download=" + round(getAverage(chartDataDownload),2).toFixed(2)+txtunity,
+					content: "Avg. "+metric0+"=" + round(getAverage(chartData0),2).toFixed(2)+txtunity,
 				}
 			},
 			{
@@ -239,8 +259,8 @@ function Draw_Chart(txtchartname){
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getLimit(chartDataDownload,"y","max",true),
-				borderColor: bordercolourlist[0],
+				value: getLimit(chartData0,"y","max",true),
+				borderColor: window["bordercolourlist_"+txtcharttype][0],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -256,7 +276,7 @@ function Draw_Chart(txtchartname){
 					enabled: true,
 					xAdjust: 15,
 					yAdjust: 0,
-					content: "Max. Download=" + round(getLimit(chartDataDownload,"y","max",true),2).toFixed(2)+txtunity,
+					content: "Max. "+metric0+"=" + round(getLimit(chartData0,"y","max",true),2).toFixed(2)+txtunity,
 				}
 			},
 			{
@@ -264,8 +284,8 @@ function Draw_Chart(txtchartname){
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getLimit(chartDataDownload,"y","min",true),
-				borderColor: bordercolourlist[0],
+				value: getLimit(chartData0,"y","min",true),
+				borderColor: window["bordercolourlist_"+txtcharttype][0],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -281,7 +301,7 @@ function Draw_Chart(txtchartname){
 					enabled: true,
 					xAdjust: 15,
 					yAdjust: 0,
-					content: "Min. Download=" + round(getLimit(chartDataDownload,"y","min",true),2).toFixed(2)+txtunity,
+					content: "Min. "+metric0+"=" + round(getLimit(chartData0,"y","min",true),2).toFixed(2)+txtunity,
 				}
 			},
 			{
@@ -289,8 +309,8 @@ function Draw_Chart(txtchartname){
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getAverage(chartDataUpload),
-				borderColor: bordercolourlist[1],
+				value: getAverage(chartData1),
+				borderColor: window["bordercolourlist_"+txtcharttype][1],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -306,7 +326,7 @@ function Draw_Chart(txtchartname){
 					enabled: true,
 					xAdjust: 0,
 					yAdjust: 0,
-					content: "Avg. Upload=" + round(getAverage(chartDataUpload),2).toFixed(2)+txtunity,
+					content: "Avg. "+metric1+"=" + round(getAverage(chartData1),2).toFixed(2)+txtunity,
 				}
 			},
 			{
@@ -314,8 +334,8 @@ function Draw_Chart(txtchartname){
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getLimit(chartDataUpload,"y","max",true),
-				borderColor: bordercolourlist[1],
+				value: getLimit(chartData1,"y","max",true),
+				borderColor: window["bordercolourlist_"+txtcharttype][1],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -331,7 +351,7 @@ function Draw_Chart(txtchartname){
 					enabled: true,
 					xAdjust: 15,
 					yAdjust: 0,
-					content: "Max. Upload=" + round(getLimit(chartDataUpload,"y","max",true),2).toFixed(2)+txtunity,
+					content: "Max. "+metric1+"=" + round(getLimit(chartData1,"y","max",true),2).toFixed(2)+txtunity,
 				}
 			},
 			{
@@ -339,8 +359,8 @@ function Draw_Chart(txtchartname){
 				type: ShowLines,
 				mode: 'horizontal',
 				scaleID: 'y-axis-0',
-				value: getLimit(chartDataUpload,"y","min",true),
-				borderColor: bordercolourlist[1],
+				value: getLimit(chartData1,"y","min",true),
+				borderColor: window["bordercolourlist_"+txtcharttype][1],
 				borderWidth: 1,
 				borderDash: [5, 5],
 				label: {
@@ -356,23 +376,23 @@ function Draw_Chart(txtchartname){
 					enabled: true,
 					xAdjust: 15,
 					yAdjust: 0,
-					content: "Min. Upload=" + round(getLimit(chartDataUpload,"y","min",true),2).toFixed(2)+txtunity,
+					content: "Min. "+metric1+"=" + round(getLimit(chartData1,"y","min",true),2).toFixed(2)+txtunity,
 				}
 			}
 		]}
 	};
 	var lineDataset = {
-		datasets: getDataSets(txtchartname, dataobject, chartTrafficTypes)
+		datasets: getDataSets(txtcharttype, dataobject, chartTrafficTypes)
 	};
 	objchartname = new Chart(ctx, {
 		type: 'line',
 		options: lineOptions,
 		data: lineDataset
 	});
-	window["LineChart_"+txtchartname]=objchartname;
+	window["LineChart_"+txtchartname+"_"+txtcharttype]=objchartname;
 }
 
-function getDataSets(txtchartname, objdata, objTrafficTypes) {
+function getDataSets(charttype, objdata, objTrafficTypes) {
 	var datasets = [];
 	colourname="#fc8500";
 	
@@ -381,7 +401,7 @@ function getDataSets(txtchartname, objdata, objTrafficTypes) {
 			return item.Metric == objTrafficTypes[i];
 		}).map(function(d) {return {x: d.Time, y: d.Value}});
 		
-		datasets.push({ label: objTrafficTypes[i], data: traffictypedata, borderWidth: 1, pointRadius: 1, lineTension: 0, fill: true, backgroundColor: backgroundcolourlist[i], borderColor: bordercolourlist[i]});
+		datasets.push({ label: objTrafficTypes[i], data: traffictypedata, borderWidth: 1, pointRadius: 1, lineTension: 0, fill: true, backgroundColor: window["backgroundcolourlist_"+charttype][i], borderColor: window["bordercolourlist_"+charttype][i]});
 	}
 	datasets.reverse();
 	return datasets;
@@ -433,11 +453,13 @@ function ToggleLines() {
 			ShowLines = "";
 			SetCookie("ShowLines","");
 		}
-		for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-			for (i4 = 0; i4 < 6; i4++) {
-				window["LineChart_"+interfacetextarray[i3]].options.annotation.annotations[i4].type=ShowLines;
+		for (i = 0; i < interfacetextarray.length; i++) {
+			for (i2 = 0; i2 < typelist.length; i2++) {
+				for (i3 = 0; i3 < 6; i3++) {
+					window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].options.annotation.annotations[i3].type=ShowLines;
+				}
+				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
 			}
-			window["LineChart_"+interfacetextarray[i3]].update();
 		}
 	}
 }
@@ -446,18 +468,20 @@ function ToggleFill() {
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		if(ShowFill == "origin"){
-			ShowFill = "false";
-			SetCookie("ShowFill","false");
+			ShowFill = false;
+			SetCookie("ShowFill",false);
 		}
 		else {
 			ShowFill = "origin";
 			SetCookie("ShowFill","origin");
 		}
 		
-		for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-			window["LineChart_"+interfacetextarray[i3]].data.datasets[0].fill=ShowFill;
-			window["LineChart_"+interfacetextarray[i3]].data.datasets[1].fill=ShowFill;
-			window["LineChart_"+interfacetextarray[i3]].update();
+		for (i = 0; i < interfacetextarray.length; i++) {
+			for (i2 = 0; i2 < typelist.length; i2++) {
+				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[0].fill=ShowFill;
+				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[1].fill=ShowFill;
+				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
+			}
 		}
 	}
 }
@@ -469,8 +493,8 @@ function RedrawAllCharts() {
 		for (i2 = 0; i2 < chartlist.length; i2++) {
 			for (i3 = 0; i3 < interfacetextarray.length; i3++) {
 				$j("#"+interfacetextarray[i3]+"_Period").val(GetCookie(interfacetextarray[i3]+"_Period","number"));
-				//d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(Draw_Chart.bind(null,"Combined"+chartlist[i2]+"_"+interfacetextarray[i3],measureunitlist[i],timeunitlist[i2],intervallist[i2],bordercolourlist[i],backgroundcolourlist[i]));
-				d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]));
+				d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
+				d3.csv('/ext/spdmerlin/csv/Quality'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Quality"));
 			}
 		}
 	}
@@ -549,7 +573,8 @@ function SetGlobalDataset(txtchartname,dataobject){
 		if(interfacelist != ""){
 			var interfacetextarray = interfacelist.split(',');
 			for (i = 0; i < interfacetextarray.length; i++) {
-				Draw_Chart(interfacetextarray[i]);
+				Draw_Chart(interfacetextarray[i],"Combined");
+				Draw_Chart(interfacetextarray[i],"Quality");
 			}
 		}
 	}
@@ -584,10 +609,12 @@ function getChartPeriod(period) {
 function ResetZoom(){
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
-			for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-				var chartobj = window["LineChart_"+interfacetextarray[i3]];
+		for (i = 0; i < interfacetextarray.length; i++) {
+			for (i2 = 0; i2 < typelist.length; i2++) {
+				var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
 				if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
 				chartobj.resetZoom();
+			}
 		}
 	}
 }
@@ -613,13 +640,15 @@ function ToggleDragZoom(button){
 	
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
-		for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-			var chartobj = window["LineChart_"+interfacetextarray[i3]];
-			if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
-			chartobj.options.plugins.zoom.zoom.drag = drag;
-			chartobj.options.plugins.zoom.pan.enabled = pan;
+		for (i = 0; i < interfacetextarray.length; i++) {
+			for (i2 = 0; i2 < typelist.length; i2++) {
+				var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
+				if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
+				chartobj.options.plugins.zoom.zoom.drag = drag;
+				chartobj.options.plugins.zoom.pan.enabled = pan;
+				chartobj.update();
+			}
 			button.value = buttonvalue;
-			chartobj.update();
 		}
 	}
 }
@@ -703,7 +732,7 @@ function get_conf_file(){
 			}
 			
 			if(interfacelist != ""){
-				maxNoCharts = interfacelist.split(',').length*3;
+				maxNoCharts = interfacelist.split(',').length*3*2;
 				AddEventHandlers();
 				RedrawAllCharts();
 			}
@@ -718,7 +747,8 @@ function changeAllCharts(e) {
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		for (i = 0; i < interfacetextarray.length; i++) {
-			Draw_Chart(interfacetextarray[i]);
+			Draw_Chart(interfacetextarray[i],"Combined");
+			Draw_Chart(interfacetextarray[i],"Quality");
 		}
 	}
 }
@@ -727,7 +757,8 @@ function changeChart(e) {
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
-	Draw_Chart(name);
+	Draw_Chart(name,"Combined");
+	Draw_Chart(name,"Quality");
 }
 
 function BuildInterfaceTable(name){
@@ -757,19 +788,25 @@ function BuildInterfaceTable(name){
 	
 	if(nodata == "true") {
 		charthtml+='<tr>';
-		charthtml+='<td colspan="3" class="nodata">';
+		charthtml+='<td colspan="6" class="nodata">';
 		charthtml+='No data to display';
 		charthtml+='</td>';
 		charthtml+='</tr>';
 	} else {
-		charthtml+='<col style="width:240px;">';
-		charthtml+='<col style="width:240px;">';
-		charthtml+='<col style="width:240px;">';
+		charthtml+='<col style="width:120px;">';
+		charthtml+='<col style="width:120px;">';
+		charthtml+='<col style="width:120px;">';
+		charthtml+='<col style="width:120px;">';
+		charthtml+='<col style="width:120px;">';
+		charthtml+='<col style="width:120px;">';
 		charthtml+='<thead>';
 		charthtml+='<tr>';
 		charthtml+='<th class="keystatsnumber">Time</th>';
 		charthtml+='<th class="keystatsnumber">Download (Mbps)</th>';
 		charthtml+='<th class="keystatsnumber">Upload (Mbps)</th>';
+		charthtml+='<th class="keystatsnumber">Latency (ms)</th>';
+		charthtml+='<th class="keystatsnumber">Jitter (ms)</th>';
+		charthtml+='<th class="keystatsnumber">Packet Loss (%)</th>';
 		charthtml+='</tr>';
 		charthtml+='</thead>';
 		
@@ -778,6 +815,9 @@ function BuildInterfaceTable(name){
 			charthtml+='<td>'+moment.unix(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
 			charthtml+='<td>'+window["DataDownload_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataPktLoss_"+name][i]+'</td>';
 			charthtml+='</tr>';
 		};
 	}
@@ -807,7 +847,12 @@ function BuildInterfaceTable(name){
 	charthtml+='</tr>';
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
-	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;height:500px;padding-left:5px;"><canvas id="divLineChart_'+name+'" height="500" /></div>';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;height:500px;padding-left:5px;"><canvas id="divLineChart_'+name+'_Combined" height="500" /></div>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
+	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;height:500px;padding-left:5px;"><canvas id="divLineChart_'+name+'_Quality" height="500" /></div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
 	charthtml+='</div>';
