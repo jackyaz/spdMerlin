@@ -1138,13 +1138,26 @@ Run_Speedtest(){
 					timenow=$(date +"%s")
 					timenowfriendly=$(date +"%c")
 					
-					download=$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
-					upload=$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')
+					download="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
+					upload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
+					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
+					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $4}' | tr -d '(')"
+					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}' | tr -d '%')"
 					
-					{
-					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL);"
-					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload]) values($timenow,$download,$upload);"
-					} > /tmp/spd-stats.sql
+					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" > /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+					
+					if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME" ]; then
+						{
+							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Latency] REAL;"
+							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Jitter] REAL;"
+							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [PktLoss] REAL;"
+						} > /tmp/spd-stats.sql
+						"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+						touch "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME"
+					fi
+					
+					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]) values($timenow,$download,$upload,$latency,$jitter,$pktloss);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));" > /tmp/spd-stats.sql
@@ -1152,9 +1165,11 @@ Run_Speedtest(){
 					rm -f /tmp/spd-stats.sql
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
+					spdtestresult2="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1' | sed 's/%/%%/')"
 					
 					printf "\\n"
 					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
+					Print_Output "true" "Connection quality - $spdtestresult2" "$PASS"
 					rm -f "$tmpfile"
 					
 					#extStats
