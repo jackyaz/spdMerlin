@@ -102,7 +102,7 @@ Clear_Lock(){
 	return 0
 }
 
-Check_Swap () {
+Check_Swap(){
 	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then return 0; else return 1; fi
 }
 
@@ -844,12 +844,12 @@ PreferredServer(){
 		validate)
 			#TODO: validate against XML here: https://c.speedtest.net/speedtest-servers-static.php
 			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
-			"$OOKLA_DIR"/speedtest --servers --format="csv" > /tmp/spdServers.txt
-			if grep -q "^\"$PREFERREDSERVERNO" /tmp/spdServers.txt; then
-				rm -f /tmp/spdServers.txt
+			"$OOKLA_DIR"/speedtest --servers --format="csv" > /tmp/spdservers.txt
+			if grep -q "^\"$PREFERREDSERVERNO" /tmp/spdservers.txt; then
+				rm -f /tmp/spdservers.txt
 				return 0
 			else
-				rm -f /tmp/spdServers.txt
+				rm -f /tmp/spdservers.txt
 				return 1
 			fi
 	esac
@@ -986,10 +986,12 @@ WritePlainData_ToJS(){
 	i="0"
 	for var in "$@"; do
 		i=$((i+1))
-		{ echo "var $var;"
+		{
+			echo "var $var;"
 			echo "$var = [];"
 			echo "${var}.unshift('$(awk -v i=$i '{printf t $i} {t=","}' "$inputfile" | sed "s~,~\\',\\'~g")');"
-			echo; } >> "$outputfile"
+			echo
+		} >> "$outputfile"
 	done
 }
 
