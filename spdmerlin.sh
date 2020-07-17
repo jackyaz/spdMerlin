@@ -265,6 +265,14 @@ Update_File(){
 	fi
 }
 
+Validate_Bandwidth(){
+	if echo "$1" | /bin/grep -oq "^[0-9]*\.\?[0-9]*$"; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 Validate_Number(){
 	if [ "$2" -eq "$2" ] 2>/dev/null; then
 		return 0
@@ -1143,6 +1151,12 @@ Run_Speedtest(){
 					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
 					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $4}' | tr -d '(')"
 					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}' | tr -d '%')"
+					
+					! Validate_Bandwidth "$download" && download="0";
+					! Validate_Bandwidth "$upload" && upload="0";
+					! Validate_Bandwidth "$latency" && latency=null;
+					! Validate_Bandwidth "$jitter" && jitter=null;
+					! Validate_Bandwidth "$pktloss" && pktloss=null;
 					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
