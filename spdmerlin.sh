@@ -1025,10 +1025,10 @@ Generate_LastXResults(){
 		echo ".mode csv"
 		echo ".output /tmp/spd-lastx.csv"
 	} > /tmp/spd-lastx.sql
-	echo "select[Timestamp],[Download],[Upload] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
+	echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	sed -i 's/,/ /g' "/tmp/spd-lastx.csv"
-	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1"
+	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1"
 	rm -f /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.csv
 }
@@ -1243,7 +1243,7 @@ Generate_CSVs(){
 			timenow=$(date +"%s")
 			timenowfriendly=$(date +"%c")
 			
-			metriclist="Download Upload"
+			metriclist="Download Upload Latency Jitter PktLoss"
 			
 			for metric in $metriclist; do
 				{
@@ -1293,6 +1293,16 @@ Generate_CSVs(){
 			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME"".htm"
 			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME"".htm"
 			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME"".htm"
+			
+			cat "$CSV_OUTPUT_DIR/Latencydaily_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Jitterdaily_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/PktLossdaily_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME"".htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Latencyweekly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Jitterweekly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/PktLossweekly_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME"".htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Latencymonthly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Jittermonthly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/PktLossmonthly_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME"".htm" 2> /dev/null
+			rm -f "$CSV_OUTPUT_DIR/Latency"*
+			rm -f "$CSV_OUTPUT_DIR/Jitter"*
+			
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME"".htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME"".htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME"".htm"
 			
 			Generate_LastXResults "$IFACE_NAME"
 			rm -f "/tmp/spd-stats.sql"
