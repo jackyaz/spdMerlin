@@ -1222,6 +1222,15 @@ Generate_CSVs(){
 	OUTPUTTIMEMODE="$(OutputTimeMode "check")"
 	IFACELIST=""
 	
+	echo "CREATE TABLE IF NOT EXISTS [spdstats_WAN] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" > /tmp/spd-stats.sql
+
+	for index in 1 2 3 4 5; do
+		echo "CREATE TABLE IF NOT EXISTS [spdstats_VPNC$index] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" >> /tmp/spd-stats.sql
+	done
+	
+	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+	rm -f /tmp/spd-stats.sql
+	
 	while IFS='' read -r line || [ -n "$line" ]; do
 		if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
 			IFACELIST="$IFACELIST"" ""$line"
