@@ -458,21 +458,20 @@ Conf_Exists(){
 		dos2unix "$SCRIPT_CONF"
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 7 ]; then
-			{ echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; } >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 8 ]; then
-			echo "OUTPUTTIMEMODE=unix" >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 9 ]; then
-			echo "STORAGELOCATION=jffs" >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 10 ]; then
-			echo "TESTFREQUENCY=halfhourly" >> "$SCRIPT_CONF"
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 11 ]; then
+			sed -i 's/PREFERREDSERVER/PREFERREDSERVER_WAN/g' "$SCRIPT_CONF"
+			sed -i 's/USEPREFERRED/USEPREFERRED_WAN/g' "$SCRIPT_CONF"
+			sed -i '/USESINGLE/d' "$SCRIPT_CONF"
+			for index in 1 2 3 4 5; do
+				{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
+			done
 		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER=0|None configured"; echo "USEPREFERRED=false"; echo "USESINGLE=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
+		for index in 1 2 3 4 5; do
+			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
+		done
 		return 1
 	fi
 }
@@ -567,12 +566,7 @@ Generate_Interface_List(){
 	until [ $COUNTER -gt "$interfacecount" ]; do
 		Set_Interface_State "$COUNTER"
 		interfaceline="$(sed "$COUNTER!d" "$SCRIPT_INTERFACES_USER" | awk '{$1=$1};1')"
-		if [ "$COUNTER" -lt "10" ]; then
-			printf "%s)  %s\\n" "$COUNTER" "$interfaceline"
-		else
-			printf "%s) %s\\n" "$COUNTER" "$interfaceline"
-		fi
-		
+		printf "%s)  %s\\n" "$COUNTER" "$interfaceline"
 		COUNTER=$((COUNTER + 1))
 	done
 	
@@ -722,7 +716,7 @@ Mount_WebUI(){
 	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
 	if [ "$MyPage" = "none" ]; then
 		Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
-		exit 1
+		return 1
 	fi
 	Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
 	cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
@@ -762,8 +756,8 @@ Mount_WebUI(){
 }
 
 GenerateServerList(){
-	printf "Generating list of closest servers...\\n\\n"
-	serverlist="$("$OOKLA_DIR"/speedtest --servers --format="json")"
+	printf "Generating list of closest servers for $1...\\n\\n"
+	serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$1")" --servers --format="json")"
 	servercount="$(echo "$serverlist" | jq '.servers | length')"
 	COUNTER=1
 	until [ $COUNTER -gt "$servercount" ]; do
@@ -820,32 +814,32 @@ GenerateServerList(){
 PreferredServer(){
 	case "$1" in
 		update)
-			GenerateServerList
+			GenerateServerList "$2"
 			if [ "$serverno" != "exit" ]; then
-				sed -i 's/^PREFERREDSERVER.*$/PREFERREDSERVER='"$serverno""|""$servername"'/' "$SCRIPT_CONF"
+				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno""|""$servername"'/' "$SCRIPT_CONF"
 			else
 				return 1
 			fi
 		;;
 		enable)
-			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=true/' "$SCRIPT_CONF"
+			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=true/' "$SCRIPT_CONF"
 		;;
 		disable)
-			sed -i 's/^USEPREFERRED.*$/USEPREFERRED=false/' "$SCRIPT_CONF"
+			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=false/' "$SCRIPT_CONF"
 		;;
 		check)
-			USEPREFERRED=$(grep "USEPREFERRED" "$SCRIPT_CONF" | cut -f2 -d"=")
+			USEPREFERRED=$(grep "USEPREFERRED_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if [ "$USEPREFERRED" = "true" ]; then return 0; else return 1; fi
 		;;
 		list)
-			PREFERREDSERVER=$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=")
+			PREFERREDSERVER=$(grep "PREFERREDSERVER_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
 			echo "$PREFERREDSERVER"
 		;;
 		validate)
 			#TODO: validate against XML here: https://c.speedtest.net/speedtest-servers-static.php
-			PREFERREDSERVERNO="$(grep "PREFERREDSERVER" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
+			PREFERREDSERVER_NO="$(grep "PREFERREDSERVER_$2" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
 			"$OOKLA_DIR"/speedtest --servers --format="csv" > /tmp/spdservers.txt
-			if grep -q "^\"$PREFERREDSERVERNO" /tmp/spdservers.txt; then
+			if grep -q "^\"$PREFERREDSERVER_NO" /tmp/spdservers.txt; then
 				rm -f /tmp/spdservers.txt
 				return 0
 			else
@@ -1046,6 +1040,7 @@ Run_Speedtest(){
 	License_Acceptance "load"
 	
 	mode="$1"
+	specificiface="$2"
 	speedtestserverno=""
 	speedtestservername=""
 	
@@ -1068,48 +1063,47 @@ Run_Speedtest(){
 			mode="schedule"
 		fi
 		
-		if [ "$mode" = "schedule" ]; then
-			USEPREFERRED=$(grep "USEPREFERRED" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if PreferredServer check; then
-				speedtestserverno="$(PreferredServer list | cut -f1 -d"|")"
-				speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
-			else
-				mode="auto"
-			fi
-		elif [ "$mode" = "onetime" ]; then
-			GenerateServerList
-			if [ "$serverno" != "exit" ]; then
-				speedtestserverno="$serverno"
-				speedtestservername="$servername"
-			else
-				Clear_Lock
-				return 1
-			fi
-		elif [ "$mode" = "user" ]; then
-			speedtestserverno="$(PreferredServer list | cut -f1 -d"|")"
-			speedtestservername="$(PreferredServer list | cut -f2 -d"|")"
+		IFACELIST=""
+		if [ -z "$specificiface" ]; then
+			while IFS='' read -r line || [ -n "$line" ]; do
+				if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+					IFACELIST="$IFACELIST"" ""$line"
+				fi
+			done < "$SCRIPT_INTERFACES_USER"
+			
+			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+		else
+			IFACELIST="$specificiface"
 		fi
 		
-		IFACELIST=""
-		
-		while IFS='' read -r line || [ -n "$line" ]; do
-			if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
-				IFACELIST="$IFACELIST"" ""$line"
-			fi
-		done < "$SCRIPT_INTERFACES_USER"
-		
-		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
-		
 		if [ "$IFACELIST" != "" ]; then
-			
 			for IFACE_NAME in $IFACELIST; do
-				
 				IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				
 				if ! ifconfig "$IFACE" > /dev/null 2>&1 ; then
 					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
 					continue
 				else
+					if [ "$mode" = "schedule" ]; then
+						if PreferredServer check "$IFACE_NAME"; then
+							speedtestserverno="$(PreferredServer list "$IFACE_NAME" | cut -f1 -d"|")"
+							speedtestservername="$(PreferredServer list "$IFACE_NAME" | cut -f2 -d"|")"
+						else
+							mode="auto"
+						fi
+					elif [ "$mode" = "onetime" ]; then
+						GenerateServerList "$IFACE_NAME"
+						if [ "$serverno" != "exit" ]; then
+							speedtestserverno="$serverno"
+							speedtestservername="$servername"
+						else
+							Clear_Lock
+							return 1
+						fi
+					elif [ "$mode" = "user" ]; then
+						speedtestserverno="$(PreferredServer list "$IFACE_NAME" | cut -f1 -d"|")"
+						speedtestservername="$(PreferredServer list "$IFACE_NAME" | cut -f2 -d"|")"
+					fi
 					
 					for proto in tcp udp; do
 						iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
@@ -1396,13 +1390,11 @@ ScriptHeader(){
 }
 
 MainMenu(){
-	PREFERREDSERVER_ENABLED=""
 	AUTOMATIC_ENABLED=""
 	TEST_SCHEDULE=""
 	OUTPUTDATAMODE_MENU="$(OutputDataMode "check")"
 	OUTPUTTIMEMODE_MENU="$(OutputTimeMode "check")"
 	SCRIPTSTORAGE_MENU="$(ScriptStorageLocation "check")"
-	if PreferredServer check; then PREFERREDSERVER_ENABLED="Enabled"; else PREFERREDSERVER_ENABLED="Disabled"; fi
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
@@ -1422,16 +1414,13 @@ MainMenu(){
 		TEST_SCHEDULE2="Tests will run at 12 and 42 past the hour"
 	fi
 	
-	printf "1.    Run a speedtest now (auto select server)\\n"
-	printf "2.    Run a speedtest now (use preferred server - applies to WAN only)\\n"
-	printf "3.    Run a speedtest (select a server - applies to WAN only)\\n\\n"
-	printf "4.    Choose a preferred server for WAN (for automatic speedtests)\\n      Current server: %s\\n\\n" "$(PreferredServer list | cut -f2 -d"|")"
-	printf "5.    Toggle preferred server for WAN (for automatic speedtests)\\n      Currently %s\\n\\n" "$PREFERREDSERVER_ENABLED"
-	printf "6.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "7.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
-	printf "8.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$OUTPUTDATAMODE_MENU"
-	printf "9.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$OUTPUTTIMEMODE_MENU"
-	printf "c.    Customise list of interfaces for automatic speedtests\\n\\n"
+	printf "1.    Run a speedtest now\\n\\n"
+	printf "2.    Choose a preferred server for an interface\\n\\n"
+	printf "3.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
+	printf "4.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
+	printf "5.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$OUTPUTDATAMODE_MENU"
+	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$OUTPUTTIMEMODE_MENU"
+	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$SCRIPTSTORAGE_MENU"
 	printf "u.    Check for updates\\n"
@@ -1448,45 +1437,22 @@ MainMenu(){
 		case "$menu" in
 			1)
 				printf "\\n"
-				if Check_Lock "menu"; then
-					Menu_GenerateStats "auto"
-				fi
+				Menu_RunSpeedtest
 				PressEnter
 				break
 			;;
 			2)
 				printf "\\n"
-				if Check_Lock "menu"; then
-					Menu_GenerateStats "user"
-				fi
+				PreferredServer "update" "WAN"
 				PressEnter
 				break
 			;;
 			3)
 				printf "\\n"
-				if Check_Lock "menu"; then
-					Menu_GenerateStats "onetime"
-				fi
-				PressEnter
-				break
-			;;
-			4)
-				printf "\\n"
-				PreferredServer "update"
-				PressEnter
-				break
-			;;
-			5)
-				printf "\\n"
-				Menu_TogglePreferred
-				break
-			;;
-			6)
-				printf "\\n"
 				Menu_ToggleAutomated
 				break
 			;;
-			7)
+			4)
 				printf "\\n"
 				if Check_Lock "menu"; then
 					Menu_EditSchedule
@@ -1494,14 +1460,14 @@ MainMenu(){
 				PressEnter
 				break
 			;;
-			8)
+			5)
 				printf "\\n"
 				if Check_Lock "menu"; then
 					Menu_ToggleOutputDataMode
 				fi
 				break
 			;;
-			9)
+			6)
 				printf "\\n"
 				if Check_Lock "menu"; then
 					Menu_ToggleOutputTimeMode
@@ -1678,16 +1644,95 @@ Menu_Startup(){
 	Clear_Lock
 }
 
-Menu_GenerateStats(){
-	Run_Speedtest "$1"
-	Clear_Lock
+Menu_RunSpeedtest(){
+	useiface=""
+	usepreferred=""
+	ScriptHeader
+	while true; do
+		printf "Choose an interface to speedtest:\\n\\n"
+		printf "1.    All\\n"
+		COUNTER="2"
+		while IFS='' read -r line || [ -n "$line" ]; do
+			if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+				printf "%s.    %s\\n" "$COUNTER" "$line"
+				COUNTER=$((COUNTER+1))
+			fi
+		done < "$SCRIPT_INTERFACES_USER"
+		printf "\\nChoose an option:    "
+		read -r "iface_choice"
+		
+		if [ "$iface_choice" = "e" ]; then
+			exitmenu="exit"
+			break
+		elif ! Validate_Number "" "$iface_choice" "silent"; then
+			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
+		else
+			if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$COUNTER" ]; then
+				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
+			else
+				if [ "$iface_choice" -gt "1" ]; then
+					useiface="$(grep -v "#" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p)"
+				fi
+				break
+			fi
+		fi
+	done
+	
+	printf "\\n"
+	
+	if [ "$exitmenu" != "exit" ]; then
+		while true; do
+			printf "What mode would you like to use?\\n\\n"
+			printf "1.    Auto-select\\n"
+			printf "2.    Preferred server\\n"
+			printf "3.    Choose a server\\n"
+			printf "\\nChoose an option:    "
+			read -r "usepref_choice"
+			
+			if [ "$usepref_choice" = "e" ]; then
+				exitmenu="exit"
+				printf "\\n"
+				break
+			elif ! Validate_Number "" "$usepref_choice" "silent"; then
+				printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
+			else
+				if [ "$usepref_choice" -lt 0 ] || [ "$usepref_choice" -gt "3" ]; then
+					printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
+				else
+					case "$usepref_choice" in
+						1)
+							usepreferred="auto"
+						;;
+						2)
+							usepreferred="user"
+						;;
+						3)
+							usepreferred="onetime"
+						;;
+					esac
+					printf "\\n"
+					break
+				fi
+			fi
+		done
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		if Check_Lock "menu"; then
+			Run_Speedtest "$usepreferred" "$useiface"
+			Clear_Lock
+			return 0
+		fi
+	else
+		return 1
+	fi
 }
 
 Menu_TogglePreferred(){
-	if PreferredServer check; then
-		PreferredServer disable
+	if PreferredServer check "WAN"; then
+		PreferredServer disable "WAN"
 	else
-		PreferredServer enable
+		PreferredServer enable "WAN"
 	fi
 }
 
@@ -1996,13 +2041,15 @@ case "$1" in
 	;;
 	generate)
 		Check_Lock
-		Menu_GenerateStats "schedule"
+		Run_Speedtest "schedule"
+		Clear_Lock
 		exit 0
 	;;
 	service_event)
 		if [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
 			Check_Lock
-			Menu_GenerateStats "webui"
+			Run_Speedtest "webui"
+			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
 			Check_Lock
