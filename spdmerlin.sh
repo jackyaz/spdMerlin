@@ -756,7 +756,7 @@ Mount_WebUI(){
 }
 
 GenerateServerList(){
-	printf "Generating list of closest servers for $1...\\n\\n"
+	printf "Generating list of closest servers for %s...\\n\\n" "$1"
 	serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$1")" --servers --format="json")"
 	servercount="$(echo "$serverlist" | jq '.servers | length')"
 	COUNTER=1
