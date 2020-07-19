@@ -1165,7 +1165,7 @@ Run_Speedtest(){
 							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Jitter] REAL;"
 							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [PktLoss] REAL;"
 						} > /tmp/spd-stats.sql
-						"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+						"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
 						touch "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME"
 					fi
 					
