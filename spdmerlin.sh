@@ -1123,7 +1123,7 @@ Run_Speedtest(){
 						#	fi
 						#fi
 						
-						if [ "$IFACE_NAME" = "WAN" ]; then
+						if [ "$speedtestserverno" != "0" ]; then
 							Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
 							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
 						else
