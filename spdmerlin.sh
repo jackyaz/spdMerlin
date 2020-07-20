@@ -1454,7 +1454,7 @@ MainMenu(){
 			;;
 			2)
 				printf "\\n"
-				PreferredServer "update" "WAN"
+				Menu_ConfigurePreferred
 				PressEnter
 				break
 			;;
@@ -1656,6 +1656,7 @@ Menu_Startup(){
 }
 
 Menu_RunSpeedtest(){
+	exitmenu=""
 	useiface=""
 	usepreferred=""
 	ScriptHeader
@@ -1684,66 +1685,185 @@ Menu_RunSpeedtest(){
 				if [ "$iface_choice" -gt "1" ]; then
 					useiface="$(grep -v "#" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p)"
 				fi
-				break
 			fi
 		fi
+		
+		printf "\\n"
+		
+		if [ "$exitmenu" != "exit" ]; then
+			while true; do
+				printf "What mode would you like to use?\\n\\n"
+				printf "1.    Auto-select\\n"
+				printf "2.    Preferred server\\n"
+				printf "3.    Choose a server\\n"
+				printf "\\nChoose an option:    "
+				read -r "usepref_choice"
+				
+				if [ "$usepref_choice" = "e" ]; then
+					break
+				elif ! Validate_Number "" "$usepref_choice" "silent"; then
+					printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
+				else
+					if [ "$usepref_choice" -lt 0 ] || [ "$usepref_choice" -gt "3" ]; then
+						printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
+					else
+						case "$usepref_choice" in
+							1)
+								usepreferred="auto"
+							;;
+							2)
+								usepreferred="user"
+							;;
+							3)
+								usepreferred="onetime"
+							;;
+						esac
+						printf "\\n"
+						break
+					fi
+				fi
+			done
+		fi
+		if [ "$exitmenu" != "exit" ]; then
+			if Check_Lock "menu"; then
+				Run_Speedtest "$usepreferred" "$useiface"
+				Clear_Lock
+			fi
+		else
+			printf "\\n"
+			break
+		fi
+		PressEnter
+		ScriptHeader
 	done
 	
-	printf "\\n"
-	
 	if [ "$exitmenu" != "exit" ]; then
-		while true; do
-			printf "What mode would you like to use?\\n\\n"
-			printf "1.    Auto-select\\n"
-			printf "2.    Preferred server\\n"
-			printf "3.    Choose a server\\n"
-			printf "\\nChoose an option:    "
-			read -r "usepref_choice"
-			
-			if [ "$usepref_choice" = "e" ]; then
-				exitmenu="exit"
-				printf "\\n"
-				break
-			elif ! Validate_Number "" "$usepref_choice" "silent"; then
-				printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
-			else
-				if [ "$usepref_choice" -lt 0 ] || [ "$usepref_choice" -gt "3" ]; then
-					printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
-				else
-					case "$usepref_choice" in
-						1)
-							usepreferred="auto"
-						;;
-						2)
-							usepreferred="user"
-						;;
-						3)
-							usepreferred="onetime"
-						;;
-					esac
-					printf "\\n"
-					break
-				fi
-			fi
-		done
-	fi
-	
-	if [ "$exitmenu" != "exit" ]; then
-		if Check_Lock "menu"; then
-			Run_Speedtest "$usepreferred" "$useiface"
-			Clear_Lock
-			return 0
-		fi
+		return 0
 	else
 		return 1
 	fi
 }
 
-Menu_TogglePreferred(){
-	if PreferredServer check "WAN"; then
-		PreferredServer disable "WAN"
+Menu_ConfigurePreferred(){
+	exitmenu=""
+	prefiface=""
+	ScriptHeader
+	while true; do
+		printf "Choose an interface to configure server preference for:\\n\\n"
+		printf "1.    All (on/off only)\\n\\n"
+		COUNTER="2"
+		while IFS='' read -r line || [ -n "$line" ]; do
+			if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+				pref_enabled=""
+				if PreferredServer check "$line"; then pref_enabled="On"; else pref_enabled="Off"; fi
+				printf "%s.    %s\\n" "$COUNTER" "$line"
+				printf "      Preferred: %s - Server: %s\\n\\n" "$pref_enabled" "$(PreferredServer list "$line" | cut -f2 -d"|")"
+				COUNTER=$((COUNTER+1))
+			fi
+		done < "$SCRIPT_INTERFACES_USER"
+		printf "\\nChoose an option:    "
+		read -r "iface_choice"
+		
+		if [ "$iface_choice" = "e" ]; then
+			exitmenu="exit"
+			break
+		elif ! Validate_Number "" "$iface_choice" "silent"; then
+			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
+		else
+			if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$COUNTER" ]; then
+				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
+			else
+				if [ "$iface_choice" -gt "1" ]; then
+					prefiface="$(grep -v "#" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p)"
+				else
+					prefiface="All"
+				fi
+			fi
+		fi
+	
+		printf "\\n"
+		
+		if [ "$exitmenu" != "exit" ]; then
+			if [ "$prefiface" = "All" ]; then
+				while true; do
+					printf "What would you like to do?\\n\\n"
+					printf "1.    Turn on preferred servers\\n"
+					printf "2.    Turn off preferred servers\\n"
+					printf "\\nChoose an option:    "
+					read -r "usepref_choice"
+					
+					if [ "$usepref_choice" = "e" ]; then
+						break
+					elif ! Validate_Number "" "$usepref_choice" "silent"; then
+						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
+					else
+						if [ "$usepref_choice" -lt 1 ] || [ "$usepref_choice" -gt "2" ]; then
+							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+						else
+							prefenabledisable=""
+							if [ "$usepref_choice" -eq "1" ]; then
+								prefenabledisable="enable"
+							else
+								prefenabledisable="disable"
+							fi
+							while IFS='' read -r line || [ -n "$line" ]; do
+								if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+									PreferredServer "$prefenabledisable" "$line"
+								fi
+							done < "$SCRIPT_INTERFACES_USER"
+							printf "\\n"
+							break
+						fi
+					fi
+				done
+			else
+				while true; do
+					pref_enabled=""
+					if PreferredServer check "$line"; then pref_enabled="On"; else pref_enabled="Off"; fi
+					printf "What would you like to do?\\n\\n"
+					printf "1.    Toggle preferred server on/off - currently: %s\\n" "$pref_enabled"
+					printf "2.    Set preferred server - currently: %s\\n" "$(PreferredServer list "$prefiface" | cut -f2 -d"|")"
+					printf "\\nChoose an option:    "
+					read -r "ifpref_choice"
+					
+					if [ "$ifpref_choice" = "e" ]; then
+						break
+					elif ! Validate_Number "" "$ifpref_choice" "silent"; then
+						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
+					else
+						if [ "$ifpref_choice" -lt 1 ] || [ "$ifpref_choice" -gt "2" ]; then
+							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+						else
+							if [ "$ifpref_choice" -eq "1" ]; then
+								printf "\\n"
+								if PreferredServer check "$prefiface"; then
+									PreferredServer disable "$prefiface"
+								else
+									PreferredServer enable "$prefiface"
+								fi
+								break
+							elif [ "$ifpref_choice" -eq "2" ]; then
+								printf "\\n"
+								PreferredServer "update" "$prefiface"
+								break
+							fi
+						fi
+					fi
+				done
+			fi
+		fi
+		if [ "$exitmenu" = "exit" ]; then
+			printf "\\n"
+			break
+		fi
+		PressEnter
+		ScriptHeader
+	done
+	
+	if [ "$exitmenu" != "exit" ]; then
+		return 0
 	else
-		PreferredServer enable "WAN"
+		return 1
 	fi
 }
 
