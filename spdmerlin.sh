@@ -1820,7 +1820,7 @@ Menu_ConfigurePreferred(){
 			else
 				while true; do
 					pref_enabled=""
-					if PreferredServer check "$line"; then pref_enabled="On"; else pref_enabled="Off"; fi
+					if PreferredServer check "$prefiface"; then pref_enabled="On"; else pref_enabled="Off"; fi
 					printf "What would you like to do?\\n\\n"
 					printf "1.    Toggle preferred server on/off - currently: %s\\n" "$pref_enabled"
 					printf "2.    Set preferred server - currently: %s\\n" "$(PreferredServer list "$prefiface" | cut -f2 -d"|")"
