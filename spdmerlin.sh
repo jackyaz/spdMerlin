@@ -1733,6 +1733,7 @@ Menu_RunSpeedtest(){
 			printf "\\n"
 			break
 		fi
+		printf "\\n"
 		PressEnter
 		ScriptHeader
 	done
@@ -1856,6 +1857,7 @@ Menu_ConfigurePreferred(){
 			printf "\\n"
 			break
 		fi
+		printf "\\n"
 		PressEnter
 		ScriptHeader
 	done
