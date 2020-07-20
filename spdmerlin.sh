@@ -1730,7 +1730,6 @@ Menu_RunSpeedtest(){
 				Clear_Lock
 			fi
 		else
-			printf "\\n"
 			break
 		fi
 		printf "\\n"
@@ -1741,6 +1740,7 @@ Menu_RunSpeedtest(){
 	if [ "$exitmenu" != "exit" ]; then
 		return 0
 	else
+		printf "\\n"
 		return 1
 	fi
 }
@@ -1854,7 +1854,6 @@ Menu_ConfigurePreferred(){
 			fi
 		fi
 		if [ "$exitmenu" = "exit" ]; then
-			printf "\\n"
 			break
 		fi
 		printf "\\n"
@@ -1865,6 +1864,7 @@ Menu_ConfigurePreferred(){
 	if [ "$exitmenu" != "exit" ]; then
 		return 0
 	else
+		printf "\\n"
 		return 1
 	fi
 }
