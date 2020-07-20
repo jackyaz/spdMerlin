@@ -757,7 +757,12 @@ Mount_WebUI(){
 
 GenerateServerList(){
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
-	serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$1")" --servers --format="json")"
+	serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$1")" --servers --format="json")" 2>/dev/null
+	if [ -z "$serverlist" ]; then
+		Print_Output "true" "Error retrieving server list for for $IFACE_NAME" "$CRIT"
+		serverno="exit"
+		return 1
+	fi
 	servercount="$(echo "$serverlist" | jq '.servers | length')"
 	COUNTER=1
 	until [ $COUNTER -gt "$servercount" ]; do
@@ -1113,7 +1118,7 @@ Run_Speedtest(){
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
-						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
+						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
 					else
 						#if [ "$mode" != "onetime" ]; then
 						#	if ! PreferredServer validate; then
@@ -1125,11 +1130,17 @@ Run_Speedtest(){
 						
 						if [ "$speedtestserverno" != "0" ]; then
 							Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
 						else
 							Print_Output "true" "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile"
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
 						fi
+					fi
+					
+					if [ ! -f "$tmpfile" ] || [ -z "$(cat "$tmpfile")" ]; then
+						Print_Output "true" "Error running speedtest for $IFACE_NAME" "$CRIT"
+						Clear_Lock
+						return 1
 					fi
 					
 					for proto in tcp udp; do
