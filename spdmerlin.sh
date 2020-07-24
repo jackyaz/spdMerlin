@@ -1088,6 +1088,10 @@ Run_Speedtest(){
 				iptables -t mangle -A POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 			done
 			
+			if [ -f /jffs/addons/cake-qos/cake-qos ]; then
+				/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
+			fi
+			
 			for IFACE_NAME in $IFACELIST; do
 				IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				
@@ -1202,6 +1206,10 @@ Run_Speedtest(){
 				iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 				iptables -t mangle -D POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 			done
+			
+			if [ -f /jffs/addons/cake-qos/cake-qos ]; then
+				/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
+			fi
 			
 			Generate_CSVs
 			
