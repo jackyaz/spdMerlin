@@ -1082,6 +1082,12 @@ Run_Speedtest(){
 		fi
 		
 		if [ "$IFACELIST" != "" ]; then
+			for proto in tcp udp; do
+				iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+				iptables -t mangle -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+				iptables -t mangle -A POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+			done
+			
 			for IFACE_NAME in $IFACELIST; do
 				IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				
@@ -1110,12 +1116,6 @@ Run_Speedtest(){
 						speedtestservername="$(PreferredServer list "$IFACE_NAME" | cut -f2 -d"|")"
 					fi
 					
-					for proto in tcp udp; do
-						iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle -A POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					done
-					
 					if [ "$mode" = "auto" ]; then
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
@@ -1142,12 +1142,6 @@ Run_Speedtest(){
 						Clear_Lock
 						return 1
 					fi
-					
-					for proto in tcp udp; do
-						iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle -D POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					done
 					
 					TZ=$(cat /etc/TZ)
 					export TZ
@@ -1201,6 +1195,12 @@ Run_Speedtest(){
 						sh "$extStats" "ext" "$download" "$upload"
 					fi
 				fi
+			done
+			
+			for proto in tcp udp; do
+				iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+				iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+				iptables -t mangle -D POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 			done
 			
 			Generate_CSVs
