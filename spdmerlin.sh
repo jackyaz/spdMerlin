@@ -796,7 +796,29 @@ GenerateServerList(){
 						printf "\\n\\e[31mPlease enter a valid number\\e[0m\\n"
 					else
 						serverno="$customserver"
-						servername="Custom"
+						while true; do
+							printf "\\n\\e[1mWould you like to enter a name for this server? (default: Custom) (y/n)?\\e[0m    "
+							read -r "servername_select"
+							
+							if [ "$servername_select" = "n" ] || [ "$servername_select" = "N" ]; then
+								servername="Custom"
+								break
+							elif [ "$servername_select" = "y" ] || [ "$servername_select" = "Y" ]; then
+								printf "\\n\\e[1mPlease enter the name for this server:\\e[0m    "
+								read -r "servername"
+								printf "\\n\\e[1m%s\\e[0m\\n" "$servername"
+								printf "\\n\\e[1mIs that correct (y/n)?    \\e[0m"
+								read -r "servername_confirm"
+								if [ "$servername_confirm" = "y" ] || [ "$servername_confirm" = "Y" ]; then
+									break
+								else
+									printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
+								fi
+							else
+								printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
+							fi
+						done
+						
 						printf "\\n"
 						return 0
 					fi
