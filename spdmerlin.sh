@@ -1665,6 +1665,7 @@ Menu_Startup(){
 
 Menu_RunSpeedtest(){
 	exitmenu=""
+	validselection=""
 	useiface=""
 	usepreferred=""
 	ScriptHeader
@@ -1685,20 +1686,23 @@ Menu_RunSpeedtest(){
 			exitmenu="exit"
 			break
 		elif ! Validate_Number "" "$iface_choice" "silent"; then
-			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
+			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$((COUNTER-1))"
+			validselection="false"
 		else
-			if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$COUNTER" ]; then
-				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
+			if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$((COUNTER-1))" ]; then
+				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$((COUNTER-1))"
+				validselection="false"
 			else
 				if [ "$iface_choice" -gt "1" ]; then
 					useiface="$(grep -v "#" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p)"
 				fi
+				validselection="true"
 			fi
 		fi
 		
 		printf "\\n"
 		
-		if [ "$exitmenu" != "exit" ]; then
+		if [ "$exitmenu" != "exit" ] && [ "$validselection" != "false" ]; then
 			while true; do
 				printf "What mode would you like to use?\\n\\n"
 				printf "1.    Auto-select\\n"
@@ -1708,12 +1712,15 @@ Menu_RunSpeedtest(){
 				read -r "usepref_choice"
 				
 				if [ "$usepref_choice" = "e" ]; then
+					exitmenu="exit"
 					break
 				elif ! Validate_Number "" "$usepref_choice" "silent"; then
 					printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
+					validselection="false"
 				else
 					if [ "$usepref_choice" -lt 0 ] || [ "$usepref_choice" -gt "3" ]; then
 						printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
+						validselection="false"
 					else
 						case "$usepref_choice" in
 							1)
@@ -1726,18 +1733,19 @@ Menu_RunSpeedtest(){
 								usepreferred="onetime"
 							;;
 						esac
+						validselection="true"
 						printf "\\n"
 						break
 					fi
 				fi
 			done
 		fi
-		if [ "$exitmenu" != "exit" ]; then
+		if [ "$exitmenu" != "exit" ] && [ "$validselection" != "false" ]; then
 			if Check_Lock "menu"; then
 				Run_Speedtest "$usepreferred" "$useiface"
 				Clear_Lock
 			fi
-		else
+		elif [ "$exitmenu" = "exit" ]; then
 			break
 		fi
 		printf "\\n"
