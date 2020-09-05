@@ -1463,6 +1463,7 @@ MainMenu(){
 	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$OUTPUTTIMEMODE_MENU"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
+	printf "a.    AutoBW testing \\n\\n"
 	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$SCRIPTSTORAGE_MENU"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
@@ -1526,6 +1527,14 @@ MainMenu(){
 			r)
 				if Check_Lock "menu"; then
 					Menu_ProcessInterfaces "force"
+				fi
+				PressEnter
+				break
+			;;
+			a)
+				printf "\\n"
+				if Check_Lock "menu"; then
+					Menu_AutoBW
 				fi
 				PressEnter
 				break
@@ -1614,6 +1623,7 @@ Check_Requirements(){
 		opkg install sqlite3-cli
 		opkg install jq
 		opkg install p7zip
+		opkg install bc
 		return 0
 	else
 		return 1
@@ -2047,6 +2057,125 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		TestSchedule "update" "$starthour" "$endhour" "$startminute" "$testfrequency"
 	fi
+	
+	Clear_Lock
+}
+
+Menu_AutoBW(){
+	if [ ! -f /opt/bin/bc ]; then
+		opkg update
+		opkg install bc
+	fi
+	
+	if [ "$(nvram get qos_enable)" = "0" ]; then
+		Print_Output "true" "QoS is not enabled, please enable this in the Asus WebUI." "$ERR"
+		return 1
+	fi
+	
+	#Scale average values by this factor
+	# Adjust to optimize bufferbloat and quality grade at DSLreports.com
+	down_scale_factor=0.95
+	up_scale_factor=0.95
+	
+	#Make sure speeds (AFTER scaling) are within these boundaries
+	# Mainly just to prevent bandwidth from being set too low
+	# (or too high)... not worried about upper limit but it is there
+	# for the sake of completeness
+	download_lower_limit=350 #Mbps
+	download_upper_limit=550 #Mbps
+	upload_lower_limit=20    #Mbps
+	upload_upper_limit=45    #Mbps
+	
+	echo
+	echo "               ---------------- SPDMERLIN -------------"
+	echo "                 Download (Kbps)       Upload (Kbps)"
+	echo "               -------------------  -------------------"
+	
+	#Calculate average download and upload speeds
+	TZ=$(cat /etc/TZ)
+	export TZ
+	
+	timenow=$(date +"%s")
+	timenowfriendly=$(date +"%c")
+	
+	metriclist="Download Upload"
+	
+	for metric in $metriclist; do
+	{
+		{
+			echo ".mode list"
+			echo ".headers off"
+			echo ".output /tmp/spdbw$metric"
+			echo "select avg($metric) from (select $metric FROM spdstats_WAN ORDER BY [Timestamp] desc LIMIT 10);"
+		} > /tmp/spd-autobw.sql
+		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-autobw.sql
+		rm -f /tmp/spd-autobw.sql
+	}
+	done
+	
+	Kbps_down="$(echo "$(cat /tmp/spdbwDownload)*1024" | bc -l)"
+	Kbps_up="$(echo "$(cat /tmp/spdbwUpload)*1024" | bc -l)"
+	
+	rm -f /tmp/spdbwDownload
+	rm -f /tmp/spdbwUpload
+	
+	printf "Average          %10.1f           %10.1f\n" "$Kbps_down" "$Kbps_up"
+	
+	#Apply user-defined scale factors
+	printf "Scale Factors         %5.2f                %5.2f\n" "$down_scale_factor" "$up_scale_factor"
+	Kbps_down="$(echo "$Kbps_down*$down_scale_factor" | bc -l)"
+	Kbps_up="$(echo "$Kbps_up*$up_scale_factor" | bc -l)"
+	printf "Scaled Speeds    %10.1f           %10.1f\n" "$Kbps_down" "$Kbps_up"
+	
+	#Make sure download and uploads speeds are within defined user-defined limits above
+	download_lower_limit="$(echo "$download_lower_limit*1024" | bc -l)"
+	download_upper_limit="$(echo "$download_upper_limit*1024" | bc -l)"
+	upload_lower_limit="$(echo "$upload_lower_limit*1024" | bc -l)"
+	upload_upper_limit="$(echo "$upload_upper_limit*1024" | bc -l)"
+	outta_bounds=0
+	
+	if [ "$(echo "$Kbps_down < ($download_lower_limit)" | bc -l)" -eq 1 ]; then
+		Print_Output "true" "Download speed ($Kbps_down Kbps) < lower limit ($download_lower_limit Kbps)" "$WARN"
+		Kbps_down="$download_lower_limit"
+		outta_bounds=1
+	elif [ "$(echo "$Kbps_down > $download_upper_limit" | bc -l)" -eq 1 ]; then
+		Print_Output "true" "Download speed ($Kbps_down Kbps) > upper limit ($download_upper_limit Kbps)" "$WARN"
+		Kbps_down="$download_upper_limit"
+		outta_bounds=1
+	fi
+	
+	if [ "$(echo "$Kbps_up < $upload_lower_limit" | bc -l)" -eq 1 ]; then
+		Print_Output "true" "Upload speed ($Kbps_up Kbps) < lower limit ($upload_lower_limit Kbps)" "$WARN"
+		Kbps_up="$upload_lower_limit"
+		outta_bounds=1
+	elif [ "$(echo "$Kbps_up > $upload_upper_limit" | bc -l)" -eq 1 ]; then
+		Print_Output "true" "Upload speed ($Kbps_up Kbps) > upper limit ($upload_upper_limit Kbps)" "$WARN"
+		Kbps_up="$upload_upper_limit"
+		outta_bounds=1
+	fi
+	
+	if [ "$outta_bounds" -eq "1" ]; then
+		printf "Corrected Speeds   %10.1f            %10.1f\n" "$Kbps_down" "$Kbps_up"
+	fi
+	
+	#Get current QoS down/up speeds
+	old_Kbps_up="$(nvram get qos_obw)"
+	old_Kbps_down="$(nvram get qos_ibw)"
+	
+	#Set Upload/Download Limit
+	Print_Output "true" " Setting QoS Download Speed to $Kbps_down Kbps" "$WARN"
+	Print_Output "true" " Setting QoS Upload Speed to $Kbps_up Kbps" "$WARN"
+	#nvram set qos_ibw="$(echo $Kbps_down | cut -d. -f1)"
+	#nvram set qos_obw="$(echo $Kbps_up | cut -d. -f1)"
+	#nvram commit
+	#service restart_qos >/dev/null 2>&1
+	
+	echo
+	echo "               ----------------- QOS ----------------"
+	echo "                 Download (Kbps)      Upload (Kbps)"
+	echo "               -------------------  -----------------"
+	printf "%s           %10.1f          %10.1f\n" "Previous" "$old_Kbps_down" "$old_Kbps_up"
+	printf "%s   %10.1f          %10.1f\n" "New (from above)" "$Kbps_down" "$Kbps_up"
 	
 	Clear_Lock
 }
