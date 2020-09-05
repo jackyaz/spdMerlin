@@ -2162,6 +2162,7 @@ Menu_AutoBW(){
 	#nvram set qos_ibw="$(echo $Kbps_down | cut -d. -f1)"
 	#nvram set qos_obw="$(echo $Kbps_up | cut -d. -f1)"
 	#nvram commit
+	#service restart_firewall >/dev/null 2>&1
 	#service restart_qos >/dev/null 2>&1
 	
 	echo
