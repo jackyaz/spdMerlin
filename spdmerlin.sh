@@ -2107,8 +2107,8 @@ Menu_AutoBW(){
 	}
 	done
 	
-	Kbps_down="$(cat /tmp/spdbwDownload | awk '{printf (1024*$1)}')"
-	Kbps_up="$(cat /tmp/spdbwUpload | awk '{printf (1024*$1)}')"
+	Kbps_down="$(awk '{printf (1024*$1)}' /tmp/spdbwDownload)"
+	Kbps_up="$(awk '{printf (1024*$1)}' /tmp/spdbwUpload)"
 	
 	rm -f /tmp/spdbwDownload
 	rm -f /tmp/spdbwUpload
