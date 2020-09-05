@@ -1623,7 +1623,6 @@ Check_Requirements(){
 		opkg install sqlite3-cli
 		opkg install jq
 		opkg install p7zip
-		opkg install bc
 		return 0
 	else
 		return 1
@@ -2062,11 +2061,6 @@ Menu_EditSchedule(){
 }
 
 Menu_AutoBW(){
-	if [ ! -f /opt/bin/bc ]; then
-		opkg update
-		opkg install bc
-	fi
-	
 	if [ "$(nvram get qos_enable)" = "0" ]; then
 		Print_Output "true" "QoS is not enabled, please enable this in the Asus WebUI." "$ERR"
 		return 1
@@ -2113,8 +2107,8 @@ Menu_AutoBW(){
 	}
 	done
 	
-	Kbps_down="$(echo "$(cat /tmp/spdbwDownload)*1024" | bc -l)"
-	Kbps_up="$(echo "$(cat /tmp/spdbwUpload)*1024" | bc -l)"
+	Kbps_down="$(echo "$(cat /tmp/spdbwDownload)" | awk '{printf (1024*$1)}')"
+	Kbps_up="$(echo "$(cat /tmp/spdbwUpload)" | awk '{printf (1024*$1)}')"
 	
 	rm -f /tmp/spdbwDownload
 	rm -f /tmp/spdbwUpload
@@ -2123,32 +2117,32 @@ Menu_AutoBW(){
 	
 	#Apply user-defined scale factors
 	printf "Scale Factors         %5.2f                %5.2f\n" "$down_scale_factor" "$up_scale_factor"
-	Kbps_down="$(echo "$Kbps_down*$down_scale_factor" | bc -l)"
-	Kbps_up="$(echo "$Kbps_up*$up_scale_factor" | bc -l)"
+	Kbps_down="$(echo "$Kbps_down" "$down_scale_factor" | awk '{printf ($1*$2)}')"
+	Kbps_up="$(echo "$Kbps_up" "$up_scale_factor" | awk '{printf ($1*$2)}')"
 	printf "Scaled Speeds    %10.1f           %10.1f\n" "$Kbps_down" "$Kbps_up"
 	
 	#Make sure download and uploads speeds are within defined user-defined limits above
-	download_lower_limit="$(echo "$download_lower_limit*1024" | bc -l)"
-	download_upper_limit="$(echo "$download_upper_limit*1024" | bc -l)"
-	upload_lower_limit="$(echo "$upload_lower_limit*1024" | bc -l)"
-	upload_upper_limit="$(echo "$upload_upper_limit*1024" | bc -l)"
+	download_lower_limit="$((download_lower_limit*1024))"
+	download_upper_limit="$((download_upper_limit*1024))"
+	upload_lower_limit="$((upload_lower_limit*1024))"
+	upload_upper_limit="$((upload_upper_limit*1024))"
 	outta_bounds=0
 	
-	if [ "$(echo "$Kbps_down < ($download_lower_limit)" | bc -l)" -eq 1 ]; then
+	if [ "$Kbps_down" -lt "$download_lower_limit" ]; then
 		Print_Output "true" "Download speed ($Kbps_down Kbps) < lower limit ($download_lower_limit Kbps)" "$WARN"
 		Kbps_down="$download_lower_limit"
 		outta_bounds=1
-	elif [ "$(echo "$Kbps_down > $download_upper_limit" | bc -l)" -eq 1 ]; then
+	elif [ "$Kbps_down" -gt "$download_upper_limit" ]; then
 		Print_Output "true" "Download speed ($Kbps_down Kbps) > upper limit ($download_upper_limit Kbps)" "$WARN"
 		Kbps_down="$download_upper_limit"
 		outta_bounds=1
 	fi
 	
-	if [ "$(echo "$Kbps_up < $upload_lower_limit" | bc -l)" -eq 1 ]; then
+	if [ "$Kbps_up" -lt "$upload_lower_limit" ]; then
 		Print_Output "true" "Upload speed ($Kbps_up Kbps) < lower limit ($upload_lower_limit Kbps)" "$WARN"
 		Kbps_up="$upload_lower_limit"
 		outta_bounds=1
-	elif [ "$(echo "$Kbps_up > $upload_upper_limit" | bc -l)" -eq 1 ]; then
+	elif [ "$Kbps_up" -gt "$upload_upper_limit" ]; then
 		Print_Output "true" "Upload speed ($Kbps_up Kbps) > upper limit ($upload_upper_limit Kbps)" "$WARN"
 		Kbps_up="$upload_upper_limit"
 		outta_bounds=1
