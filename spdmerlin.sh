@@ -2107,8 +2107,8 @@ Menu_AutoBW(){
 	}
 	done
 	
-	Kbps_down="$(echo "$(cat /tmp/spdbwDownload)" | awk '{printf (1024*$1)}')"
-	Kbps_up="$(echo "$(cat /tmp/spdbwUpload)" | awk '{printf (1024*$1)}')"
+	Kbps_down="$(cat /tmp/spdbwDownload | awk '{printf (1024*$1)}')"
+	Kbps_up="$(cat /tmp/spdbwUpload | awk '{printf (1024*$1)}')"
 	
 	rm -f /tmp/spdbwDownload
 	rm -f /tmp/spdbwUpload
@@ -2119,7 +2119,7 @@ Menu_AutoBW(){
 	printf "Scale Factors         %5.2f                %5.2f\n" "$down_scale_factor" "$up_scale_factor"
 	Kbps_down="$(echo "$Kbps_down" "$down_scale_factor" | awk '{printf ($1*$2)}')"
 	Kbps_up="$(echo "$Kbps_up" "$up_scale_factor" | awk '{printf ($1*$2)}')"
-	printf "Scaled Speeds    %10.1f           %10.1f\n" "$Kbps_down" "$Kbps_up"
+	printf "Scaled Speeds    %10.1f           %10.1f\\n\\n" "$Kbps_down" "$Kbps_up"
 	
 	#Make sure download and uploads speeds are within defined user-defined limits above
 	download_lower_limit="$((download_lower_limit*1024))"
@@ -2149,7 +2149,7 @@ Menu_AutoBW(){
 	fi
 	
 	if [ "$outta_bounds" -eq "1" ]; then
-		printf "Corrected Speeds   %10.1f            %10.1f\n" "$Kbps_down" "$Kbps_up"
+		printf "Corrected Speeds   %10.1f            %10.1f\\n" "$Kbps_down" "$Kbps_up"
 	fi
 	
 	#Get current QoS down/up speeds
@@ -2165,13 +2165,12 @@ Menu_AutoBW(){
 	#service restart_firewall >/dev/null 2>&1
 	#service restart_qos >/dev/null 2>&1
 	
-	echo
 	echo "               ----------------- QOS ----------------"
 	echo "                 Download (Kbps)      Upload (Kbps)"
 	echo "               -------------------  -----------------"
-	printf "%s           %10.1f          %10.1f\n" "Previous" "$old_Kbps_down" "$old_Kbps_up"
-	printf "%s   %10.1f          %10.1f\n" "New (from above)" "$Kbps_down" "$Kbps_up"
-	
+	printf "%s           %10.1f          %10.1f\\n" "Previous" "$old_Kbps_down" "$old_Kbps_up"
+	printf "%s   %10.1f          %10.1f\\n" "New (from above)" "$Kbps_down" "$Kbps_up"
+	echo
 	Clear_Lock
 }
 
