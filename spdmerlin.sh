@@ -1010,7 +1010,7 @@ AutoBWConf(){
 			sed -i 's/^AUTOBW_'"$2"'_'"$3"'.*$/AUTOBW_'"$2"'_'"$3"'='"$4"'/' "$SCRIPT_CONF"
 		;;
 		check)
-			echo "$(grep "AUTOBW_$2""_$3" "$SCRIPT_CONF" | cut -f2 -d"=")"
+			grep "AUTOBW_$2""_$3" "$SCRIPT_CONF" | cut -f2 -d"="
 		;;
 	esac
 }
@@ -2251,8 +2251,8 @@ Menu_AutoBW_Update(){
 	
 	#Scale average values by this factor
 	# Adjust to optimize bufferbloat and quality grade at DSLreports.com
-	dsf="$(echo "$(AutoBWConf "check" "SF" "DOWN")" | awk '{printf ($1/100)}')"
-	usf="$(echo "$(AutoBWConf "check" "SF" "UP")" | awk '{printf ($1/100)}')"
+	dsf="$(AutoBWConf "check" "SF" "DOWN" | awk '{printf ($1/100)}')"
+	usf="$(AutoBWConf "check" "SF" "UP" | awk '{printf ($1/100)}')"
 	
 	#Make sure speeds (AFTER scaling) are within these boundaries
 	dlimitlow="$(($(AutoBWConf "check" "LLIMIT" "DOWN")*1024))"
