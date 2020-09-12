@@ -466,12 +466,16 @@ Conf_Exists(){
 				{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 			done
 		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 20 ]; then
+			{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; } >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -996,6 +1000,17 @@ OutputTimeMode(){
 		check)
 			OUTPUTTIMEMODE=$(grep "OUTPUTTIMEMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
 			echo "$OUTPUTTIMEMODE"
+		;;
+	esac
+}
+
+AutoBWConf(){
+	case "$1" in
+		update)
+			sed -i 's/^AUTOBW_'"$2"'_'"$3"'.*$/AUTOBW_'"$2"'_'"$3"'='"$4"'/' "$SCRIPT_CONF"
+		;;
+		check)
+			echo "$(grep "AUTOBW_$2""_$3" "$SCRIPT_CONF" | cut -f2 -d"=")"
 		;;
 	esac
 }
@@ -2068,30 +2083,16 @@ Menu_AutoBW(){
 	
 	#Scale average values by this factor
 	# Adjust to optimize bufferbloat and quality grade at DSLreports.com
-	down_scale_factor=0.95
-	up_scale_factor=0.95
+	dsf="$(echo "$(AutoBWConf "check" "SF" "DOWN")" | awk '{printf ($1/100)}')"
+	usf="$(echo "$(AutoBWConf "check" "SF" "UP")" | awk '{printf ($1/100)}')"
 	
 	#Make sure speeds (AFTER scaling) are within these boundaries
-	# Mainly just to prevent bandwidth from being set too low
-	# (or too high)... not worried about upper limit but it is there
-	# for the sake of completeness
-	download_lower_limit=350 #Mbps
-	download_upper_limit=550 #Mbps
-	upload_lower_limit=20    #Mbps
-	upload_upper_limit=45    #Mbps
-	
-	echo
-	echo "               ---------------- SPDMERLIN -------------"
-	echo "                 Download (Kbps)       Upload (Kbps)"
-	echo "               -------------------  -------------------"
+	dlimitlow="$(($(AutoBWConf "check" "LLIMIT" "DOWN")*1024))"
+	dlimithigh="$(($(AutoBWConf "check" "ULIMIT" "DOWN")*1024))"
+	ulimitlow="$(($(AutoBWConf "check" "LLIMIT" "UP")*1024))"
+	ulimithigh="$(($(AutoBWConf "check" "ULIMIT" "UP")*1024))"
 	
 	#Calculate average download and upload speeds
-	TZ=$(cat /etc/TZ)
-	export TZ
-	
-	timenow=$(date +"%s")
-	timenowfriendly=$(date +"%c")
-	
 	metriclist="Download Upload"
 	
 	for metric in $metriclist; do
@@ -2107,70 +2108,43 @@ Menu_AutoBW(){
 	}
 	done
 	
-	Kbps_down="$(awk '{printf (1024*$1)}' /tmp/spdbwDownload)"
-	Kbps_up="$(awk '{printf (1024*$1)}' /tmp/spdbwUpload)"
+	dspdkbps="$(echo "$(awk '{printf (1024*$1)}' /tmp/spdbwDownload)" "$dsf" | awk '{printf int($1*$2)}')"
+	uspdkbps="$(echo "$(awk '{printf (1024*$1)}' /tmp/spdbwUpload)" "$usf" | awk '{printf int($1*$2)}')"
 	
 	rm -f /tmp/spdbwDownload
 	rm -f /tmp/spdbwUpload
 	
-	printf "Average          %10.1f           %10.1f\n" "$Kbps_down" "$Kbps_up"
-	
-	#Apply user-defined scale factors
-	printf "Scale Factors         %5.2f                %5.2f\n" "$down_scale_factor" "$up_scale_factor"
-	Kbps_down="$(echo "$Kbps_down" "$down_scale_factor" | awk '{printf ($1*$2)}')"
-	Kbps_up="$(echo "$Kbps_up" "$up_scale_factor" | awk '{printf ($1*$2)}')"
-	printf "Scaled Speeds    %10.1f           %10.1f\\n\\n" "$Kbps_down" "$Kbps_up"
-	
-	#Make sure download and uploads speeds are within defined user-defined limits above
-	download_lower_limit="$((download_lower_limit*1024))"
-	download_upper_limit="$((download_upper_limit*1024))"
-	upload_lower_limit="$((upload_lower_limit*1024))"
-	upload_upper_limit="$((upload_upper_limit*1024))"
-	outta_bounds=0
-	
-	if [ "$Kbps_down" -lt "$download_lower_limit" ]; then
-		Print_Output "true" "Download speed ($Kbps_down Kbps) < lower limit ($download_lower_limit Kbps)" "$WARN"
-		Kbps_down="$download_lower_limit"
-		outta_bounds=1
-	elif [ "$Kbps_down" -gt "$download_upper_limit" ]; then
-		Print_Output "true" "Download speed ($Kbps_down Kbps) > upper limit ($download_upper_limit Kbps)" "$WARN"
-		Kbps_down="$download_upper_limit"
-		outta_bounds=1
+	if [ "$dspdkbps" -lt "$dlimitlow" ]; then
+		Print_Output "true" "Download speed ($dspdkbps Kbps) < lower limit ($dlimitlow Kbps)" "$WARN"
+		dspdkbps="$dlimitlow"
+	elif [ "$dspdkbps" -gt "$dlimithigh" ] && [ "$dlimithigh" -gt 0 ]; then
+		Print_Output "true" "Download speed ($dspdkbps Kbps) > upper limit ($dlimithigh Kbps)" "$WARN"
+		dspdkbps="$dlimithigh"
 	fi
 	
-	if [ "$Kbps_up" -lt "$upload_lower_limit" ]; then
-		Print_Output "true" "Upload speed ($Kbps_up Kbps) < lower limit ($upload_lower_limit Kbps)" "$WARN"
-		Kbps_up="$upload_lower_limit"
-		outta_bounds=1
-	elif [ "$Kbps_up" -gt "$upload_upper_limit" ]; then
-		Print_Output "true" "Upload speed ($Kbps_up Kbps) > upper limit ($upload_upper_limit Kbps)" "$WARN"
-		Kbps_up="$upload_upper_limit"
-		outta_bounds=1
-	fi
-	
-	if [ "$outta_bounds" -eq "1" ]; then
-		printf "Corrected Speeds   %10.1f            %10.1f\\n" "$Kbps_down" "$Kbps_up"
+	if [ "$uspdkbps" -lt "$ulimitlow" ]; then
+		Print_Output "true" "Upload speed ($uspdkbps Kbps) < lower limit ($ulimitlow Kbps)" "$WARN"
+		uspdkbps="$ulimitlow"
+	elif [ "$uspdkbps" -gt "$ulimithigh" ] && [ "$ulimithigh" -gt 0 ]; then
+		Print_Output "true" "Upload speed ($uspdkbps Kbps) > upper limit ($ulimithigh Kbps)" "$WARN"
+		uspdkbps="$ulimithigh"
 	fi
 	
 	#Get current QoS down/up speeds
-	old_Kbps_up="$(nvram get qos_obw)"
-	old_Kbps_down="$(nvram get qos_ibw)"
+	old_uspdkbps="$(nvram get qos_obw)"
+	old_dspdkbps="$(nvram get qos_ibw)"
 	
 	#Set Upload/Download Limit
-	Print_Output "true" " Setting QoS Download Speed to $Kbps_down Kbps" "$WARN"
-	Print_Output "true" " Setting QoS Upload Speed to $Kbps_up Kbps" "$WARN"
-	#nvram set qos_ibw="$(echo $Kbps_down | cut -d. -f1)"
-	#nvram set qos_obw="$(echo $Kbps_up | cut -d. -f1)"
+	Print_Output "true" " Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$WARN"
+	Print_Output "true" " Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$WARN"
+	#nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
+	#nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
 	#nvram commit
-	#service restart_firewall >/dev/null 2>&1
 	#service restart_qos >/dev/null 2>&1
+	#if [ -f /jffs/addon/flexqos/flexqos.sh ]; then
+	#	/jffs/addon/flexqos/flexqos.sh -check &
+	#fi
 	
-	echo "               ----------------- QOS ----------------"
-	echo "                 Download (Kbps)      Upload (Kbps)"
-	echo "               -------------------  -----------------"
-	printf "%s           %10.1f          %10.1f\\n" "Previous" "$old_Kbps_down" "$old_Kbps_up"
-	printf "%s   %10.1f          %10.1f\\n" "New (from above)" "$Kbps_down" "$Kbps_up"
-	echo
 	Clear_Lock
 }
 
