@@ -1478,8 +1478,8 @@ MainMenu(){
 	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$OUTPUTTIMEMODE_MENU"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
-	printf "a.    AutoBW testing \\n\\n"
 	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$SCRIPTSTORAGE_MENU"
+	printf "a.    AutoBW\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
@@ -1546,19 +1546,16 @@ MainMenu(){
 				PressEnter
 				break
 			;;
-			a)
-				printf "\\n"
-				if Check_Lock "menu"; then
-					Menu_AutoBW
-				fi
-				PressEnter
-				break
-			;;
 			s)
 				printf "\\n"
 				if Check_Lock "menu"; then
 					Menu_ToggleStorageLocation
 				fi
+				break
+			;;
+			a)
+				printf "\\n"
+				Menu_AutoBW
 				break
 			;;
 			u)
@@ -2076,6 +2073,177 @@ Menu_EditSchedule(){
 }
 
 Menu_AutoBW(){
+	while true; do
+		ScriptHeader
+		
+		printf "1.    Update QoS bandwidth values now\\n\\n"
+		printf "2.    Configure scale factor\\n      Download: %s%%  -  Upload: %s%%\\n\\n" "$(AutoBWConf "check" "SF" "DOWN")" "$(AutoBWConf "check" "SF" "UP")"
+		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: %s Mbps  -  Upload: %s Mbps\\n      Lower Limit    Download: %s Mbps  -  Upload: %s Mbps\\n\\n" "$(AutoBWConf "check" "ULIMIT" "DOWN")" "$(AutoBWConf "check" "ULIMIT" "UP")" "$(AutoBWConf "check" "LLIMIT" "DOWN")" "$(AutoBWConf "check" "LLIMIT" "UP")"
+		printf "e.    Go back\\n\\n"
+		printf "\\e[1m####################################################################\\e[0m\\n"
+		printf "\\n"
+		
+		printf "Choose an option:    "
+		read -r "autobwmenu"
+		case "$autobwmenu" in
+			1)
+				printf "\\n"
+				Menu_AutoBW_Update
+				PressEnter
+				break
+			;;
+			2)
+				while true; do
+					ScriptHeader
+					exitmenu=""
+					updown=""
+					sfvalue=""
+					printf "\\n"
+					printf "Select a scale factor to set\\n"
+					printf "1.    Download\\n"
+					printf "2.    Upload\\n\\n"
+					printf "Choose an option:    "
+					read -r "autobwsfchoice"
+					if [ "$autobwsfchoice" = "e" ]; then
+						exitmenu="exit"
+						break
+					elif ! Validate_Number "" "$autobwsfchoice" "silent"; then
+						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
+					else
+						if [ "$autobwsfchoice" -lt 1 ] || [ "$autobwsfchoice" -gt 2 ]; then
+							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+						else
+							if [ "$autobwsfchoice" -eq 1 ]; then
+								updown="DOWN"
+							elif [ "$autobwsfchoice" -eq 2 ]; then
+								updown="UP"
+							fi
+						fi
+					fi
+					
+					if [ "$exitmenu" != "exit" ]; then
+						while true; do
+							printf "\\n"
+							printf "Enter percentage to scale bandwidth by (1-100):    "
+							read -r "autobwsfvalue"
+								if [ "$autobwsfvalue" = "e" ]; then
+									exitmenu="exit"
+									break
+								elif ! Validate_Number "" "$autobwsfvalue" "silent"; then
+									printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
+								else
+									if [ "$autobwsfvalue" -lt 1 ] || [ "$autobwsfvalue" -gt 100 ]; then
+										printf "\\n\\e[31mPlease enter a number between 1 and 100\\e[0m\\n"
+									else
+										sfvalue="$autobwsfvalue"
+										break
+									fi
+								fi
+						done
+					fi
+					if [ "$exitmenu" != "exit" ]; then
+						AutoBWConf "update" "SF" "$updown" "$sfvalue"
+						break
+					fi
+				done
+				
+				printf "\\n"
+				PressEnter
+			;;
+			3)
+				while true; do
+					ScriptHeader
+					exitmenu=""
+					updown=""
+					limithighlow=""
+					limitvalue=""
+					printf "\\n"
+					printf "Select a bandwidth to set limit for\\n"
+					printf "1.    Download\\n"
+					printf "2.    Upload\\n\\n"
+					printf "Choose an option:    "
+					read -r "autobwchoice"
+					if [ "$autobwchoice" = "e" ]; then
+						exitmenu="exit"
+						break
+					elif ! Validate_Number "" "$autobwchoice" "silent"; then
+						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
+					else
+						if [ "$autobwchoice" -lt 1 ] || [ "$autobwchoice" -gt 2 ]; then
+							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+						else
+							if [ "$autobwchoice" -eq 1 ]; then
+								updown="DOWN"
+							elif [ "$autobwchoice" -eq 2 ]; then
+								updown="UP"
+							fi
+						fi
+					fi
+					
+					if [ "$exitmenu" != "exit" ]; then
+						while true; do
+							printf "\\n"
+							printf "Select a limit to set\\n"
+							printf "1.    Upper\\n"
+							printf "2.    Lower\\n\\n"
+							printf "Choose an option:    "
+							read -r "autobwlimit"
+								if [ "$autobwlimit" = "e" ]; then
+									exitmenu="exit"
+									break
+								elif ! Validate_Number "" "$autobwlimit" "silent"; then
+									printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
+								else
+									if [ "$autobwlimit" -lt 1 ] || [ "$autobwlimit" -gt 100 ]; then
+										printf "\\n\\e[31mPlease enter a number between 1 and 100\\e[0m\\n"
+									else
+										if [ "$autobwlimit" -eq 1 ]; then
+											limithighlow="ULIMIT"
+										elif [ "$autobwlimit" -eq 2 ]; then
+											limithighlow="LLIMIT"
+										fi
+									fi
+								fi
+								
+								if [ "$exitmenu" != "exit" ]; then
+									while true; do
+										printf "\\n"
+										printf "Enter value to set limit to (0 = unlimited for upper):    "
+										read -r "autobwlimvalue"
+										if [ "$autobwlimvalue" = "e" ]; then
+											exitmenu="exit"
+											break
+										elif ! Validate_Number "" "$autobwlimvalue" "silent"; then
+											printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
+										else
+											limitvalue="$autobwlimvalue"
+											break
+										fi
+									done
+									if [ "$exitmenu" != "exit" ]; then
+										AutoBWConf "update" "$limithighlow" "$updown" "$limitvalue"
+										exitmenu="exit"
+										break
+									fi
+								fi
+						done
+						if [ "$exitmenu" = "exit" ]; then
+							break
+						fi
+					fi
+				done
+				
+				printf "\\n"
+				PressEnter
+			;;
+			e)
+				break
+			;;
+		esac
+	done
+}
+
+Menu_AutoBW_Update(){
 	if [ "$(nvram get qos_enable)" = "0" ]; then
 		Print_Output "true" "QoS is not enabled, please enable this in the Asus WebUI." "$ERR"
 		return 1
