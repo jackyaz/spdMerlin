@@ -1004,6 +1004,21 @@ OutputTimeMode(){
 	esac
 }
 
+AutoBWEnable(){
+	case "$1" in
+	enable)
+		sed -i 's/^AUTOBW_ENABLED.*$/AUTOBW_ENABLED=true/' "$SCRIPT_CONF"
+	;;
+	disable)
+		sed -i 's/^AUTOBW_ENABLED.*$/AUTOBW_ENABLED=false/' "$SCRIPT_CONF"
+	;;
+	check)
+		AUTOBW_ENABLED=$(grep "AUTOBW_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
+		echo "$AUTOBW_ENABLED"
+	;;
+	esac
+}
+
 AutoBWConf(){
 	case "$1" in
 		update)
@@ -1965,6 +1980,15 @@ Menu_ToggleStorageLocation(){
 	Clear_Lock
 }
 
+Menu_ToggleAutoBW(){
+	if [ "$(AutoBWEnable "check")" = "true" ]; then
+		AutoBWEnable "disable"
+	elif [ "$(AutoBWEnable "check")" = "false" ]; then
+		AutoBWEnable "enable"
+	fi
+	Clear_Lock
+}
+
 Menu_EditSchedule(){
 	exitmenu="false"
 	starthour=""
@@ -2076,9 +2100,18 @@ Menu_AutoBW(){
 	while true; do
 		ScriptHeader
 		
+		AUTOBW_MENU=""
+		
+		if [ "$(AutoBWEnable "check")" = "true" ]; then
+			AUTOBW_MENU="Enabled"
+		elif [ "$(AutoBWEnable "check")" = "false" ]; then
+			AUTOBW_MENU="Disabled"
+		fi
+		
 		printf "1.    Update QoS bandwidth values now\\n\\n"
 		printf "2.    Configure scale factor\\n      Download: %s%%  -  Upload: %s%%\\n\\n" "$(AutoBWConf "check" "SF" "DOWN")" "$(AutoBWConf "check" "SF" "UP")"
 		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: %s Mbps  -  Upload: %s Mbps\\n      Lower Limit    Download: %s Mbps  -  Upload: %s Mbps\\n\\n" "$(AutoBWConf "check" "ULIMIT" "DOWN")" "$(AutoBWConf "check" "ULIMIT" "UP")" "$(AutoBWConf "check" "LLIMIT" "DOWN")" "$(AutoBWConf "check" "LLIMIT" "UP")"
+		printf "4.    Toggle AutoBW on/off\\n      Currently: %s\\n\\n" "$AUTOBW_MENU"
 		printf "e.    Go back\\n\\n"
 		printf "\\e[1m####################################################################\\e[0m\\n"
 		printf "\\n"
@@ -2235,6 +2268,10 @@ Menu_AutoBW(){
 				
 				printf "\\n"
 				PressEnter
+			;;
+			4)
+				printf "\\n"
+				Menu_ToggleAutoBW
 			;;
 			e)
 				break
