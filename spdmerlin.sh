@@ -2249,18 +2249,14 @@ Menu_AutoBW_Update(){
 		return 1
 	fi
 	
-	#Scale average values by this factor
-	# Adjust to optimize bufferbloat and quality grade at DSLreports.com
 	dsf="$(AutoBWConf "check" "SF" "DOWN" | awk '{printf ($1/100)}')"
 	usf="$(AutoBWConf "check" "SF" "UP" | awk '{printf ($1/100)}')"
 	
-	#Make sure speeds (AFTER scaling) are within these boundaries
 	dlimitlow="$(($(AutoBWConf "check" "LLIMIT" "DOWN")*1024))"
 	dlimithigh="$(($(AutoBWConf "check" "ULIMIT" "DOWN")*1024))"
 	ulimitlow="$(($(AutoBWConf "check" "LLIMIT" "UP")*1024))"
 	ulimithigh="$(($(AutoBWConf "check" "ULIMIT" "UP")*1024))"
 	
-	#Calculate average download and upload speeds
 	metriclist="Download Upload"
 	
 	for metric in $metriclist; do
@@ -2298,7 +2294,6 @@ Menu_AutoBW_Update(){
 		uspdkbps="$ulimithigh"
 	fi
 	
-	#Get current QoS down/up speeds
 	old_uspdkbps="$(nvram get qos_obw)"
 	old_dspdkbps="$(nvram get qos_ibw)"
 	
