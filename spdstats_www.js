@@ -690,7 +690,7 @@ function update_status(){
 }
 
 function CheckUpdate(){
-	document.getElementById("btnChkUpdate").disabled = true;
+	showhide("btnChkUpdate", false);
 	document.formChkVer.action_script.value="start_spdmerlincheckupdate"
 	document.formChkVer.submit();
 	document.getElementById("imgChkUpdate").style.display = "";
