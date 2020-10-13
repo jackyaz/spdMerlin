@@ -654,17 +654,47 @@ function ToggleDragZoom(button){
 }
 
 function ExportCSV() {
-	location.href = "ext/spdmerlin/csv/spdmerlindata.zip";
+	location.href = "/ext/spdmerlin/csv/spdmerlindata.zip";
 	return 0;
 }
 
+
+function update_status(){
+	$j.ajax({
+		url: '/ext/spdmerlin/detect_update.js',
+		dataType: 'script',
+		timeout: 3000,
+		error:	function(xhr){
+			setTimeout('update_status();', 1000);
+		},
+		success: function(){
+			if (updatestatus == "InProgress"){
+				setTimeout('update_status();', 1000);
+			}
+			else {
+				document.getElementById("imgChkUpdate").style.display = "none";
+				showhide("spdmerlin_version_server", true);
+				if(updatestatus != "None"){
+					$j("#spdmerlin_version_server").text("Updated version available: "+updatestatus);
+					showhide("btnChkUpdate", false);
+					showhide("btnDoUpdate", true);
+				}
+				else {
+					$j("#spdmerlin_version_server").text("No update available");
+					showhide("btnChkUpdate", true);
+					showhide("btnDoUpdate", false);
+				}
+			}
+		}
+	});
+}
+
 function CheckUpdate(){
-	var action_script_tmp = "start_spdmerlincheckupdate";
-	document.form.action_script.value = action_script_tmp;
-	var restart_time = 10;
-	document.form.action_wait.value = restart_time;
-	showLoading();
-	document.form.submit();
+	document.getElementById("btnChkUpdate").disabled = true;
+	document.formChkVer.action_script.value="start_spdmerlincheckupdate"
+	document.formChkVer.submit();
+	document.getElementById("imgChkUpdate").style.display = "";
+	setTimeout("update_status();", 2000);
 }
 
 function DoUpdate(){
