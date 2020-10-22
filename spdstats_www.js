@@ -1,5 +1,3 @@
-var custom_settings = <% get_custom_settings(); %>;
-
 var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
 
 var maxNoCharts = 0;
@@ -77,9 +75,9 @@ function Draw_Chart(txtchartname,txtcharttype){
 		metric1 = "Jitter";
 	}
 	
-	var chartperiod = getChartPeriod($j("#" + txtchartname + "_Period option:selected").val());
-	var txtunitx = timeunitlist[$j("#" + txtchartname + "_Period option:selected").val()];
-	var numunitx = intervallist[$j("#" + txtchartname + "_Period option:selected").val()];
+	var chartperiod = getChartPeriod($j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val());
+	var txtunitx = timeunitlist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
+	var numunitx = intervallist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
 	var dataobject = window[chartperiod+"_"+txtchartname+"_"+txtcharttype];
 	if(typeof dataobject === 'undefined' || dataobject === null) { Draw_Chart_NoData(txtchartname,txtcharttype); return; }
 	if (dataobject.length == 0) { Draw_Chart_NoData(txtchartname,txtcharttype); return; }
@@ -492,7 +490,8 @@ function RedrawAllCharts() {
 		var i;
 		for (i2 = 0; i2 < chartlist.length; i2++) {
 			for (i3 = 0; i3 < interfacetextarray.length; i3++) {
-				$j("#"+interfacetextarray[i3]+"_Period").val(GetCookie(interfacetextarray[i3]+"_Period","number"));
+				$j("#"+interfacetextarray[i3]+"_Period_Combined").val(GetCookie(interfacetextarray[i3]+"_Period_Combined","number"));
+				$j("#"+interfacetextarray[i3]+"_Period_Quality").val(GetCookie(interfacetextarray[i3]+"_Period_Quality","number"));
 				d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
 				d3.csv('/ext/spdmerlin/csv/Quality'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Quality"));
 			}
@@ -787,8 +786,12 @@ function changeChart(e) {
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
-	Draw_Chart(name,"Combined");
-	Draw_Chart(name,"Quality");
+	if(e.id.indexOf("Combined") != -1){
+		Draw_Chart(name,"Combined");
+	}
+	else if(e.id.indexOf("Quality") != -1){
+		Draw_Chart(name,"Quality");
+	}
 }
 
 function BuildInterfaceTable(name){
@@ -799,14 +802,12 @@ function BuildInterfaceTable(name){
 	charthtml+='<td colspan="2">'+name+' (click to expand/collapse)</td>';
 	charthtml+='</tr>';
 	charthtml+='</thead>';
-	charthtml+='<div class="collapsiblecontent">';
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
 	charthtml+='<thead class="collapsible-jquery" id="resulttable_'+name+'">';
 	charthtml+='<tr><td colspan="2">Last 10 speedtest results (click to expand/collapse)</td></tr>';
 	charthtml+='</thead>';
-	charthtml+='<div class="collapsiblecontent">';
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">';
@@ -854,21 +855,25 @@ function BuildInterfaceTable(name){
 	charthtml+='</table>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
-	charthtml+='</div>';
 	charthtml+='</table>';
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
-		
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
-	charthtml+='<thead class="collapsible-jquery" id="'+name+'_Chart">';
+	charthtml+='<thead class="collapsible-jquery" id="table_charts">';
 	charthtml+='<tr>';
-	charthtml+='<td colspan="2">Chart (click to expand/collapse)</td>';
+	charthtml+='<td>Charts (click to expand/collapse)</td>';
 	charthtml+='</tr>';
 	charthtml+='</thead>';
-	charthtml+='<div class="collapsiblecontent">';
+	charthtml+='<tr><td align="center" style="padding: 0px;">';
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
+	charthtml+='<thead class="collapsible-jquery" id="'+name+'_ChartCombined">';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2">Bandwidth (click to expand/collapse)</td>';
+	charthtml+='</tr>';
+	charthtml+='</thead>';
 	charthtml+='<tr class="even">';
 	charthtml+='<th width="40%">Period to display</th>';
 	charthtml+='<td>';
-	charthtml+='<select style="width:125px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period">';
+	charthtml+='<select style="width:125px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Combined">';
 	charthtml+='<option value=0>Last 24 hours</option>';
 	charthtml+='<option value=1>Last 7 days</option>';
 	charthtml+='<option value=2>Last 30 days</option>';
@@ -880,16 +885,35 @@ function BuildInterfaceTable(name){
 	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;height:500px;padding-left:5px;"><canvas id="divLineChart_'+name+'_Combined" height="500" /></div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
+	charthtml+='</table>';
+	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
+	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
+	charthtml+='<thead class="collapsible-jquery" id="'+name+'_ChartQuality">';
+	charthtml+='<tr>';
+	charthtml+='<td colspan="2">Quality (click to expand/collapse)</td>';
+	charthtml+='</tr>';
+	charthtml+='</thead>';
+	charthtml+='<tr class="even">';
+	charthtml+='<th width="40%">Period to display</th>';
+	charthtml+='<td>';
+	charthtml+='<select style="width:125px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Quality">';
+	charthtml+='<option value=0>Last 24 hours</option>';
+	charthtml+='<option value=1>Last 7 days</option>';
+	charthtml+='<option value=2>Last 30 days</option>';
+	charthtml+='</select>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
 	charthtml+='<tr>';
 	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
 	charthtml+='<div style="background-color:#2f3e44;border-radius:10px;width:730px;height:500px;padding-left:5px;"><canvas id="divLineChart_'+name+'_Quality" height="500" /></div>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
-	charthtml+='</div>';
 	charthtml+='</table>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
-	charthtml+='</div>';
+	charthtml+='</table>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
 	charthtml+='</table>';
 	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
 	return charthtml;
