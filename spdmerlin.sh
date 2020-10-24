@@ -448,10 +448,9 @@ Create_Symlinks(){
 	
 	rm -rf "${SCRIPT_WEB_DIR:?}/"* 2>/dev/null
 	
+	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
-	
 	ln -s "$SCRIPT_STORAGE_DIR/spdjs.js" "$SCRIPT_WEB_DIR/spdjs.js" 2>/dev/null
-	
 	ln -s "$CSV_OUTPUT_DIR" "$SCRIPT_WEB_DIR/csv" 2>/dev/null
 	
 	if [ ! -d "$SHARED_WEB_DIR" ]; then
