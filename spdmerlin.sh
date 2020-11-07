@@ -1295,8 +1295,6 @@ Run_Speedtest(){
 				fi
 			done
 			
-			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
-			
 			for proto in tcp udp; do
 				iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 				iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
@@ -1311,6 +1309,8 @@ Run_Speedtest(){
 			
 			echo "Stats last updated: $timenowfriendly" > "/tmp/spdstatstitle.txt"
 			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_STORAGE_DIR/spdjs.js" "SetSPDStatsTitle" "statstitle"
+			
+			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
 			rm -f "/tmp/spdstatstitle.txt"
 		else

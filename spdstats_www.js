@@ -890,7 +890,7 @@ function update_spdtest(){
 			else if (spdteststatus == "Done"){
 				document.getElementById("spdtest_text").innerHTML = "Refreshing tables and charts...";
 				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
-				setTimeout('PostSpeedTest();', 2000);
+				setTimeout('PostSpeedTest();', 1000);
 				clearInterval(myinterval);
 			}
 			else if (spdteststatus.indexOf("LOCKED") != -1){
