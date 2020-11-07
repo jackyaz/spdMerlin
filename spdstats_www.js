@@ -805,7 +805,7 @@ function update_status(){
 		url: '/ext/spdmerlin/detect_update.js',
 		dataType: 'script',
 		timeout: 3000,
-		error:	function(xhr){
+		error: function(xhr){
 			setTimeout('update_status();', 1000);
 		},
 		success: function(){
@@ -832,8 +832,8 @@ function update_status(){
 
 function CheckUpdate(){
 	showhide("btnChkUpdate", false);
-	document.formChkVer.action_script.value="start_spdmerlincheckupdate"
-	document.formChkVer.submit();
+	document.formScriptActions.action_script.value="start_spdmerlincheckupdate"
+	document.formScriptActions.submit();
 	document.getElementById("imgChkUpdate").style.display = "";
 	setTimeout("update_status();", 2000);
 }
@@ -841,19 +841,130 @@ function CheckUpdate(){
 function DoUpdate(){
 	var action_script_tmp = "start_spdmerlindoupdate";
 	document.form.action_script.value = action_script_tmp;
-	var restart_time = 20;
+	var restart_time = 10;
 	document.form.action_wait.value = restart_time;
 	showLoading();
 	document.form.submit();
 }
 
+function get_spdtest_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spd-stats.htm',
+		dataType: 'text',
+		timeout: 200,
+		error: function(xhr){
+			//do nothing
+		},
+		success: function(data){
+			var lines = data.trim().split('\n');
+			var lastLine = lines.slice(-1)[0];
+			var arrlastLine = lastLine.split('%');
+			arrlastLine = arrlastLine.filter(Boolean);
+			
+			if(lines.length > 5){
+				document.getElementById("spdtest_output").innerHTML = lines[0] + '\n';
+				document.getElementById("spdtest_output").innerHTML += lines[1] + '\n';
+				document.getElementById("spdtest_output").innerHTML += lines[2] + '\n';
+				document.getElementById("spdtest_output").innerHTML += lines[3] + '\n';
+				document.getElementById("spdtest_output").innerHTML += lines[4] + '\n';
+				document.getElementById("spdtest_output").innerHTML +=  arrlastLine[arrlastLine.length-1] + "%";
+			}
+			else{
+				document.getElementById("spdtest_output").innerHTML = "";
+			}
+		}
+	});
+}
+
+function update_spdtest(){
+	$j.ajax({
+		url: '/ext/spdmerlin/detect_spdtest.js',
+		dataType: 'script',
+		timeout: 200,
+		error: function(xhr){
+			//do nothing
+		},
+		success: function(){
+			if (spdteststatus.indexOf("InProgress") != -1){
+				if (spdteststatus.indexOf("_") != -1){
+					showhide("imgSpdTest", true);
+					showhide("spdtest_text", true);
+					document.getElementById("spdtest_text").innerHTML = "Speedtest in progress for " + spdteststatus.substring(spdteststatus.indexOf("_")+1);
+					document.getElementById("spdtest_output").parentElement.parentElement.style.display = "";
+					get_spdtest_file();
+				}
+			}
+			else if (spdteststatus == "Done"){
+				document.getElementById("spdtest_text").innerHTML = "Refreshing tables and charts...";
+				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
+				setTimeout('PostSpeedTest();', 2000);
+				clearInterval(myinterval);
+			}
+			else if (spdteststatus.indexOf("LOCKED") != -1){
+				showhide("imgSpdTest", false);
+				document.getElementById("spdtest_text").innerHTML = "Scheduled speedtest already running!";
+				showhide("spdtest_text", true);
+				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
+				showhide("btnRunSpeedtest", true);
+				clearInterval(myinterval);
+			}
+			else if (spdteststatus.indexOf("NoLicense") != -1){
+				showhide("imgSpdTest", false);
+				document.getElementById("spdtest_text").innerHTML = "Please accept Ookla license at command line via spdmerlin";
+				showhide("spdtest_text", true);
+				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
+				showhide("btnRunSpeedtest", true);
+				clearInterval(myinterval);
+			}
+			else if (spdteststatus.indexOf("Error") != -1){
+				showhide("imgSpdTest", false);
+				document.getElementById("spdtest_text").innerHTML = "Error running speedtest";
+				showhide("spdtest_text", true);
+				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
+				showhide("btnRunSpeedtest", true);
+				clearInterval(myinterval);
+			}
+			else if (spdteststatus.indexOf("NoSwap") != -1){
+				showhide("imgSpdTest", false);
+				document.getElementById("spdtest_text").innerHTML = "No Swap file configured/detected";
+				showhide("spdtest_text", true);
+				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
+				showhide("btnRunSpeedtest", true);
+				clearInterval(myinterval);
+			}
+		}
+	});
+}
+
+function PostSpeedTest(){
+	showhide("imgSpdTest", false);
+	showhide("spdtest_text", false);
+	showhide("btnRunSpeedtest", true);
+	document.getElementById("table_allinterfaces").remove();
+	currentNoCharts = 0;
+	reload_js('/ext/spdmerlin/spdjs.js');
+	$j("#Time_Format").val(GetCookie("Time_Format","number"));
+	SetSPDStatsTitle();
+	get_interfaces_file();
+}
+
 function RunSpeedtest(){
-	var action_script_tmp = "start_spdmerlin";
-	document.form.action_script.value = action_script_tmp;
-	var restart_time = 90;
-	document.form.action_wait.value = restart_time;
-	showLoading();
-	document.form.submit();
+	showhide("btnRunSpeedtest", false);
+	document.formScriptActions.action_script.value="start_spdmerlin"
+	document.formScriptActions.submit();
+	showhide("imgSpdTest", true);
+	showhide("spdtest_text", false);
+	setTimeout('StartSpeedTestInterval();', 1500);
+}
+
+var myinterval;
+function StartSpeedTestInterval(){
+	myinterval = setInterval("update_spdtest();", 400);
+}
+
+function reload_js(src) {
+	$j('script[src="' + src + '"]').remove();
+	$j('<script>').attr('src', src+'?cachebuster='+ new Date().getTime()).appendTo('head');
 }
 
 function applyRule(){
@@ -920,12 +1031,11 @@ function get_interfaces_file(){
 			var interfaces=data.split("\n");
 			
 			interfaces=interfaces.filter(Boolean);
-			console.log(interfaces)
 			interfacelist="";
 			var interfacetablehtml='<div style="line-height:10px;">&nbsp;</div>';
 			
-			interfacetablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
-			interfacetablehtml+='<thead class="collapsible-jquery" id="table_allinterfaces">';
+			interfacetablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_allinterfaces">';
+			interfacetablehtml+='<thead class="collapsible-jquery" id="thead_allinterfaces">';
 			interfacetablehtml+='<tr>';
 			interfacetablehtml+='<td>Interfaces (click to expand/collapse)</td>';
 			interfacetablehtml+='</tr>';

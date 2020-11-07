@@ -85,6 +85,7 @@ Check_Lock(){
 			return 0
 		else
 			Print_Output "true" "Lock file found (age: $ageoflock seconds) - stopping to prevent duplicate runs" "$ERR"
+			echo 'var spdteststatus = "LOCKED";' > /tmp/detect_spdtest.js
 			if [ -z "$1" ]; then
 				exit 1
 			else
@@ -435,6 +436,7 @@ Create_Symlinks(){
 	rm -rf "${SCRIPT_WEB_DIR:?}/"* 2>/dev/null
 	
 	ln -s /tmp/spd-stats.txt "$SCRIPT_WEB_DIR/spd-stats.htm" 2>/dev/null
+	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js"
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
@@ -1133,6 +1135,8 @@ Run_Speedtest(){
 	speedtestserverno=""
 	speedtestservername=""
 	
+	echo 'var spdteststatus = "InProgress";' > /tmp/detect_spdtest.js
+	
 	tmpfile=/tmp/spd-stats.txt
 	
 	if Check_Swap ; then
@@ -1140,10 +1144,12 @@ Run_Speedtest(){
 			if ! License_Acceptance "check" ; then
 				if [ "$mode" != "schedule" ]; then
 					if ! License_Acceptance "accept"; then
+						echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
 						Clear_Lock
 						return 1
 					fi
 				else
+					echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
 					Print_Output "true" "Licenses not accepted, please run spdMerlin to accept them" "$ERR"
 					return 1
 				fi
@@ -1204,6 +1210,8 @@ Run_Speedtest(){
 						speedtestservername="$(PreferredServer list "$IFACE_NAME" | cut -f2 -d"|")"
 					fi
 					
+					echo 'var spdteststatus = "InProgress_'"$IFACE_NAME"'";' > /tmp/detect_spdtest.js
+					
 					if [ "$mode" = "auto" ]; then
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
@@ -1227,6 +1235,7 @@ Run_Speedtest(){
 					
 					if [ ! -f "$tmpfile" ] || [ -z "$(cat "$tmpfile")" ]; then
 						Print_Output "true" "Error running speedtest for $IFACE_NAME" "$CRIT"
+						echo 'var spdteststatus = "Error";' > /tmp/detect_spdtest.js
 						Clear_Lock
 						return 1
 					fi
@@ -1278,7 +1287,6 @@ Run_Speedtest(){
 					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 					Print_Output "true" "Connection quality - $spdtestresult2" "$PASS"
 					rm -f "$tmpfile"
-					
 					#extStats
 					extStats="/jffs/addons/extstats.d/mod_spdstats.sh"
 					if [ -f "$extStats" ]; then
@@ -1286,6 +1294,8 @@ Run_Speedtest(){
 					fi
 				fi
 			done
+			
+			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
 			for proto in tcp udp; do
 				iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
@@ -1304,12 +1314,14 @@ Run_Speedtest(){
 			
 			rm -f "/tmp/spdstatstitle.txt"
 		else
+			echo 'var spdteststatus = "Error";' > /tmp/detect_spdtest.js
 			Print_Output "true" "No interfaces enabled, exiting" "$CRIT"
 			Clear_Lock
 			return 1
 		fi
 		Clear_Lock
 	else
+		echo 'var spdteststatus = "NoSwap";' > /tmp/detect_spdtest.js
 		Print_Output "true" "Swap file not active, exiting" "$CRIT"
 		Clear_Lock
 		return 1
