@@ -857,20 +857,13 @@ function get_spdtest_file(){
 		},
 		success: function(data){
 			var lines = data.trim().split('\n');
-			var lastLine = lines.slice(-1)[0];
-			var arrlastLine = lastLine.split('%');
-			arrlastLine = arrlastLine.filter(Boolean);
+			var arrlastLine = lines.slice(-1)[0].split('%').filter(Boolean);
 			
 			if(lines.length > 5){
-				document.getElementById("spdtest_output").innerHTML = lines[0] + '\n';
-				document.getElementById("spdtest_output").innerHTML += lines[1] + '\n';
-				document.getElementById("spdtest_output").innerHTML += lines[2] + '\n';
-				document.getElementById("spdtest_output").innerHTML += lines[3] + '\n';
-				document.getElementById("spdtest_output").innerHTML += lines[4] + '\n';
-				document.getElementById("spdtest_output").innerHTML +=  arrlastLine[arrlastLine.length-1] + "%";
+				$j("#spdtest_output").html(lines[0] + '\n' + lines[1] + '\n' + lines[2] + '\n' + lines[3] + '\n' + lines[4] + '\n' + arrlastLine[arrlastLine.length-1] + "%");
 			}
 			else{
-				document.getElementById("spdtest_output").innerHTML = "";
+				$j("#spdtest_output").html("");
 			}
 		}
 	});
@@ -880,7 +873,7 @@ function update_spdtest(){
 	$j.ajax({
 		url: '/ext/spdmerlin/detect_spdtest.js',
 		dataType: 'script',
-		timeout: 200,
+		timeout: 1000,
 		error: function(xhr){
 			//do nothing
 		},
