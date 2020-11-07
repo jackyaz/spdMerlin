@@ -5,7 +5,7 @@ var currentNoCharts = 0;
 
 var ShowLines = GetCookie("ShowLines","string");
 var ShowFill = GetCookie("ShowFill","string");
-if( ShowFill == "" ){
+if(ShowFill == ""){
 	ShowFill = "origin";
 }
 
@@ -13,7 +13,7 @@ var DragZoom = true;
 var ChartPan = false;
 
 Chart.defaults.global.defaultFontColor = "#CCC";
-Chart.Tooltip.positioners.cursor = function(chartElements, coordinates) {
+Chart.Tooltip.positioners.cursor = function(chartElements, coordinates){
 	return coordinates;
 };
 
@@ -27,7 +27,7 @@ var backgroundcolourlist_Quality = ["rgba(83,4,122,0.5)","rgba(7,242,66,0.5)","r
 
 var typelist = ["Combined","Quality"];
 
-function keyHandler(e) {
+function keyHandler(e){
 	if (e.keyCode == 27){
 		$j(document).off("keydown");
 		ResetZoom();
@@ -79,27 +79,28 @@ function Draw_Chart(txtchartname,txtcharttype){
 	var txtunitx = timeunitlist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
 	var numunitx = intervallist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
 	var dataobject = window[chartperiod+"_"+txtchartname+"_"+txtcharttype];
-	if(typeof dataobject === 'undefined' || dataobject === null) { Draw_Chart_NoData(txtchartname,txtcharttype); return; }
-	if (dataobject.length == 0) { Draw_Chart_NoData(txtchartname,txtcharttype); return; }
+	if(typeof dataobject === 'undefined' || dataobject === null){ Draw_Chart_NoData(txtchartname,txtcharttype); return; }
+	if (dataobject.length == 0){ Draw_Chart_NoData(txtchartname,txtcharttype); return; }
 	
-	var chartData = dataobject.map(function(d) {return {x: d.Time, y: d.Value}});
+	var chartData = dataobject.map(function(d){return {x: d.Time, y: d.Value}});
 	
 	var unique = [];
 	var chartTrafficTypes = [];
-	for( let i = 0; i < dataobject.length; i++ ){
-		if( !unique[dataobject[i].Metric]){
+	for( let i = 0; i < dataobject.length; i++){
+		if(!unique[dataobject[i].Metric]){
 			chartTrafficTypes.push(dataobject[i].Metric);
 			unique[dataobject[i].Metric] = 1;
 		}
 	}
 	
-	var chartData0 = dataobject.filter(function(item) {
+	var chartData0 = dataobject.filter(function(item){
 		return item.Metric == metric0;
-	}).map(function(d) {return {x: d.Time, y: d.Value}});
+	}).map(function(d){return {x: d.Time, y: d.Value}});
 	
-	var chartData1 = dataobject.filter(function(item) {
+	var chartData1 = dataobject.filter(function(item){
 		return item.Metric == metric1;
-	}).map(function(d) {return {x: d.Time, y: d.Value}});
+	}).map(function(d){return {x: d.Time, y: d.Value}});
+	
 	
 	var objchartname=window["LineChart_"+txtchartname+"_"+txtcharttype];
 	
@@ -127,14 +128,14 @@ function Draw_Chart(txtchartname,txtcharttype){
 			display: true,
 			position: "top",
 			reverse: true,
-			onClick: function (e, legendItem) {
+			onClick: function (e, legendItem){
 				var index = legendItem.datasetIndex;
 				var ci = this.chart;
 				var meta = ci.getDatasetMeta(index);
 				
 				meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
 				
-				if( ShowLines == "line" ){
+				if(ShowLines == "line"){
 					var annotationline = ""
 					if(meta.hidden != true){
 						annotationline = "line";
@@ -161,7 +162,7 @@ function Draw_Chart(txtchartname,txtcharttype){
 					title: function (tooltipItem, data) { return (moment(tooltipItem[0].xLabel,"X").format(timetooltipformat)); },
 					label: function (tooltipItem, data) { return round(data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index].y,2).toFixed(2) + ' ' + txtunity;}
 				},
-			itemSort: function(a, b) {
+			itemSort: function(a, b){
 				return b.datasetIndex - a.datasetIndex;
 			},
 			mode: 'x',
@@ -189,7 +190,7 @@ function Draw_Chart(txtchartname,txtcharttype){
 				ticks: {
 					display: true,
 					beginAtZero: true,
-					callback: function (value, index, values) {
+					callback: function (value, index, values){
 						return round(value,2).toFixed(2) + ' ' + txtunity;
 					}
 				},
@@ -390,12 +391,12 @@ function Draw_Chart(txtchartname,txtcharttype){
 	window["LineChart_"+txtchartname+"_"+txtcharttype]=objchartname;
 }
 
-function getDataSets(charttype, objdata, objTrafficTypes) {
+function getDataSets(charttype, objdata, objTrafficTypes){
 	var datasets = [];
 	colourname="#fc8500";
 	
-	for(var i = 0; i < objTrafficTypes.length; i++) {
-		var traffictypedata = objdata.filter(function(item) {
+	for(var i = 0; i < objTrafficTypes.length; i++){
+		var traffictypedata = objdata.filter(function(item){
 			return item.Metric == objTrafficTypes[i];
 		}).map(function(d) {return {x: d.Time, y: d.Value}});
 		
@@ -405,14 +406,14 @@ function getDataSets(charttype, objdata, objTrafficTypes) {
 	return datasets;
 }
 
-function getLimit(datasetname,axis,maxmin,isannotation) {
+function getLimit(datasetname,axis,maxmin,isannotation){
 	var limit=0;
 	var values;
 	if(axis == "x"){
-		values = datasetname.map(function(o) { return o.x } );
+		values = datasetname.map(function(o){ return o.x } );
 	}
 	else{
-		values = datasetname.map(function(o) { return o.y } );
+		values = datasetname.map(function(o){ return o.y } );
 	}
 	
 	if(maxmin == "max"){
@@ -427,27 +428,27 @@ function getLimit(datasetname,axis,maxmin,isannotation) {
 	return limit;
 }
 
-function getAverage(datasetname) {
+function getAverage(datasetname){
 	var total = 0;
-	for(var i = 0; i < datasetname.length; i++) {
+	for(var i = 0; i < datasetname.length; i++){
 		total += (datasetname[i].y*1);
 	}
 	var avg = total / datasetname.length;
 	return avg;
 }
 
-function round(value, decimals) {
+function round(value, decimals){
 	return Number(Math.round(value+'e'+decimals)+'e-'+decimals);
 }
 
-function ToggleLines() {
+function ToggleLines(){
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		if(ShowLines == ""){
 			ShowLines = "line";
 			SetCookie("ShowLines","line");
 		}
-		else {
+		else{
 			ShowLines = "";
 			SetCookie("ShowLines","");
 		}
@@ -462,20 +463,20 @@ function ToggleLines() {
 	}
 }
 
-function ToggleFill() {
+function ToggleFill(){
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		if(ShowFill == "origin"){
 			ShowFill = false;
 			SetCookie("ShowFill",false);
 		}
-		else {
+		else{
 			ShowFill = "origin";
 			SetCookie("ShowFill","origin");
 		}
 		
-		for (i = 0; i < interfacetextarray.length; i++) {
-			for (i2 = 0; i2 < typelist.length; i2++) {
+		for (i = 0; i < interfacetextarray.length; i++){
+			for (i2 = 0; i2 < typelist.length; i2++){
 				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[0].fill=ShowFill;
 				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[1].fill=ShowFill;
 				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
@@ -484,12 +485,12 @@ function ToggleFill() {
 	}
 }
 
-function RedrawAllCharts() {
+function RedrawAllCharts(){
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
 		var i;
-		for (i2 = 0; i2 < chartlist.length; i2++) {
-			for (i3 = 0; i3 < interfacetextarray.length; i3++) {
+		for (i2 = 0; i2 < chartlist.length; i2++){
+			for (i3 = 0; i3 < interfacetextarray.length; i3++){
 				$j("#"+interfacetextarray[i3]+"_Period_Combined").val(GetCookie(interfacetextarray[i3]+"_Period_Combined","number"));
 				$j("#"+interfacetextarray[i3]+"_Period_Quality").val(GetCookie(interfacetextarray[i3]+"_Period_Quality","number"));
 				d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
@@ -499,7 +500,7 @@ function RedrawAllCharts() {
 	}
 }
 
-function getTimeFormat(value,format) {
+function getTimeFormat(value,format){
 	var timeformat;
 	
 	if(format == "axis"){
@@ -532,12 +533,12 @@ function getTimeFormat(value,format) {
 	return timeformat;
 }
 
-function GetCookie(cookiename,returntype) {
+function GetCookie(cookiename,returntype){
 	var s;
-	if ((s = cookie.get("spd_"+cookiename)) != null) {
+	if ((s = cookie.get("spd_"+cookiename)) != null){
 		return cookie.get("spd_"+cookiename);
 	}
-	else {
+	else{
 		if(returntype == "string"){
 			return "";
 		}
@@ -551,6 +552,10 @@ function SetCookie(cookiename,cookievalue) {
 	cookie.set("spd_"+cookiename, cookievalue, 31);
 }
 
+		} else if (this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1){
+			o[this.name] = this.value || '';
+		}
+	});
 function SetCurrentPage(){
 	document.form.next_page.value = window.location.pathname.substring(1);
 	document.form.current_page.value = window.location.pathname.substring(1);
@@ -597,7 +602,7 @@ function reload() {
 	location.reload(true);
 }
 
-function getChartPeriod(period) {
+function getChartPeriod(period){
 	var chartperiod = "daily";
 	if (period == 0) chartperiod = "daily";
 	else if (period == 1) chartperiod = "weekly";
@@ -608,10 +613,10 @@ function getChartPeriod(period) {
 function ResetZoom(){
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++) {
-			for (i2 = 0; i2 < typelist.length; i2++) {
+		for (i = 0; i < interfacetextarray.length; i++){
+			for (i2 = 0; i2 < typelist.length; i2++){
 				var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
-				if(typeof chartobj === 'undefined' || chartobj === null) { continue; }
+				if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
 				chartobj.resetZoom();
 			}
 		}
@@ -629,7 +634,7 @@ function ToggleDragZoom(button){
 		ChartPan = true;
 		buttonvalue = "Drag Zoom Off";
 	}
-	else {
+	else{
 		drag = true;
 		pan = false;
 		DragZoom = true;
@@ -652,11 +657,10 @@ function ToggleDragZoom(button){
 	}
 }
 
-function ExportCSV() {
+function ExportCSV(){
 	location.href = "/ext/spdmerlin/csv/spdmerlindata.zip";
 	return 0;
 }
-
 
 function update_status(){
 	$j.ajax({
@@ -670,7 +674,7 @@ function update_status(){
 			if (updatestatus == "InProgress"){
 				setTimeout('update_status();', 1000);
 			}
-			else {
+			else{
 				document.getElementById("imgChkUpdate").style.display = "none";
 				showhide("spdmerlin_version_server", true);
 				if(updatestatus != "None"){
@@ -678,7 +682,7 @@ function update_status(){
 					showhide("btnChkUpdate", false);
 					showhide("btnDoUpdate", true);
 				}
-				else {
+				else{
 					$j("#spdmerlin_version_server").text("No update available");
 					showhide("btnChkUpdate", true);
 					showhide("btnDoUpdate", false);
@@ -724,11 +728,10 @@ function GetVersionNumber(versiontype)
 		versionprop = custom_settings.spdmerlin_version_server;
 	}
 	
-	if(typeof versionprop == 'undefined' || versionprop == null)
-	{
+	if(typeof versionprop == 'undefined' || versionprop == null){
 		return "N/A";
 	}
-	else {
+	else{
 		return versionprop;
 	}
 }
@@ -746,7 +749,7 @@ function get_conf_file(){
 			interfaces=interfaces.filter(Boolean);
 			interfacelist="";
 			var interfacecount=interfaces.length;
-			for (var i = 0; i < interfacecount; i++) {
+			for (var i = 0; i < interfacecount; i++){
 				var commentstart=interfaces[i].indexOf("#");
 				if (commentstart != -1){
 					continue
@@ -769,20 +772,20 @@ function get_conf_file(){
 	});
 }
 
-function changeAllCharts(e) {
+function changeAllCharts(e){
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
 	if(interfacelist != ""){
 		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++) {
+		for (i = 0; i < interfacetextarray.length; i++){
 			Draw_Chart(interfacetextarray[i],"Combined");
 			Draw_Chart(interfacetextarray[i],"Quality");
 		}
 	}
 }
 
-function changeChart(e) {
+function changeChart(e){
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
@@ -814,16 +817,16 @@ function BuildInterfaceTable(name){
 	var nodata="";
 	var objdataname = window["DataTimestamp_"+name];
 	if(typeof objdataname === 'undefined' || objdataname === null){nodata="true"}
-	else if(objdataname.length == 0) {nodata="true"}
-	else if(objdataname.length == 1 && objdataname[0] == "") {nodata="true"}
+	else if(objdataname.length == 0){nodata="true"}
+	else if(objdataname.length == 1 && objdataname[0] == ""){nodata="true"}
 	
-	if(nodata == "true") {
+	if(nodata == "true"){
 		charthtml+='<tr>';
 		charthtml+='<td colspan="6" class="nodata">';
 		charthtml+='No data to display';
 		charthtml+='</td>';
 		charthtml+='</tr>';
-	} else {
+	} else{
 		charthtml+='<col style="width:120px;">';
 		charthtml+='<col style="width:120px;">';
 		charthtml+='<col style="width:120px;">';
@@ -915,7 +918,6 @@ function BuildInterfaceTable(name){
 	charthtml+='</td>';
 	charthtml+='</tr>';
 	charthtml+='</table>';
-	charthtml+='<div style="line-height:10px;">&nbsp;</div>';
 	return charthtml;
 }
 
@@ -925,7 +927,7 @@ function AddEventHandlers(){
 			if($j(this).css("display") == "none"){
 				SetCookie($j(this).siblings()[0].id,"collapsed");
 			}
-			else {
+			else{
 				SetCookie($j(this).siblings()[0].id,"expanded");
 			}
 		})
@@ -935,7 +937,7 @@ function AddEventHandlers(){
 		if(GetCookie($j(this)[0].id,"string") == "collapsed"){
 			$j(this).siblings().toggle(false);
 		}
-		else {
+		else{
 			$j(this).siblings().toggle(true);
 		}
 	});
