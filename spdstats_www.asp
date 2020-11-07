@@ -7,32 +7,12 @@
 <meta http-equiv="Expires" content="-1">
 <link rel="shortcut icon" href="images/favicon.png">
 <link rel="icon" href="images/favicon.png">
-<title>spdMerlin - Internet Speedtest Stats</title>
+<title>spdMerlin</title>
 <link rel="stylesheet" type="text/css" href="index_style.css">
 <link rel="stylesheet" type="text/css" href="form_style.css">
 <style>
 p {
   font-weight: bolder;
-}
-
-thead.collapsible {
-  color: white;
-  padding: 0px;
-  width: 100%;
-  border: none;
-  text-align: left;
-  outline: none;
-  cursor: pointer;
-}
-
-thead.collapsibleparent {
-  color: white;
-  padding: 0px;
-  width: 100%;
-  border: none;
-  text-align: left;
-  outline: none;
-  cursor: pointer;
 }
 
 thead.collapsible-jquery {
@@ -167,10 +147,10 @@ var $j=jQuery.noConflict(),maxNoCharts=0,currentNoCharts=0,ShowLines=GetCookie("
 <div class="formfonttitle" id="scripttitle" style="text-align:center;">spdMerlin</div>
 <div id="statstitle" style="text-align:center;">Stats last updated:</div>
 <div style="margin:10px 0 10px 5px;" class="splitLine"></div>
-<div class="formfontdesc">spdMerlin is an automatic speedtest tool for AsusWRT Merlin - with charts.</div>
+<div class="formfontdesc">spdMerlin is an internet speedtest and monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries. It tracks download/upload bandwidth as well as latency, jitter and packet loss.</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons">
 <thead class="collapsible-jquery" id="scripttools">
-<tr><td colspan="2">Script Utilities (click to expand/collapse)</td></tr>
+<tr><td colspan="2">Utilities (click to expand/collapse)</td></tr>
 </thead>
 <tr>
 <th width="20%">Version information</th>
@@ -186,9 +166,9 @@ var $j=jQuery.noConflict(),maxNoCharts=0,currentNoCharts=0,ShowLines=GetCookie("
 </td>
 </tr>
 <tr>
-<th width="20%">Update stats</th>
+<th width="20%">Speedtest</th>
 <td>
-<input type="button" onclick="applyRule();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest">
+<input type="button" onclick="RunSpeedtest();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest">
 </td>
 </tr>
 <tr>
