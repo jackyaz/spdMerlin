@@ -1518,46 +1518,34 @@ MainMenu(){
 			;;
 			4)
 				printf "\\n"
-				if Check_Lock "menu"; then
-					Menu_EditSchedule
-				fi
+				Menu_EditSchedule
 				PressEnter
 				break
 			;;
 			5)
 				printf "\\n"
-				if Check_Lock "menu"; then
-					Menu_ToggleOutputDataMode
-				fi
+				Menu_ToggleOutputDataMode
 				break
 			;;
 			6)
 				printf "\\n"
-				if Check_Lock "menu"; then
-					Menu_ToggleOutputTimeMode
-				fi
+				Menu_ToggleOutputTimeMode
 				break
 			;;
 			c)
-				if Check_Lock "menu"; then
-					Menu_CustomiseInterfaceList
-				fi
+				Menu_CustomiseInterfaceList
 				Menu_ProcessInterfaces
 				PressEnter
 				break
 			;;
 			r)
-				if Check_Lock "menu"; then
-					Menu_ProcessInterfaces "force"
-				fi
+				Menu_ProcessInterfaces "force"
 				PressEnter
 				break
 			;;
 			s)
 				printf "\\n"
-				if Check_Lock "menu"; then
-					Menu_ToggleStorageLocation
-				fi
+				Menu_ToggleStorageLocation
 				break
 			;;
 			a)
@@ -1689,13 +1677,11 @@ Menu_Install(){
 Menu_CustomiseInterfaceList(){
 	Generate_Interface_List
 	printf "\\n"
-	Clear_Lock
 }
 
 Menu_ProcessInterfaces(){
 	Create_Symlinks "$1"
 	printf "\\n"
-	Clear_Lock
 }
 
 Menu_Startup(){
@@ -1949,7 +1935,6 @@ Menu_ToggleOutputDataMode(){
 	elif [ "$(OutputDataMode "check")" = "average" ]; then
 		OutputDataMode "raw"
 	fi
-	Clear_Lock
 }
 
 Menu_ToggleOutputTimeMode(){
@@ -1958,7 +1943,6 @@ Menu_ToggleOutputTimeMode(){
 	elif [ "$(OutputTimeMode "check")" = "non-unix" ]; then
 		OutputTimeMode "unix"
 	fi
-	Clear_Lock
 }
 
 Menu_ToggleStorageLocation(){
@@ -1969,7 +1953,6 @@ Menu_ToggleStorageLocation(){
 		ScriptStorageLocation "jffs"
 		Create_Symlinks
 	fi
-	Clear_Lock
 }
 
 Menu_ToggleAutoBW(){
@@ -1978,7 +1961,6 @@ Menu_ToggleAutoBW(){
 	elif [ "$(AutoBWEnable "check")" = "false" ]; then
 		AutoBWEnable "enable"
 	fi
-	Clear_Lock
 }
 
 Menu_EditSchedule(){
@@ -2084,8 +2066,6 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		TestSchedule "update" "$starthour" "$endhour" "$startminute" "$testfrequency"
 	fi
-	
-	Clear_Lock
 }
 
 Menu_AutoBW(){
@@ -2511,14 +2491,10 @@ case "$1" in
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
-			Check_Lock
 			updatecheckresult="$(Update_Check)"
-			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""doupdate" ]; then
-			Check_Lock
 			Update_Version "force" "unattended"
-			Clear_Lock
 			exit 0
 		fi
 		exit 0
@@ -2536,31 +2512,23 @@ case "$1" in
 		exit 0
 	;;
 	update)
-		Check_Lock
 		Update_Version "unattended"
-		Clear_Lock
 		exit 0
 	;;
 	forceupdate)
-		Check_Lock
 		Update_Version "force" "unattended"
-		Clear_Lock
 		exit 0
 	;;
 	setversion)
-		Check_Lock
 		Set_Version_Custom_Settings "local"
 		Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
-		Clear_Lock
 		if [ -z "$2" ]; then
 			exec "$0"
 		fi
 		exit 0
 	;;
 	checkupdate)
-		Check_Lock
 		updatecheckresult="$(Update_Check)"
-		Clear_Lock
 		exit 0
 	;;
 	uninstall)
@@ -2569,23 +2537,17 @@ case "$1" in
 		exit 0
 	;;
 	develop)
-		Check_Lock
 		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="develop"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
-		Clear_Lock
 		exec "$0" "update"
 		exit 0
 	;;
 	stable)
-		Check_Lock
 		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="master"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
-		Clear_Lock
 		exec "$0" "update"
 		exit 0
 	;;
 	*)
-		Check_Lock
 		echo "Command not recognised, please try again"
-		Clear_Lock
 		exit 1
 	;;
 esac
