@@ -179,6 +179,39 @@ var $j=jQuery.noConflict(),maxNoCharts=0,currentNoCharts=0,ShowLines=GetCookie("
 </tr>
 </table>
 <div style="line-height:10px;">&nbsp;</div>
+<table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_config">
+<thead class="collapsible-jquery" id="scriptconfig">
+<tr><td colspan="2">Configuration (click to expand/collapse)</td></tr>
+</thead>
+<tr class="even" id="rowdataoutput">
+<th width="40%">Data Output Mode (for CSV export)</th>
+<td class="settingvalue">
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_average" class="input" value="average" checked>Average
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_raw" class="input" value="raw">Raw
+</td>
+</tr>
+<tr class="even" id="rowtimeoutput">
+<th width="40%">Time Output Mode (for CSV export)</th>
+<td class="settingvalue">
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_non-unix" class="input" value="non-unix" checked>Non-Unix
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_unix" class="input" value="unix">Unix
+</td>
+</tr>
+<tr class="even" id="rowstorageloc">
+<th width="40%">Data Storage Location</th>
+<td class="settingvalue">
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_jffs" class="input" value="jffs" checked>JFFS
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_usb" class="input" value="usb">USB
+</td>
+</tr>
+<tr class="apply_gen" valign="top" height="35px">
+<td colspan="2" style="background-color:rgb(77, 89, 93);">
+<input type="button" onclick="applyRule();" value="Save" class="button_gen" name="button">
+</td>
+</tr>
+</table>
+
+<div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons2">
 <thead class="collapsible-jquery" id="charttools">
 <tr><td colspan="2">Chart Display Options (click to expand/collapse)</td></tr>
