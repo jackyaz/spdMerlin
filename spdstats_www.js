@@ -893,7 +893,7 @@ function update_spdtest(){
 				setTimeout('PostSpeedTest();', 1000);
 				clearInterval(myinterval);
 			}
-			else if (spdteststatus.indexOf("LOCKED") != -1){
+			else if (spdteststatus == "LOCKED"){
 				showhide("imgSpdTest", false);
 				document.getElementById("spdtest_text").innerHTML = "Scheduled speedtest already running!";
 				showhide("spdtest_text", true);
@@ -901,7 +901,7 @@ function update_spdtest(){
 				showhide("btnRunSpeedtest", true);
 				clearInterval(myinterval);
 			}
-			else if (spdteststatus.indexOf("NoLicense") != -1){
+			else if (spdteststatus == "NoLicense"){
 				showhide("imgSpdTest", false);
 				document.getElementById("spdtest_text").innerHTML = "Please accept Ookla license at command line via spdmerlin";
 				showhide("spdtest_text", true);
@@ -909,7 +909,7 @@ function update_spdtest(){
 				showhide("btnRunSpeedtest", true);
 				clearInterval(myinterval);
 			}
-			else if (spdteststatus.indexOf("Error") != -1){
+			else if (spdteststatus == "Error"){
 				showhide("imgSpdTest", false);
 				document.getElementById("spdtest_text").innerHTML = "Error running speedtest";
 				showhide("spdtest_text", true);
@@ -917,7 +917,7 @@ function update_spdtest(){
 				showhide("btnRunSpeedtest", true);
 				clearInterval(myinterval);
 			}
-			else if (spdteststatus.indexOf("NoSwap") != -1){
+			else if (spdteststatus == "NoSwap"){
 				showhide("imgSpdTest", false);
 				document.getElementById("spdtest_text").innerHTML = "No Swap file configured/detected";
 				showhide("spdtest_text", true);
