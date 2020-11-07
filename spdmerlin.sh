@@ -291,20 +291,6 @@ Validate_Number(){
 	fi
 }
 
-Process_Upgrade(){
-	if [ -f "$SCRIPT_DIR/spdcli.py" ]; then
-		rm -f "$SCRIPT_DIR/spdcli.py" 2>/dev/null
-		opkg remove --autoremove python
-		opkg install jq
-		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
-		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
-		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
-		chmod 0755 "$OOKLA_DIR/speedtest"
-		License_Acceptance "accept"
-		PressEnter
-	fi
-}
-
 License_Acceptance(){
 	case "$1" in
 		check)
@@ -2485,7 +2471,6 @@ if [ -z "$1" ]; then
 	rm -f "spdlastx.js" 2>/dev/null
 	
 	Create_Dirs
-	Process_Upgrade
 	Conf_Exists
 	Set_Version_Custom_Settings "local"
 	ScriptStorageLocation "load"
