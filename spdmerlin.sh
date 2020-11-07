@@ -2487,6 +2487,9 @@ case "$1" in
 			Run_Speedtest "webui"
 			Clear_Lock
 			exit 0
+		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
+			Conf_FromSettings
+			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
 			updatecheckresult="$(Update_Check)"
 			exit 0
