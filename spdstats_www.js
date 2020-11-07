@@ -943,7 +943,7 @@ function PostSpeedTest(){
 
 function RunSpeedtest(){
 	showhide("btnRunSpeedtest", false);
-	document.formScriptActions.action_script.value="start_spdmerlin"
+	document.formScriptActions.action_script.value="start_spdmerlin";
 	document.formScriptActions.submit();
 	showhide("imgSpdTest", true);
 	showhide("spdtest_text", false);
@@ -955,7 +955,7 @@ function StartSpeedTestInterval(){
 	myinterval = setInterval("update_spdtest();", 400);
 }
 
-function reload_js(src) {
+function reload_js(src){
 	$j('script[src="' + src + '"]').remove();
 	$j('<script>').attr('src', src+'?cachebuster='+ new Date().getTime()).appendTo('head');
 }
