@@ -85,10 +85,13 @@ Check_Lock(){
 			return 0
 		else
 			Print_Output "true" "Lock file found (age: $ageoflock seconds) - stopping to prevent duplicate runs" "$ERR"
-			echo 'var spdteststatus = "LOCKED";' > /tmp/detect_spdtest.js
 			if [ -z "$1" ]; then
 				exit 1
 			else
+				if [ "$1" = "webui" ]; then
+					echo 'var spdteststatus = "LOCKED";' > /tmp/detect_spdtest.js
+					exit 1
+				fi
 				return 1
 			fi
 		fi
@@ -2537,7 +2540,7 @@ case "$1" in
 	;;
 	service_event)
 		if [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
-			Check_Lock
+			Check_Lock "webui"
 			Run_Speedtest "webui"
 			Clear_Lock
 			exit 0
