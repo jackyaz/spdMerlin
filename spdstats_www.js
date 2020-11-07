@@ -851,7 +851,7 @@ function get_spdtest_file(){
 	$j.ajax({
 		url: '/ext/spdmerlin/spd-stats.htm',
 		dataType: 'text',
-		timeout: 200,
+		timeout: 1000,
 		error: function(xhr){
 			//do nothing
 		},
