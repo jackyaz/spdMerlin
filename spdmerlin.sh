@@ -1227,6 +1227,8 @@ Run_Speedtest(){
 						return 1
 					fi
 					
+					ScriptStorageLocation "load"
+					
 					TZ=$(cat /etc/TZ)
 					export TZ
 					
