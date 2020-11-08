@@ -28,7 +28,7 @@ var backgroundcolourlist_Quality = ["rgba(83,4,122,0.5)","rgba(7,242,66,0.5)","r
 var typelist = ["Combined","Quality"];
 
 function keyHandler(e){
-	if (e.keyCode == 27){
+	if(e.keyCode == 27){
 		$j(document).off("keydown");
 		ResetZoom();
 	}
@@ -86,7 +86,7 @@ function Draw_Chart(txtchartname,txtcharttype){
 	var numunitx = intervallist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
 	var dataobject = window[chartperiod+"_"+txtchartname+"_"+txtcharttype];
 	if(typeof dataobject === 'undefined' || dataobject === null){ Draw_Chart_NoData(txtchartname,txtcharttype); return; }
-	if (dataobject.length == 0){ Draw_Chart_NoData(txtchartname,txtcharttype); return; }
+	if(dataobject.length == 0){ Draw_Chart_NoData(txtchartname,txtcharttype); return; }
 	
 	var chartData = dataobject.map(function(d){return {x: d.Time, y: d.Value}});
 	
@@ -117,13 +117,13 @@ function Draw_Chart(txtchartname,txtcharttype){
 	var timetooltipformat = getTimeFormat($j("#Time_Format option:selected").val(),"tooltip");
 	
 	factor=0;
-	if (txtunitx=="hour"){
+	if(txtunitx=="hour"){
 		factor=60*60*1000;
 	}
-	else if (txtunitx=="day"){
+	else if(txtunitx=="day"){
 		factor=60*60*24*1000;
 	}
-	if (objchartname != undefined) objchartname.destroy();
+	if(objchartname != undefined) objchartname.destroy();
 	var ctx = document.getElementById("divLineChart_"+txtchartname+"_"+txtcharttype).getContext("2d");
 	var lineOptions = {
 		segmentShowStroke : false,
@@ -150,24 +150,24 @@ function Draw_Chart(txtchartname,txtcharttype){
 						annotationline = "line";
 					}
 					
-					if (ci.data.datasets[index].label == "Latency" || ci.data.datasets[index].label == "Download"){
+					if(ci.data.datasets[index].label == "Latency" || ci.data.datasets[index].label == "Download"){
 						for (aindex = 0; aindex < 3; aindex++){
 							ci.options.annotation.annotations[aindex].type=annotationline;
 						}
 					}
-					else if (ci.data.datasets[index].label == "Jitter" || ci.data.datasets[index].label == "Upload"){
+					else if(ci.data.datasets[index].label == "Jitter" || ci.data.datasets[index].label == "Upload"){
 						for (aindex = 3; aindex < 6; aindex++){
 							ci.options.annotation.annotations[aindex].type=annotationline;
 						}
 					}
-					else if (ci.data.datasets[index].label == "Packet Loss"){
+					else if(ci.data.datasets[index].label == "Packet Loss"){
 						for (aindex = 6; aindex < 9; aindex++){
 							ci.options.annotation.annotations[aindex].type=annotationline;
 						}
 					}
 				}
 				
-				if (ci.data.datasets[index].label == "Packet Loss"){
+				if(ci.data.datasets[index].label == "Packet Loss"){
 					var showaxis = false;
 					if(meta.hidden != true){
 						showaxis = true;
@@ -628,7 +628,7 @@ function getTimeFormat(value,format){
 	var timeformat;
 	
 	if(format == "axis"){
-		if (value == 0){
+		if(value == 0){
 			timeformat = {
 				millisecond: 'HH:mm:ss.SSS',
 				second: 'HH:mm:ss',
@@ -636,7 +636,7 @@ function getTimeFormat(value,format){
 				hour: 'HH:mm'
 			}
 		}
-		else if (value == 1){
+		else if(value == 1){
 			timeformat = {
 				millisecond: 'h:mm:ss.SSS A',
 				second: 'h:mm:ss A',
@@ -646,10 +646,10 @@ function getTimeFormat(value,format){
 		}
 	}
 	else if(format == "tooltip"){
-		if (value == 0){
+		if(value == 0){
 			timeformat = "YYYY-MM-DD HH:mm:ss";
 		}
-		else if (value == 1){
+		else if(value == 1){
 			timeformat = "YYYY-MM-DD h:mm:ss A";
 		}
 	}
@@ -659,7 +659,7 @@ function getTimeFormat(value,format){
 
 function GetCookie(cookiename,returntype){
 	var s;
-	if ((s = cookie.get("spd_"+cookiename)) != null){
+	if((s = cookie.get("spd_"+cookiename)) != null){
 		return cookie.get("spd_"+cookiename);
 	}
 	else{
@@ -728,7 +728,7 @@ function ScriptUpdateLayout(){
 	$j("#scripttitle").text($j("#scripttitle").text()+" - "+localver);
 	$j("#spdmerlin_version_local").text(localver);
 	
-	if (localver != serverver && serverver != "N/A"){
+	if(localver != serverver && serverver != "N/A"){
 		$j("#spdmerlin_version_server").text("Updated version available: "+serverver);
 		showhide("btnChkUpdate", false);
 		showhide("spdmerlin_version_server", true);
@@ -742,9 +742,9 @@ function reload(){
 
 function getChartPeriod(period){
 	var chartperiod = "daily";
-	if (period == 0) chartperiod = "daily";
-	else if (period == 1) chartperiod = "weekly";
-	else if (period == 2) chartperiod = "monthly";
+	if(period == 0) chartperiod = "daily";
+	else if(period == 1) chartperiod = "weekly";
+	else if(period == 2) chartperiod = "monthly";
 	return chartperiod;
 }
 
@@ -809,7 +809,7 @@ function update_status(){
 			setTimeout('update_status();', 1000);
 		},
 		success: function(){
-			if (updatestatus == "InProgress"){
+			if(updatestatus == "InProgress"){
 				setTimeout('update_status();', 1000);
 			}
 			else{
@@ -878,8 +878,8 @@ function update_spdtest(){
 			//do nothing
 		},
 		success: function(){
-			if (spdteststatus.indexOf("InProgress") != -1){
-				if (spdteststatus.indexOf("_") != -1){
+			if(spdteststatus.indexOf("InProgress") != -1){
+				if(spdteststatus.indexOf("_") != -1){
 					showhide("imgSpdTest", true);
 					showhide("spdtest_text", true);
 					document.getElementById("spdtest_text").innerHTML = "Speedtest in progress for " + spdteststatus.substring(spdteststatus.indexOf("_")+1);
@@ -887,13 +887,13 @@ function update_spdtest(){
 					get_spdtest_file();
 				}
 			}
-			else if (spdteststatus == "Done"){
+			else if(spdteststatus == "Done"){
 				document.getElementById("spdtest_text").innerHTML = "Refreshing tables and charts...";
 				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
 				setTimeout('PostSpeedTest();', 1000);
 				clearInterval(myinterval);
 			}
-			else if (spdteststatus == "LOCKED"){
+			else if(spdteststatus == "LOCKED"){
 				showhide("imgSpdTest", false);
 				document.getElementById("spdtest_text").innerHTML = "Scheduled speedtest already running!";
 				showhide("spdtest_text", true);
@@ -901,7 +901,7 @@ function update_spdtest(){
 				showhide("btnRunSpeedtest", true);
 				clearInterval(myinterval);
 			}
-			else if (spdteststatus == "NoLicense"){
+			else if(spdteststatus == "NoLicense"){
 				showhide("imgSpdTest", false);
 				document.getElementById("spdtest_text").innerHTML = "Please accept Ookla license at command line via spdmerlin";
 				showhide("spdtest_text", true);
@@ -909,7 +909,7 @@ function update_spdtest(){
 				showhide("btnRunSpeedtest", true);
 				clearInterval(myinterval);
 			}
-			else if (spdteststatus == "Error"){
+			else if(spdteststatus == "Error"){
 				showhide("imgSpdTest", false);
 				document.getElementById("spdtest_text").innerHTML = "Error running speedtest";
 				showhide("spdtest_text", true);
@@ -917,7 +917,7 @@ function update_spdtest(){
 				showhide("btnRunSpeedtest", true);
 				clearInterval(myinterval);
 			}
-			else if (spdteststatus == "NoSwap"){
+			else if(spdteststatus == "NoSwap"){
 				showhide("imgSpdTest", false);
 				document.getElementById("spdtest_text").innerHTML = "No Swap file configured/detected";
 				showhide("spdtest_text", true);
@@ -999,13 +999,13 @@ function get_conf_file(){
 			configdata = configdata.filter(Boolean);
 			
 			for (var i = 0; i < configdata.length; i++){
-				if (configdata[i].indexOf("OUTPUTDATAMODE") != -1){
+				if(configdata[i].indexOf("OUTPUTDATAMODE") != -1){
 					document.form.spdmerlin_outputdatamode.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
-				else if (configdata[i].indexOf("OUTPUTTIMEMODE") != -1){
+				else if(configdata[i].indexOf("OUTPUTTIMEMODE") != -1){
 					document.form.spdmerlin_outputtimemode.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
-				else if (configdata[i].indexOf("STORAGELOCATION") != -1){
+				else if(configdata[i].indexOf("STORAGELOCATION") != -1){
 					document.form.spdmerlin_storagelocation.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
 			}
