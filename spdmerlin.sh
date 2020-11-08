@@ -442,7 +442,7 @@ Create_Symlinks(){
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
-	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces.htm" 2>/dev/null
+	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces_user.htm" 2>/dev/null
 	ln -s "$SCRIPT_STORAGE_DIR/spdjs.js" "$SCRIPT_WEB_DIR/spdjs.js" 2>/dev/null
 	ln -s "$CSV_OUTPUT_DIR" "$SCRIPT_WEB_DIR/csv" 2>/dev/null
 	
@@ -483,6 +483,76 @@ Conf_FromSettings(){
 			Print_Output "true" "Merge of updated settings from WebUI completed successfully" "$PASS"
 		else
 			Print_Output "false" "No updated settings from WebUI found, no merge into $SCRIPT_CONF necessary" "$PASS"
+		fi
+	fi
+}
+
+Interfaces_FromSettings(){
+	SETTINGSFILE="/jffs/addons/custom_settings.txt"
+	TMPFILE="/tmp/spdmerlin_interfaces.txt"
+	if [ -f "$SETTINGSFILE" ]; then
+		if grep -q "spdmerlin_ifaces_enabled" "$SETTINGSFILE"; then
+			Print_Output "true" "Updated interfaces from WebUI found, merging into $SCRIPT_INTERFACES_USER" "$PASS"
+			cp -a "$SCRIPT_INTERFACES_USER" "$SCRIPT_INTERFACES_USER.bak"
+			SETTINGVALUE="$(grep "spdmerlin_ifaces_enabled" "$SETTINGSFILE" | cut -f2 -d' ')"
+			sed -i "\\~spdmerlin_ifaces_enabled~d" "$SETTINGSFILE"
+			
+			printf "WAN #excluded#\\n" > "$SCRIPT_INTERFACES"
+			
+			for index in 1 2 3 4 5; do
+				comment=" #excluded#"
+				if [ ! -f "/sys/class/net/tun1$index/operstate" ] || [ "$(cat "/sys/class/net/tun1$index/operstate")" = "down" ]; then
+					comment=" #excluded - interface not up#"
+				fi
+				if [ "$index" -lt 5 ]; then
+					printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_INTERFACES"
+				else
+					printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_INTERFACES"
+				fi
+			done
+			
+			echo "" > "$SCRIPT_INTERFACES_USER"
+			
+			while IFS='' read -r line || [ -n "$line" ]; do
+				if [ "$(grep -c "$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')" "$SCRIPT_INTERFACES_USER")" -eq 0 ]; then
+					printf "%s\\n" "$line" >> "$SCRIPT_INTERFACES_USER"
+				fi
+			done < "$SCRIPT_INTERFACES"
+			
+			interfacecount="$(wc -l < "$SCRIPT_INTERFACES_USER")"
+			COUNTER=1
+			until [ $COUNTER -gt "$interfacecount" ]; do
+				Set_Interface_State "$COUNTER"
+				COUNTER=$((COUNTER + 1))
+			done
+			
+			for iface in $(echo "$SETTINGVALUE" | sed "s/,/ /g"); do
+				ifacelinenumber="$(grep -n "$iface" "$SCRIPT_INTERFACES_USER" | cut -f1 -d':')"
+				interfaceline="$(sed "$ifacelinenumber!d" "$SCRIPT_INTERFACES_USER" | awk '{$1=$1};1')"
+				
+				if echo "$interfaceline" | grep -q "#excluded" ; then
+					#shellcheck disable=SC2019
+					#shellcheck disable=SC2018
+					IFACE_LOWER="$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')" | tr "A-Z" "a-z")"
+					if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
+						sed -i "$ifacelinenumber"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_INTERFACES_USER"
+					else
+						sed -i "$ifacelinenumber"'s/ #excluded - interface not up#//' "$SCRIPT_INTERFACES_USER"
+						sed -i "$ifacelinenumber"'s/ #excluded#//' "$SCRIPT_INTERFACES_USER"
+					fi
+				else
+					#shellcheck disable=SC2019
+					#shellcheck disable=SC2018
+					IFACE_LOWER="$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')" | tr "A-Z" "a-z")"
+					if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
+						sed -i "$ifacelinenumber"'s/$/ #excluded - interface not up#/' "$SCRIPT_INTERFACES_USER"
+					fi
+				fi
+			done
+			
+			Print_Output "true" "Merge of updated interfaces from WebUI completed successfully" "$PASS"
+		else
+			Print_Output "false" "No updated interfaces from WebUI found, no merge into $SCRIPT_INTERFACES_USER necessary" "$PASS"
 		fi
 	fi
 }
@@ -2557,6 +2627,9 @@ case "$1" in
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
 			Conf_FromSettings
+			exit 0
+		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""configinterfaces" ]; then
+			Interfaces_FromSettings
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
 			updatecheckresult="$(Update_Check)"

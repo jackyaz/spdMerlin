@@ -680,15 +680,27 @@ $j.fn.serializeObject = function(){
 	var o = custom_settings;
 	var a = this.serializeArray();
 	$j.each(a, function(){
-		if (o[this.name] !== undefined && this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1){
-			if (!o[this.name].push){
+		if(o[this.name] !== undefined && this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1){
+			if(!o[this.name].push){
 				o[this.name] = [o[this.name]];
 			}
 			o[this.name].push(this.value || '');
-		} else if (this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1){
+		} else if(this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1){
 			o[this.name] = this.value || '';
 		}
 	});
+	return o;
+};
+
+$j.fn.serializeObjectInterfaces = function(){
+	var o = custom_settings;
+	var a = this.serializeArray();
+	var ifacesenabled = [];
+	$j.each($j("input[name='spdmerlin_iface_enabled']:checked"), function(){
+		ifacesenabled.push($j(this).val());
+	});
+	var ifacesenabledstring = ifacesenabled.join(",");
+	o["spdmerlin_ifaces_enabled"] = ifacesenabledstring;
 	return o;
 };
 
@@ -701,7 +713,6 @@ function initial(){
 	SetCurrentPage();
 	LoadCustomSettings();
 	show_menu();
-	get_conf_file();
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	ScriptUpdateLayout();
 	SetSPDStatsTitle();
@@ -964,7 +975,17 @@ function applyRule(){
 	document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject())
 	var action_script_tmp = "start_spdmerlinconfig";
 	document.form.action_script.value = action_script_tmp;
-	var restart_time = 15;
+	var restart_time = 5;
+	document.form.action_wait.value = restart_time;
+	showLoading();
+	document.form.submit();
+}
+
+function SaveInterfaces(){
+	document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObjectInterfaces())
+	var action_script_tmp = "start_spdmerlinconfiginterfaces";
+	document.form.action_script.value = action_script_tmp;
+	var restart_time = 5;
 	document.form.action_wait.value = restart_time;
 	showLoading();
 	document.form.submit();
@@ -1015,7 +1036,7 @@ function get_conf_file(){
 
 function get_interfaces_file(){
 	$j.ajax({
-		url: '/ext/spdmerlin/interfaces.htm',
+		url: '/ext/spdmerlin/interfaces_user.htm',
 		dataType: 'text',
 		error: function(xhr){
 			setTimeout("get_interfaces_file();", 1000);
@@ -1025,42 +1046,76 @@ function get_interfaces_file(){
 			
 			interfaces=interfaces.filter(Boolean);
 			interfacelist="";
-			var interfacetablehtml='<div style="line-height:10px;">&nbsp;</div>';
+			var interfacecharttablehtml='<div style="line-height:10px;">&nbsp;</div>';
+			interfacecharttablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_allinterfaces">';
+			interfacecharttablehtml+='<thead class="collapsible-jquery" id="thead_allinterfaces">';
+			interfacecharttablehtml+='<tr>';
+			interfacecharttablehtml+='<td>Interfaces (click to expand/collapse)</td>';
+			interfacecharttablehtml+='</tr>';
+			interfacecharttablehtml+='</thead>';
+			interfacecharttablehtml+='<tr><td align="center" style="padding: 0px;">';
 			
-			interfacetablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_allinterfaces">';
-			interfacetablehtml+='<thead class="collapsible-jquery" id="thead_allinterfaces">';
-			interfacetablehtml+='<tr>';
-			interfacetablehtml+='<td>Interfaces (click to expand/collapse)</td>';
-			interfacetablehtml+='</tr>';
-			interfacetablehtml+='</thead>';
-			interfacetablehtml+='<tr><td align="center" style="padding: 0px;">';
+			var interfaceconfigtablehtml='<div style="line-height:10px;">&nbsp;</div>';
+			interfaceconfigtablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable SettingsTable" id="table_configinterfaces">';
+			interfaceconfigtablehtml+='<thead class="collapsible-jquery" id="thead_configinterfaces">';
+			interfaceconfigtablehtml+='<tr>';
+			interfaceconfigtablehtml+='<td colspan="2">Interface Configuration (click to expand/collapse)</td>';
+			interfaceconfigtablehtml+='</tr>';
+			interfaceconfigtablehtml+='</thead>';
+			interfaceconfigtablehtml+='<tr>';
+			interfaceconfigtablehtml+='<td class="settingname">Enabled for speedtest?</td><td class="settingvalue">';
 			
 			var interfacecount=interfaces.length;
 			for (var i = 0; i < interfacecount; i++){
-				var commentstart=interfaces[i].indexOf("#");
-				if (commentstart != -1){
+				var interfacename = "";
+				if(interfaces[i].indexOf("#") != -1){
+					interfacename = interfaces[i].substring(0,interfaces[i].indexOf("#")).trim();
+					var interfacedisabled = "";
+					var clickhint = "";
+					if(interfaces[i].indexOf("interface not up") != -1){
+						interfacedisabled = "disabled";
+						clickhint="SettingHint(1);"
+					}
+					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + '" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'"><a class="hintstyle" href="javascript:void(0);" onclick="' + clickhint + '">'+interfacename.toUpperCase()+'</a></label>';
 					continue
 				}
-				var interfacename=interfaces[i];
+				else{
+					interfacename = interfaces[i].trim();
+					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input" value="'+interfacename.toUpperCase()+'" checked>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'">'+interfacename.toUpperCase()+'</label>';
+				}
 				
-				interfacetablehtml += BuildInterfaceTable(interfacename);
+				interfacecharttablehtml += BuildInterfaceTable(interfacename);
 				
 				interfacelist+=interfacename+',';
 			}
 			
-			interfacetablehtml+='</td>';
-			interfacetablehtml+='</tr>';
-			interfacetablehtml+='</table>';
+			interfacecharttablehtml+='</td>';
+			interfacecharttablehtml+='</tr>';
+			interfacecharttablehtml+='</table>';
+			
+			interfaceconfigtablehtml+='</td>';
+			interfaceconfigtablehtml+='</tr>';
+			interfaceconfigtablehtml+='<tr class="apply_gen" valign="top" height="35px">';
+			interfaceconfigtablehtml+='<td colspan="2" style="background-color:rgb(77, 89, 93);">';
+			interfaceconfigtablehtml+='<input type="button" onclick="SaveInterfaces();" value="Save" class="button_gen" name="button">';
+			interfaceconfigtablehtml+='</td>';
+			interfaceconfigtablehtml+='</tr>';
+			interfaceconfigtablehtml+='</table>';
+			
+			$j("#table_buttons").after(interfaceconfigtablehtml);
 			
 			if(interfacelist.charAt(interfacelist.length-1) == ",") {
 				interfacelist = interfacelist.slice(0, -1);
 			}
 			
 			if(interfacelist != ""){
-				$j("#table_buttons2").after(interfacetablehtml);
+				$j("#table_buttons2").after(interfacecharttablehtml);
 				maxNoCharts = interfacelist.split(',').length*3*2;
 				AddEventHandlers();
 				RedrawAllCharts();
+				get_conf_file();
 			}
 		}
 	});
@@ -1089,6 +1144,16 @@ function changeChart(e){
 	else if(e.id.indexOf("Quality") != -1){
 		Draw_Chart(name,"Quality");
 	}
+}
+
+function SettingHint(hintid) {
+	var tag_name = document.getElementsByTagName('a');
+	for (var i=0;i<tag_name.length;i++){
+		tag_name[i].onmouseout=nd;
+	}
+	hinttext="My text goes here";
+	if(hintid == 1) hinttext="Interface not enabled";
+	return overlib(hinttext, CENTER);
 }
 
 function BuildInterfaceTable(name){
@@ -1157,7 +1222,7 @@ function BuildInterfaceTable(name){
 	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">';
 	charthtml+='<thead class="collapsible-jquery" id="table_charts">';
 	charthtml+='<tr>';
-	charthtml+='<td>Charts (click to expand/collapse)</td>';
+	charthtml+='<td>Tables and Charts (click to expand/collapse)</td>';
 	charthtml+='</tr>';
 	charthtml+='</thead>';
 	charthtml+='<tr><td align="center" style="padding: 0px;">';
