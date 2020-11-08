@@ -405,7 +405,7 @@ Create_Symlinks(){
 	
 	for index in 1 2 3 4 5; do
 		comment=""
-		if ! ifconfig "tun1$index" > /dev/null 2>&1 ; then
+		if [ ! -f "/sys/class/net/tun1$index/operstate" ] || [ "$(cat "/sys/class/net/tun1$index/operstate")" = "down" ]; then
 			comment=" #excluded - interface not up#"
 		fi
 		if [ "$index" -lt 5 ]; then
@@ -586,7 +586,8 @@ Set_Interface_State(){
 	interfaceline="$(sed "$1!d" "$SCRIPT_INTERFACES_USER" | awk '{$1=$1};1')"
 	if echo "$interfaceline" | grep -q "VPN" ; then
 		if echo "$interfaceline" | grep -q "#excluded" ; then
-			if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+			IFACE_LOWER="$(echo "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" | tr "A-Z" "a-z")"
+			if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
 				sed -i "$1"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_INTERFACES_USER"
 			else
 				sed -i "$1"'s/ #excluded - interface not up#/ #excluded#/' "$SCRIPT_INTERFACES_USER"
@@ -625,14 +626,16 @@ Generate_Interface_List(){
 		else
 			interfaceline="$(sed "$interface!d" "$SCRIPT_INTERFACES_USER" | awk '{$1=$1};1')"
 			if echo "$interfaceline" | grep -q "#excluded" ; then
-				if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+				IFACE_LOWER="$(echo "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" | tr "A-Z" "a-z")"
+				if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
 					sed -i "$interface"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_INTERFACES_USER"
 				else
 					sed -i "$interface"'s/ #excluded - interface not up#//' "$SCRIPT_INTERFACES_USER"
 					sed -i "$interface"'s/ #excluded#//' "$SCRIPT_INTERFACES_USER"
 				fi
 			else
-				if ! ifconfig "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" > /dev/null 2>&1 ; then
+				IFACE_LOWER="$(echo "$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')")" | tr "A-Z" "a-z")"
+				if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
 					sed -i "$interface"'s/$/ #excluded - interface not up#/' "$SCRIPT_INTERFACES_USER"
 				else
 					sed -i "$interface"'s/$/ #excluded#/' "$SCRIPT_INTERFACES_USER"
@@ -1187,8 +1190,8 @@ Run_Speedtest(){
 			
 			for IFACE_NAME in $IFACELIST; do
 				IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
-				
-				if ! ifconfig "$IFACE" > /dev/null 2>&1 ; then
+				IFACE_LOWER="$(echo "$IFACE" | tr "A-Z" "a-z")"
+				if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
 					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
 					continue
 				else
