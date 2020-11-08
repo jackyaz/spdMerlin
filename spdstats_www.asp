@@ -152,6 +152,7 @@ td.nodata {
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdjs.js"></script>
+<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdtitletext.js"></script>
 <script>
 var custom_settings;
 function LoadCustomSettings(){

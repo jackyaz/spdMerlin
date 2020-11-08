@@ -444,6 +444,8 @@ Create_Symlinks(){
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces_user.htm" 2>/dev/null
 	ln -s "$SCRIPT_STORAGE_DIR/spdjs.js" "$SCRIPT_WEB_DIR/spdjs.js" 2>/dev/null
+	ln -s "$SCRIPT_STORAGE_DIR/spdtitletext.js" "$SCRIPT_WEB_DIR/spdtitletext.js" 2>/dev/null
+	
 	ln -s "$CSV_OUTPUT_DIR" "$SCRIPT_WEB_DIR/csv" 2>/dev/null
 	
 	if [ ! -d "$SHARED_WEB_DIR" ]; then
@@ -1053,6 +1055,7 @@ ScriptStorageLocation(){
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/config" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/config.bak" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdjs.js" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
+			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdtitletext.js" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdstats.db" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			SCRIPT_CONF="/opt/share/$SCRIPT_NAME_LOWER.d/config"
 			ScriptStorageLocation "load"
@@ -1066,6 +1069,7 @@ ScriptStorageLocation(){
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/config" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/config.bak" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdjs.js" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
+			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdtitletext.js" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdstats.db" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME_LOWER.d/config"
 			ScriptStorageLocation "load"
@@ -1395,7 +1399,7 @@ Run_Speedtest(){
 			Generate_CSVs
 			
 			echo "Stats last updated: $timenowfriendly" > "/tmp/spdstatstitle.txt"
-			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_STORAGE_DIR/spdjs.js" "SetSPDStatsTitle" "statstitle"
+			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_STORAGE_DIR/spdtitletext.js" "SetSPDStatsTitle" "statstitle"
 			
 			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
