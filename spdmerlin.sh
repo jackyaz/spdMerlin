@@ -484,7 +484,7 @@ Conf_FromSettings(){
 			
 			Print_Output "true" "Merge of updated settings from WebUI completed successfully" "$PASS"
 		else
-			Print_Output "false" "No updated settings from WebUI found, no merge into $SCRIPT_CONF necessary" "$PASS"
+			Print_Output "true" "No updated settings from WebUI found, no merge into $SCRIPT_CONF necessary" "$PASS"
 		fi
 	fi
 }
@@ -557,7 +557,7 @@ Interfaces_FromSettings(){
 			
 			Print_Output "true" "Merge of updated interfaces from WebUI completed successfully" "$PASS"
 		else
-			Print_Output "false" "No updated interfaces from WebUI found, no merge into $SCRIPT_INTERFACES_USER necessary" "$PASS"
+			Print_Output "true" "No updated interfaces from WebUI found, no merge into $SCRIPT_INTERFACES_USER necessary" "$PASS"
 		fi
 	fi
 }
@@ -2633,10 +2633,8 @@ case "$1" in
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
-			Conf_FromSettings
-			exit 0
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""configinterfaces" ]; then
 			Interfaces_FromSettings
+			Conf_FromSettings
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
 			updatecheckresult="$(Update_Check)"

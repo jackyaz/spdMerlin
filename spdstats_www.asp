@@ -80,11 +80,11 @@ td.nodata {
   border-right: none !important;
 }
 
-.SettingsTable input {
+input.settingvalue {
   margin-left: 3px !important;
 }
 
-.SettingsTable label {
+label.settingvalue {
   margin-right: 13px !important;
 }
 
@@ -856,12 +856,6 @@ $j.fn.serializeObject = function(){
 			o[this.name] = this.value || '';
 		}
 	});
-	return o;
-};
-
-$j.fn.serializeObjectInterfaces = function(){
-	var o = custom_settings;
-	var a = this.serializeArray();
 	var ifacesenabled = [];
 	$j.each($j("input[name='spdmerlin_iface_enabled']:checked"), function(){
 		ifacesenabled.push($j(this).val());
@@ -1138,19 +1132,9 @@ function reload_js(src){
 	$j('<script>').attr('src', src+'?cachebuster='+ new Date().getTime()).appendTo('head');
 }
 
-function applyRule(){
+function SaveConfig(){
 	document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject())
 	var action_script_tmp = "start_spdmerlinconfig";
-	document.form.action_script.value = action_script_tmp;
-	var restart_time = 5;
-	document.form.action_wait.value = restart_time;
-	showLoading();
-	document.form.submit();
-}
-
-function SaveInterfaces(){
-	document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObjectInterfaces())
-	var action_script_tmp = "start_spdmerlinconfiginterfaces";
 	document.form.action_script.value = action_script_tmp;
 	var restart_time = 5;
 	document.form.action_wait.value = restart_time;
@@ -1187,7 +1171,13 @@ function get_conf_file(){
 			configdata = configdata.filter(Boolean);
 			
 			for (var i = 0; i < configdata.length; i++){
-				if(configdata[i].indexOf("OUTPUTDATAMODE") != -1){
+				if(configdata[i].indexOf("AUTOMATED") != -1){
+					document.form.spdmerlin_automated.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				}
+				else if(configdata[i].indexOf("TESTFREQUENCY") != -1){
+					document.form.spdmerlin_testfrequency.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				}
+				else if(configdata[i].indexOf("OUTPUTDATAMODE") != -1){
 					document.form.spdmerlin_outputdatamode.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
 				else if(configdata[i].indexOf("OUTPUTTIMEMODE") != -1){
@@ -1222,15 +1212,8 @@ function get_interfaces_file(){
 			interfacecharttablehtml+='</thead>';
 			interfacecharttablehtml+='<tr><td align="center" style="padding: 0px;">';
 			
-			var interfaceconfigtablehtml='<div style="line-height:10px;">&nbsp;</div>';
-			interfaceconfigtablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable SettingsTable" id="table_configinterfaces">';
-			interfaceconfigtablehtml+='<thead class="collapsible-jquery" id="thead_configinterfaces">';
-			interfaceconfigtablehtml+='<tr>';
-			interfaceconfigtablehtml+='<td colspan="2">Interface Configuration (click to expand/collapse)</td>';
-			interfaceconfigtablehtml+='</tr>';
-			interfaceconfigtablehtml+='</thead>';
-			interfaceconfigtablehtml+='<tr>';
-			interfaceconfigtablehtml+='<td class="settingname">Enabled for speedtest?</td><td class="settingvalue">';
+			var interfaceconfigtablehtml='<tr>';
+			interfaceconfigtablehtml+='<th width="40%">Enabled for automatic speedtests?</th><td class="settingvalue">';
 			
 			var interfacecount=interfaces.length;
 			for (var i = 0; i < interfacecount; i++){
@@ -1243,14 +1226,14 @@ function get_interfaces_file(){
 						interfacedisabled = "disabled";
 						clickhint="SettingHint(1);"
 					}
-					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + '" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
-					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'"><a class="hintstyle" href="javascript:void(0);" onclick="' + clickhint + '">'+interfacename.toUpperCase()+'</a></label>';
+					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue"><a class="hintstyle" href="javascript:void(0);" onclick="' + clickhint + '">'+interfacename.toUpperCase()+'</a></label>';
 					continue
 				}
 				else{
 					interfacename = interfaces[i].trim();
-					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input" value="'+interfacename.toUpperCase()+'" checked>';
-					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'">'+interfacename.toUpperCase()+'</label>';
+					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
 				}
 				
 				interfacecharttablehtml += BuildInterfaceTable(interfacename);
@@ -1264,14 +1247,8 @@ function get_interfaces_file(){
 			
 			interfaceconfigtablehtml+='</td>';
 			interfaceconfigtablehtml+='</tr>';
-			interfaceconfigtablehtml+='<tr class="apply_gen" valign="top" height="35px">';
-			interfaceconfigtablehtml+='<td colspan="2" style="background-color:rgb(77, 89, 93);">';
-			interfaceconfigtablehtml+='<input type="button" onclick="SaveInterfaces();" value="Save" class="button_gen" name="button">';
-			interfaceconfigtablehtml+='</td>';
-			interfaceconfigtablehtml+='</tr>';
-			interfaceconfigtablehtml+='</table>';
 			
-			$j("#table_buttons").after(interfaceconfigtablehtml);
+			$j("#scriptconfig").after(interfaceconfigtablehtml);
 			
 			if(interfacelist.charAt(interfacelist.length-1) == ",") {
 				interfacelist = interfacelist.slice(0, -1);
@@ -1524,19 +1501,6 @@ function AddEventHandlers(){
 </td>
 </tr>
 <tr>
-<th width="20%">Speedtest</th>
-<td>
-<input type="button" onclick="RunSpeedtest();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest" id="btnRunSpeedtest">
-<img id="imgSpdTest" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>
-&nbsp;&nbsp;&nbsp;
-<span id="spdtest_text" style="display:none;"></span>
-</td>
-</tr>
-<tr style="display:none;"><th style="border-bottom:0px;border-top:0px;">&nbsp;</th><td style="padding: 0px;">
-<textarea cols="63" rows="8" wrap="off" readonly="readonly" id="spdtest_output" class="textarea_log_table" style="border:0px;font-family:Courier New, Courier, mono; font-size:11px;overflow:hidden;">Speedtest output</textarea>
-</td></tr>
-
-<tr>
 <th width="20%">Export</th>
 <td>
 <input type="button" onclick="ExportCSV();" value="Export to CSV" class="button_gen" name="btnExport">
@@ -1545,10 +1509,42 @@ function AddEventHandlers(){
 </table>
 
 <div style="line-height:10px;">&nbsp;</div>
+<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_manualspeedtests">
+<thead class="collapsible-jquery" id="thead_manualspeedtests">
+<tr><td colspan="2">Manual Speedtest (click to expand/collapse)</td></tr>
+</thead>
+<tr class="apply_gen" valign="top" height="35px">
+<td colspan="2" style="background-color:rgb(77, 89, 93);">
+<input type="button" onclick="RunSpeedtest();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest" id="btnRunSpeedtest">
+<img id="imgSpdTest" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>
+&nbsp;&nbsp;&nbsp;
+<span id="spdtest_text" style="display:none;"></span>
+</td>
+</tr>
+<tr style="display:none;"><td colspan="2" style="padding: 0px;">
+<textarea cols="63" rows="8" wrap="off" readonly="readonly" id="spdtest_output" class="textarea_log_table" style="border:0px;font-family:Courier New, Courier, mono; font-size:11px;overflow:hidden;">Speedtest output</textarea>
+</td></tr>
+</table>
+
+<div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_config">
 <thead class="collapsible-jquery" id="scriptconfig">
 <tr><td colspan="2">General Configuration (click to expand/collapse)</td></tr>
 </thead>
+<tr class="even" id="rowautomatedtests">
+<th width="40%">Run speedtests automatically on a schedule?</th>
+<td class="settingvalue">
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_true" class="input" value="true" checked>Yes
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_false" class="input" value="false">No
+</td>
+</tr>
+<tr class="even" id="rowfrequency">
+<th width="40%">Frequency for automatic speedtests</th>
+<td class="settingvalue">
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_halfhourly" class="input" value="halfhourly" checked>Half-hourly
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_auto_hourly" class="input" value="hourly">Hourly
+</td>
+</tr>
 <tr class="even" id="rowdataoutput">
 <th width="40%">Data Output Mode (for CSV export)</th>
 <td class="settingvalue">
@@ -1572,7 +1568,7 @@ function AddEventHandlers(){
 </tr>
 <tr class="apply_gen" valign="top" height="35px">
 <td colspan="2" style="background-color:rgb(77, 89, 93);">
-<input type="button" onclick="applyRule();" value="Save" class="button_gen" name="button">
+<input type="button" onclick="SaveConfig();" value="Save" class="button_gen" name="button">
 </td>
 </tr>
 </table>
