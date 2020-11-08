@@ -550,6 +550,9 @@ Interfaces_FromSettings(){
 				fi
 			done
 			
+			awk 'NF' "$SCRIPT_INTERFACES_USER" > /tmp/spd-interfaces
+			mv /tmp/spd-interfaces "$SCRIPT_INTERFACES_USER"
+			
 			Print_Output "true" "Merge of updated interfaces from WebUI completed successfully" "$PASS"
 		else
 			Print_Output "false" "No updated interfaces from WebUI found, no merge into $SCRIPT_INTERFACES_USER necessary" "$PASS"
