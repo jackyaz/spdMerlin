@@ -2175,7 +2175,7 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
 			printf "\\n\\e[1mPlease select the frequency for speedtests:\\e[0m\\n"
-			printf "1.    Every 30 minutes (twice an hour))\\n"
+			printf "1.    Every 30 minutes (twice an hour)\\n"
 			printf "2.    Every 60 minutes (once an hour)\\n\\n"
 			printf "Choose an option:    "
 			read -r "frequency"
