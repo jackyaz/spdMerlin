@@ -1383,7 +1383,7 @@ Run_Speedtest(){
 					Print_Output "true" "Connection quality - $spdtestresult2" "$PASS"
 					
 					{
-						printf "Speedtest result for $IFACE_NAME\\n"
+						printf "Speedtest result for %s\\n" "$IFACE_NAME"
 						printf "\\nBandwidth - %s\\n" "$spdtestresult"
 						printf "Quality - %s\\n\\n" "$(echo "$spdtestresult2" | sed 's/%%/%/')"
 						grep "Result URL" "$tmpfile" | awk '{$1=$1};1'
