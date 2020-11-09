@@ -63,7 +63,7 @@ td.nodata {
   padding: 2px !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
 }
 
 .StatsTable a {
@@ -1368,13 +1368,13 @@ function BuildInterfaceTable(name){
 		charthtml+='</td>';
 		charthtml+='</tr>';
 	} else{
-		charthtml+='<col style="width:110px;">';
-		charthtml+='<col style="width:75px;">';
-		charthtml+='<col style="width:75px;">';
-		charthtml+='<col style="width:55px;">';
-		charthtml+='<col style="width:55px;">';
-		charthtml+='<col style="width:80px;">';
-		charthtml+='<col style="width:300px;">';
+		charthtml+='<col style="width:120px;">';
+		charthtml+='<col style="width:85px;">';
+		charthtml+='<col style="width:85px;">';
+		charthtml+='<col style="width:85px;">';
+		charthtml+='<col style="width:85px;">';
+		charthtml+='<col style="width:100px;">';
+		charthtml+='<col style="width:180px;">';
 		charthtml+='<thead>';
 		charthtml+='<tr>';
 		charthtml+='<th class="keystatsnumber">Time</th>';
@@ -1394,8 +1394,8 @@ function BuildInterfaceTable(name){
 			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataPktLoss_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataResultURL_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","")+'</td>';
+			charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
 			charthtml+='</tr>';
 		};
 	}

@@ -1220,7 +1220,7 @@ Generate_LastXResults(){
 	} > /tmp/spd-lastx.sql
 	echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
-	sed -i 's/,/ /g;s/"//g;' /tmp/spd-lastx.csv
+	sed -i 's/,,/,null,/g;s/,/ /g;s/"//g;' /tmp/spd-lastx.csv
 	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataResultURL_$1"
 	rm -f /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.csv
@@ -1531,18 +1531,8 @@ Generate_CSVs(){
 			timenow=$(date +"%s")
 			timenowfriendly=$(date +"%c")
 			
-			metriclist=""
+			metriclist="Download Upload Latency Jitter PktLoss"
 			
-			if [ "$OUTPUTDATAMODE" = "raw" ]; then
-				if [ "$STORERESULTURL" = "true" ]; then
-					metriclist="Download Upload Latency Jitter PktLoss ResultURL"
-				elif [ "$STORERESULTURL" = "false" ]; then
-					metriclist="Download Upload Latency Jitter PktLoss"
-				fi
-			elif [ "$OUTPUTDATAMODE" = "average" ]; then
-				metriclist="Download Upload Latency Jitter PktLoss"
-			fi
-				
 			for metric in $metriclist; do
 				{
 					echo ".mode csv"
@@ -1604,7 +1594,7 @@ Generate_CSVs(){
 			{
 				echo ".mode csv"
 				echo ".headers on"
-				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.htm"
+				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.tmp"
 			} > /tmp/spd-complete.sql
 			echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) order by [Timestamp] desc;" >> /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
@@ -1625,16 +1615,24 @@ Generate_CSVs(){
 		tmpoutputdir="/tmp/""$SCRIPT_NAME_LOWER""results"
 		mkdir -p "$tmpoutputdir"
 		cp "$CSV_OUTPUT_DIR/"*.htm "$tmpoutputdir/."
+		mv "$CSV_OUTPUT_DIR/"*.tmp "$tmpoutputdir/."
 		
 		if [ "$OUTPUTTIMEMODE" = "unix" ]; then
 			find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm}.csv"' _ {} \;
+			find "$tmpoutputdir/" -name '*.tmp' -exec sh -c 'i="$1"; mv -- "$i" "${i%.tmp}.csv"' _ {} \;
 		elif [ "$OUTPUTTIMEMODE" = "non-unix" ]; then
 			for i in "$tmpoutputdir/"*".htm"; do
 				awk -F"," 'NR==1 {OFS=","; print} NR>1 {OFS=","; $2=strftime("%Y-%m-%d %H:%M:%S", $2); print }' "$i" > "$i.out"
 			done
 			
+			for i in "$tmpoutputdir/"*".tmp"; do
+				awk -F"," 'NR==1 {OFS=","; print} NR>1 {OFS=","; $1=strftime("%Y-%m-%d %H:%M:%S", $1); print }' "$i" > "$i.out"
+			done
+			
 			find "$tmpoutputdir/" -name '*.htm.out' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm.out}.csv"' _ {} \;
+			find "$tmpoutputdir/" -name '*.tmp.out' -exec sh -c 'i="$1"; mv -- "$i" "${i%.tmp.out}.csv"' _ {} \;
 			rm -f "$tmpoutputdir/"*.htm
+			rm -f "$tmpoutputdir/"*.tmp
 		fi
 		
 		if [ ! -f /opt/bin/7z ]; then
