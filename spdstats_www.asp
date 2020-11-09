@@ -53,16 +53,17 @@ td.nodata {
   background:#2F3A3E !important;
   border-bottom:none !important;
   border-top:none !important;
-  font-size: 12px !important;
   color: white !important;
   padding: 4px !important;
   width: 740px !important;
+  font-size: 12px !important;
 }
 
 .StatsTable td {
   padding: 2px !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
+  font-size: 11px !important;
 }
 
 .StatsTable a {
@@ -1367,20 +1368,22 @@ function BuildInterfaceTable(name){
 		charthtml+='</td>';
 		charthtml+='</tr>';
 	} else{
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
+		charthtml+='<col style="width:110px;">';
+		charthtml+='<col style="width:75px;">';
+		charthtml+='<col style="width:75px;">';
+		charthtml+='<col style="width:55px;">';
+		charthtml+='<col style="width:55px;">';
+		charthtml+='<col style="width:80px;">';
+		charthtml+='<col style="width:300px;">';
 		charthtml+='<thead>';
 		charthtml+='<tr>';
 		charthtml+='<th class="keystatsnumber">Time</th>';
-		charthtml+='<th class="keystatsnumber">Download (Mbps)</th>';
-		charthtml+='<th class="keystatsnumber">Upload (Mbps)</th>';
-		charthtml+='<th class="keystatsnumber">Latency (ms)</th>';
-		charthtml+='<th class="keystatsnumber">Jitter (ms)</th>';
-		charthtml+='<th class="keystatsnumber">Packet Loss (%)</th>';
+		charthtml+='<th class="keystatsnumber">Download<br />(Mbps)</th>';
+		charthtml+='<th class="keystatsnumber">Upload<br />(Mbps)</th>';
+		charthtml+='<th class="keystatsnumber">Latency<br />(ms)</th>';
+		charthtml+='<th class="keystatsnumber">Jitter<br />(ms)</th>';
+		charthtml+='<th class="keystatsnumber">Packet Loss<br />(%)</th>';
+		charthtml+='<th class="keystatsnumber">Result URL</th>';
 		charthtml+='</tr>';
 		charthtml+='</thead>';
 		
@@ -1392,6 +1395,7 @@ function BuildInterfaceTable(name){
 			charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataPktLoss_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataResultURL_"+name][i]+'</td>';
 			charthtml+='</tr>';
 		};
 	}

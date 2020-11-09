@@ -579,13 +579,16 @@ Conf_Exists(){
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 20 ]; then
 			{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; } >> "$SCRIPT_CONF"
 		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 27 ]; then
+			echo "STORERESULTURL=false" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; } >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "STORERESULTURL=false"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -1128,6 +1131,21 @@ OutputTimeMode(){
 	esac
 }
 
+StoreResultURL(){
+	case "$1" in
+	enable)
+		sed -i 's/^STORERESULTURL.*$/STORERESULTURL=true/' "$SCRIPT_CONF"
+	;;
+	disable)
+		sed -i 's/^STORERESULTURL.*$/STORERESULTURL=false/' "$SCRIPT_CONF"
+	;;
+	check)
+		STORERESULTURL=$(grep "STORERESULTURL" "$SCRIPT_CONF" | cut -f2 -d"=")
+		echo "$STORERESULTURL"
+	;;
+	esac
+}
+
 AutoBWEnable(){
 	case "$1" in
 	enable)
@@ -1200,10 +1218,10 @@ Generate_LastXResults(){
 		echo ".mode csv"
 		echo ".output /tmp/spd-lastx.csv"
 	} > /tmp/spd-lastx.sql
-	echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
+	echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
-	sed -i 's/,/ /g' "/tmp/spd-lastx.csv"
-	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1"
+	sed -i 's/,/ /g;s/"//g;' /tmp/spd-lastx.csv
+	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataResultURL_$1"
 	rm -f /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.csv
 }
@@ -1348,6 +1366,7 @@ Run_Speedtest(){
 					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
 					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $4}' | tr -d '(')"
 					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}' | tr -d '%')"
+					resulturl="$(grep "Result URL" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}')"
 					
 					! Validate_Bandwidth "$download" && download="0";
 					! Validate_Bandwidth "$upload" && upload="0";
@@ -1368,7 +1387,21 @@ Run_Speedtest(){
 						touch "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME"
 					fi
 					
-					echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]) values($timenow,$download,$upload,$latency,$jitter,$pktloss);" > /tmp/spd-stats.sql
+					if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME" ]; then
+						{
+							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [ResultURL] TEXT;"
+						} > /tmp/spd-stats.sql
+						"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
+						touch "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME"
+					fi
+					
+					STORERESULTURL="$(StoreResultURL "check")"
+					
+					if [ "$STORERESULTURL" = "true" ]; then
+						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'$resulturl');" > /tmp/spd-stats.sql
+					elif [ "$STORERESULTURL" = "false" ]; then
+						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'');" > /tmp/spd-stats.sql
+					fi
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));" > /tmp/spd-stats.sql
@@ -1431,9 +1464,41 @@ Run_Speedtest(){
 	fi
 }
 
+Process_Upgrade(){
+	while IFS='' read -r line || [ -n "$line" ]; do
+		IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+	done < "$SCRIPT_INTERFACES_USER"
+	
+	for IFACE_NAME in $IFACELIST; do
+		IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
+		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" > /tmp/spd-stats.sql
+		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+		
+		if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME" ]; then
+			{
+				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Latency] REAL;"
+				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Jitter] REAL;"
+				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [PktLoss] REAL;"
+			} > /tmp/spd-stats.sql
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
+			touch "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME"
+		fi
+		
+		if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME" ]; then
+			{
+				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [ResultURL] TEXT;"
+			} > /tmp/spd-stats.sql
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
+			touch "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME"
+		fi
+	done
+	rm -f /tmp/spd-stats.sql
+}
+
 Generate_CSVs(){
 	OUTPUTDATAMODE="$(OutputDataMode "check")"
 	OUTPUTTIMEMODE="$(OutputTimeMode "check")"
+	STORERESULTURL="$(StoreResultURL "check")"
 	IFACELIST=""
 	
 	echo "CREATE TABLE IF NOT EXISTS [spdstats_WAN] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" > /tmp/spd-stats.sql
@@ -1466,13 +1531,23 @@ Generate_CSVs(){
 			timenow=$(date +"%s")
 			timenowfriendly=$(date +"%c")
 			
-			metriclist="Download Upload Latency Jitter PktLoss"
+			metriclist=""
 			
+			if [ "$OUTPUTDATAMODE" = "raw" ]; then
+				if [ "$STORERESULTURL" = "true" ]; then
+					metriclist="Download Upload Latency Jitter PktLoss ResultURL"
+				elif [ "$STORERESULTURL" = "false" ]; then
+					metriclist="Download Upload Latency Jitter PktLoss"
+				fi
+			elif [ "$OUTPUTDATAMODE" = "average" ]; then
+				metriclist="Download Upload Latency Jitter PktLoss"
+			fi
+				
 			for metric in $metriclist; do
 				{
 					echo ".mode csv"
 					echo ".headers off"
-					echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME"".tmp"
+					echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME.tmp"
 					echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 				} > /tmp/spd-stats.sql
 				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1482,7 +1557,7 @@ Generate_CSVs(){
 					{
 						echo ".mode csv"
 						echo ".headers off"
-						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME"".tmp"
+						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME.tmp"
 						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
 					} > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1491,7 +1566,7 @@ Generate_CSVs(){
 					{
 						echo ".mode csv"
 						echo ".headers off"
-						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME"".tmp"
+						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME.tmp"
 						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
 					} > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1507,25 +1582,39 @@ Generate_CSVs(){
 				fi
 			done
 			
-			cat "$CSV_OUTPUT_DIR/Downloaddaily_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Uploaddaily_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME"".htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Downloadweekly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Uploadweekly_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME"".htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Downloadmonthly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Uploadmonthly_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME"".htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Downloaddaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploaddaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME.htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Downloadweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploadweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME.htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Downloadmonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploadmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME.htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Latencydaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jitterdaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossdaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME.htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Latencyweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jitterweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME.htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/Latencymonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jittermonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME.htm" 2> /dev/null
+			
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME.htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME.htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME.htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME.htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME.htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME.htm"
+			
+			INCLUDEURL=""
+			if [ "$STORERESULTURL" = "true" ]; then
+				INCLUDEURL=",[ResultURL]"
+			fi
+			
+			{
+				echo ".mode csv"
+				echo ".headers on"
+				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.htm"
+			} > /tmp/spd-complete.sql
+			echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) order by [Timestamp] desc;" >> /tmp/spd-complete.sql
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
+			rm -f /tmp/spd-complete.sql
+			
 			rm -f "$CSV_OUTPUT_DIR/Download"*
 			rm -f "$CSV_OUTPUT_DIR/Upload"*
-			
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME"".htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME"".htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME"".htm"
-			
-			cat "$CSV_OUTPUT_DIR/Latencydaily_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Jitterdaily_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/PktLossdaily_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME"".htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Latencyweekly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Jitterweekly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/PktLossweekly_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME"".htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Latencymonthly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/Jittermonthly_$IFACE_NAME"".tmp" "$CSV_OUTPUT_DIR/PktLossmonthly_$IFACE_NAME"".tmp" > "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME"".htm" 2> /dev/null
 			rm -f "$CSV_OUTPUT_DIR/Latency"*
 			rm -f "$CSV_OUTPUT_DIR/Jitter"*
-			
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME"".htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME"".htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME"".htm"
+			rm -f "$CSV_OUTPUT_DIR/PktLoss"*
 			
 			Generate_LastXResults "$IFACE_NAME"
 			rm -f "/tmp/spd-stats.sql"
@@ -1637,6 +1726,7 @@ MainMenu(){
 	printf "4.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
 	printf "5.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode "check")"
 	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode "check")"
+	printf "7.    Toggle storage of speedtest result URLs\\n      Currently \\e[1m%s\\e[0m\\n\\n" "$(StoreResultURL "check")"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$(ScriptStorageLocation "check")"
@@ -1684,6 +1774,11 @@ MainMenu(){
 			6)
 				printf "\\n"
 				Menu_ToggleOutputTimeMode
+				break
+			;;
+			7)
+				printf "\\n"
+				Menu_ToggleStoreResultURL
 				break
 			;;
 			c)
@@ -1885,7 +1980,6 @@ Menu_RunSpeedtest(){
 			else
 				if [ "$iface_choice" -gt "1" ]; then
 					useiface="$(grep -v "interface not up" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p | cut -f1 -d"#" | sed 's/ *$//')"
-					echo "$useiface"
 				fi
 				validselection="true"
 			fi
@@ -2097,6 +2191,14 @@ Menu_ToggleOutputTimeMode(){
 		OutputTimeMode "non-unix"
 	elif [ "$(OutputTimeMode "check")" = "non-unix" ]; then
 		OutputTimeMode "unix"
+	fi
+}
+
+Menu_ToggleStoreResultURL(){
+	if [ "$(StoreResultURL "check")" = "true" ]; then
+		StoreResultURL "disable"
+	elif [ "$(StoreResultURL "check")" = "false" ]; then
+		StoreResultURL "enable"
 	fi
 }
 
@@ -2610,6 +2712,8 @@ if [ -z "$1" ]; then
 	Set_Version_Custom_Settings "local"
 	ScriptStorageLocation "load"
 	Create_Symlinks
+	
+	Process_Upgrade
 	
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
