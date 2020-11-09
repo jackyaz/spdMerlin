@@ -439,6 +439,7 @@ Create_Symlinks(){
 	rm -rf "${SCRIPT_WEB_DIR:?}/"* 2>/dev/null
 	
 	ln -s /tmp/spd-stats.txt "$SCRIPT_WEB_DIR/spd-stats.htm" 2>/dev/null
+	ln -s /tmp/spd-result.txt "$SCRIPT_WEB_DIR/spd-result.htm" 2>/dev/null
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
@@ -1227,6 +1228,8 @@ Run_Speedtest(){
 	echo 'var spdteststatus = "InProgress";' > /tmp/detect_spdtest.js
 	
 	tmpfile=/tmp/spd-stats.txt
+	resultfile=/tmp/spd-result.txt
+	printf "" > "$resultfile"
 	
 	if Check_Swap ; then
 		if [ "$mode" != "webui" ]; then
@@ -1250,8 +1253,8 @@ Run_Speedtest(){
 		IFACELIST=""
 		if [ -z "$specificiface" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
-				if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
-					IFACELIST="$IFACELIST"" ""$line"
+				if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
+					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
 			
@@ -1302,7 +1305,7 @@ Run_Speedtest(){
 					fi
 					
 					echo 'var spdteststatus = "InProgress_'"$IFACE_NAME"'";' > /tmp/detect_spdtest.js
-					echo "" > "$tmpfile"
+					printf "" > "$tmpfile"
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
@@ -1379,8 +1382,13 @@ Run_Speedtest(){
 					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 					Print_Output "true" "Connection quality - $spdtestresult2" "$PASS"
 					
-					echo "Speedtest results - $spdtestresult" > "$tmpfile"
-					echo "Connection quality - $spdtestresult2" >> "$tmpfile"
+					{
+						printf "Speedtest result for $IFACE_NAME\\n"
+						printf "\\nBandwidth - %s\\n" "$spdtestresult"
+						printf "Quality - %s\\n\\n" "$(echo "$spdtestresult2" | sed 's/%%/%/')"
+						grep "Result URL" "$tmpfile" | awk '{$1=$1};1'
+						printf "\\n\\n\\n"
+					} >> "$resultfile"
 					#extStats
 					extStats="/jffs/addons/extstats.d/mod_spdstats.sh"
 					if [ -f "$extStats" ]; then
@@ -1406,6 +1414,7 @@ Run_Speedtest(){
 			
 			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
+			rm -f "$tmpfile"
 			rm -f "/tmp/spdstatstitle.txt"
 		else
 			echo 'var spdteststatus = "Error";' > /tmp/detect_spdtest.js
@@ -1437,8 +1446,8 @@ Generate_CSVs(){
 	rm -f /tmp/spd-stats.sql
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
-		if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
-			IFACELIST="$IFACELIST"" ""$line"
+		if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
+			IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 		fi
 	done < "$SCRIPT_INTERFACES_USER"
 	
@@ -1855,8 +1864,8 @@ Menu_RunSpeedtest(){
 		printf "1.    All\\n"
 		COUNTER="2"
 		while IFS='' read -r line || [ -n "$line" ]; do
-			if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
-				printf "%s.    %s\\n" "$COUNTER" "$line"
+			if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
+				printf "%s.    %s\\n" "$COUNTER" "$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				COUNTER=$((COUNTER+1))
 			fi
 		done < "$SCRIPT_INTERFACES_USER"
@@ -1875,7 +1884,8 @@ Menu_RunSpeedtest(){
 				validselection="false"
 			else
 				if [ "$iface_choice" -gt "1" ]; then
-					useiface="$(grep -v "#" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p)"
+					useiface="$(grep -v "interface not up" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p | cut -f1 -d"#" | sed 's/ *$//')"
+					echo "$useiface"
 				fi
 				validselection="true"
 			fi
@@ -1951,11 +1961,11 @@ Menu_ConfigurePreferred(){
 		printf "1.    All (on/off only)\\n\\n"
 		COUNTER="2"
 		while IFS='' read -r line || [ -n "$line" ]; do
-			if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+			if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
 				pref_enabled=""
-				if PreferredServer check "$line"; then pref_enabled="On"; else pref_enabled="Off"; fi
-				printf "%s.    %s\\n" "$COUNTER" "$line"
-				printf "      Preferred: %s - Server: %s\\n\\n" "$pref_enabled" "$(PreferredServer list "$line" | cut -f2 -d"|")"
+				if PreferredServer check "$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"; then pref_enabled="On"; else pref_enabled="Off"; fi
+				printf "%s.    %s\\n" "$COUNTER" "$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+				printf "      Preferred: %s - Server: %s\\n\\n" "$pref_enabled" "$(PreferredServer list "$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')" | cut -f2 -d"|")"
 				COUNTER=$((COUNTER+1))
 			fi
 		done < "$SCRIPT_INTERFACES_USER"
@@ -1972,7 +1982,7 @@ Menu_ConfigurePreferred(){
 				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
 			else
 				if [ "$iface_choice" -gt "1" ]; then
-					prefiface="$(grep -v "#" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p)"
+					prefiface="$(grep -v "interface not up" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p | cut -f1 -d"#" | sed 's/ *$//')"
 				else
 					prefiface="All"
 				fi
@@ -2005,8 +2015,8 @@ Menu_ConfigurePreferred(){
 								prefenabledisable="disable"
 							fi
 							while IFS='' read -r line || [ -n "$line" ]; do
-								if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
-									PreferredServer "$prefenabledisable" "$line"
+								if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
+									PreferredServer "$prefenabledisable" "$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 								fi
 							done < "$SCRIPT_INTERFACES_USER"
 							printf "\\n"

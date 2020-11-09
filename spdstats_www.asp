@@ -1025,13 +1025,15 @@ function DoUpdate(){
 
 function get_spdtestresult_file(){
 	$j.ajax({
-		url: '/ext/spdmerlin/spd-stats.htm',
+		url: '/ext/spdmerlin/spd-result.htm',
 		dataType: 'text',
 		timeout: 1000,
 		error: function(xhr){
 			setTimeout("get_spdtestresult_file();", 300);
 		},
 		success: function(data){
+			var lines = data.trim().split('\n');
+			data = lines.join('\n');
 			$j("#spdtest_output").html(data);
 		}
 	});
@@ -1557,7 +1559,7 @@ function AddEventHandlers(){
 </td>
 </tr>
 <tr style="display:none;"><td colspan="2" style="padding: 0px;">
-<textarea cols="63" rows="8" wrap="off" readonly="readonly" id="spdtest_output" class="textarea_log_table" style="border:0px;font-family:Courier New, Courier, mono; font-size:11px;overflow:hidden;">Speedtest output</textarea>
+<textarea cols="63" rows="8" wrap="off" readonly="readonly" id="spdtest_output" class="textarea_log_table" style="border:0px;font-family:Courier New, Courier, mono; font-size:11px;overflow-y:auto;overflow-x:hidden;">Speedtest output</textarea>
 </td></tr>
 </table>
 
