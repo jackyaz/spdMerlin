@@ -84,6 +84,10 @@ input.settingvalue {
   margin-left: 3px !important;
 }
 
+input.settingvalueradio {
+  margin-left: 15px !important;
+}
+
 label.settingvalue {
   margin-right: 13px !important;
 }
@@ -1019,6 +1023,20 @@ function DoUpdate(){
 	document.form.submit();
 }
 
+function get_spdtestresult_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spd-stats.htm',
+		dataType: 'text',
+		timeout: 1000,
+		error: function(xhr){
+			setTimeout("get_spdtestresult_file();", 300);
+		},
+		success: function(data){
+			$j("#spdtest_output").html(data);
+		}
+	});
+}
+
 function get_spdtest_file(){
 	$j.ajax({
 		url: '/ext/spdmerlin/spd-stats.htm',
@@ -1060,8 +1078,8 @@ function update_spdtest(){
 				}
 			}
 			else if(spdteststatus == "Done"){
+				get_spdtestresult_file();
 				document.getElementById("spdtest_text").innerHTML = "Refreshing tables and charts...";
-				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
 				setTimeout('PostSpeedTest();', 1000);
 				clearInterval(myinterval);
 			}
@@ -1106,8 +1124,11 @@ function PostSpeedTest(){
 	showhide("spdtest_text", false);
 	showhide("btnRunSpeedtest", true);
 	document.getElementById("table_allinterfaces").remove();
+	document.getElementById("rowautomaticspdtest").remove();
+	document.getElementById("rowmanualspdtest").remove();
 	currentNoCharts = 0;
 	reload_js('/ext/spdmerlin/spdjs.js');
+	reload_js('/ext/spdmerlin/spdtitletext.js');
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	SetSPDStatsTitle();
 	get_interfaces_file();
@@ -1115,7 +1136,8 @@ function PostSpeedTest(){
 
 function RunSpeedtest(){
 	showhide("btnRunSpeedtest", false);
-	document.formScriptActions.action_script.value="start_spdmerlin";
+	$j("#spdtest_output").html("");
+	document.formScriptActions.action_script.value="start_spdmerlinspdtest_" + document.form.spdtest_enabled.value;
 	document.formScriptActions.submit();
 	showhide("imgSpdTest", true);
 	showhide("spdtest_text", false);
@@ -1212,8 +1234,12 @@ function get_interfaces_file(){
 			interfacecharttablehtml+='</thead>';
 			interfacecharttablehtml+='<tr><td align="center" style="padding: 0px;">';
 			
-			var interfaceconfigtablehtml='<tr>';
+			var interfaceconfigtablehtml='<tr id="rowautomaticspdtest">';
 			interfaceconfigtablehtml+='<th width="40%">Enabled for automatic speedtests?</th><td class="settingvalue">';
+			
+			var speedtestifaceconfigtablehtml='<tr id="rowmanualspdtest">';
+			speedtestifaceconfigtablehtml+='<th width="40%">Interfaces to run speedtest for</th><td class="settingvalue">';
+			speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_all" class="input" settingvalueradio" value="All" checked>All';
 			
 			var interfacecount=interfaces.length;
 			for (var i = 0; i < interfacecount; i++){
@@ -1228,12 +1254,17 @@ function get_interfaces_file(){
 					}
 					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue"><a class="hintstyle" href="javascript:void(0);" onclick="' + clickhint + '">'+interfacename.toUpperCase()+'</a></label>';
+					
+					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>'+interfacename.toUpperCase();
+					
 					continue
 				}
 				else{
 					interfacename = interfaces[i].trim();
 					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
+				
+					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalueradio" value="'+interfacename.toUpperCase()+'">'+interfacename.toUpperCase();
 				}
 				
 				interfacecharttablehtml += BuildInterfaceTable(interfacename);
@@ -1248,7 +1279,11 @@ function get_interfaces_file(){
 			interfaceconfigtablehtml+='</td>';
 			interfaceconfigtablehtml+='</tr>';
 			
+			speedtestifaceconfigtablehtml+='</td>';
+			speedtestifaceconfigtablehtml+='</tr>';
+			
 			$j("#scriptconfig").after(interfaceconfigtablehtml);
+			$j("#thead_manualspeedtests").after(speedtestifaceconfigtablehtml);
 			
 			if(interfacelist.charAt(interfacelist.length-1) == ",") {
 				interfacelist = interfacelist.slice(0, -1);

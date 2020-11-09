@@ -1302,6 +1302,7 @@ Run_Speedtest(){
 					fi
 					
 					echo 'var spdteststatus = "InProgress_'"$IFACE_NAME"'";' > /tmp/detect_spdtest.js
+					echo "" > "$tmpfile"
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
@@ -1377,7 +1378,9 @@ Run_Speedtest(){
 					printf "\\n"
 					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
 					Print_Output "true" "Connection quality - $spdtestresult2" "$PASS"
-					rm -f "$tmpfile"
+					
+					echo "Speedtest results - $spdtestresult" > "$tmpfile"
+					echo "Connection quality - $spdtestresult2" >> "$tmpfile"
 					#extStats
 					extStats="/jffs/addons/extstats.d/mod_spdstats.sh"
 					if [ -f "$extStats" ]; then
@@ -2627,9 +2630,14 @@ case "$1" in
 		exit 0
 	;;
 	service_event)
-		if [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
+		if [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""spdtest"; then
 			Check_Lock "webui"
-			Run_Speedtest "webui"
+			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""spdtest_//")";
+			Print_Output "true" "$spdifacename"
+			if [ "$spdifacename" = "All" ]; then
+				spdifacename=""
+			fi
+			Run_Speedtest "webui" "$spdifacename"
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
