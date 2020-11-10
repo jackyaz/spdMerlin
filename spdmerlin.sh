@@ -846,7 +846,7 @@ Mount_WebUI(){
 	if [ "$MyPage" = "none" ]; then
 		Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
 		Clear_Lock
-		return 1
+		exit 1
 	fi
 	Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
 	cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
