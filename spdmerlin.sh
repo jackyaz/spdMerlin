@@ -1236,10 +1236,10 @@ Generate_LastXResults(){
 		echo ".mode csv"
 		echo ".output /tmp/spd-lastx.csv"
 	} > /tmp/spd-lastx.sql
-	echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
+	echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	sed -i 's/,,/,null,/g;s/,/ /g;s/"//g;' /tmp/spd-lastx.csv
-	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataResultURL_$1"
+	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataResultURL_$1" "DataDataDownload_$1" "DataDataUpload_$1"
 	rm -f /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.csv
 }
@@ -1387,14 +1387,18 @@ Run_Speedtest(){
 					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $4}' | tr -d '(')"
 					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}' | tr -d '%')"
 					resulturl="$(grep "Result URL" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}')"
+					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
+					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
 					
 					! Validate_Bandwidth "$download" && download="0";
 					! Validate_Bandwidth "$upload" && upload="0";
 					! Validate_Bandwidth "$latency" && latency=null;
 					! Validate_Bandwidth "$jitter" && jitter=null;
 					! Validate_Bandwidth "$pktloss" && pktloss=null;
+					! Validate_Bandwidth "$datadownload" && datadownload=0;
+					! Validate_Bandwidth "$dataupload" && dataupload=0;
 					
-					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" > /tmp/spd-stats.sql
+					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME" ]; then
@@ -1415,12 +1419,21 @@ Run_Speedtest(){
 						touch "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME"
 					fi
 					
+					if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME" ]; then
+						{
+							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [DataDownload] REAL NOT NULL DEFAULT 0;"
+							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [DataUpload] REAL NOT NULL DEFAULT 0;"
+						} > /tmp/spd-stats.sql
+						"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
+						touch "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME"
+					fi
+					
 					STORERESULTURL="$(StoreResultURL "check")"
 					
 					if [ "$STORERESULTURL" = "true" ]; then
-						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'$resulturl');" > /tmp/spd-stats.sql
+						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'$resulturl',$datadownload,$dataupload);" > /tmp/spd-stats.sql
 					elif [ "$STORERESULTURL" = "false" ]; then
-						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'');" > /tmp/spd-stats.sql
+						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'',$datadownload,$dataupload);" > /tmp/spd-stats.sql
 					fi
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
@@ -1492,7 +1505,7 @@ Process_Upgrade(){
 	
 	for IFACE_NAME in $IFACELIST; do
 		IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
-		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" > /tmp/spd-stats.sql
+		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 		
 		if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME" ]; then
@@ -1512,6 +1525,15 @@ Process_Upgrade(){
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
 			touch "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME"
 		fi
+		
+		if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME" ]; then
+			{
+				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [DataDownload] REAL NOT NULL DEFAULT 0;"
+				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [DataUpload] REAL NOT NULL DEFAULT 0;"
+			} > /tmp/spd-stats.sql
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
+			touch "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME"
+		fi
 	done
 	rm -f /tmp/spd-stats.sql
 }
@@ -1521,15 +1543,6 @@ Generate_CSVs(){
 	OUTPUTTIMEMODE="$(OutputTimeMode "check")"
 	STORERESULTURL="$(StoreResultURL "check")"
 	IFACELIST=""
-	
-	echo "CREATE TABLE IF NOT EXISTS [spdstats_WAN] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" > /tmp/spd-stats.sql
-
-	for index in 1 2 3 4 5; do
-		echo "CREATE TABLE IF NOT EXISTS [spdstats_VPNC$index] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL);" >> /tmp/spd-stats.sql
-	done
-	
-	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-	rm -f /tmp/spd-stats.sql
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
 		if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
@@ -1552,7 +1565,7 @@ Generate_CSVs(){
 			timenow=$(date +"%s")
 			timenowfriendly=$(date +"%c")
 			
-			metriclist="Download Upload Latency Jitter PktLoss"
+			metriclist="Download Upload Latency Jitter PktLoss DataDownload DataUpload"
 			
 			for metric in $metriclist; do
 				{
@@ -1599,6 +1612,9 @@ Generate_CSVs(){
 			cat "$CSV_OUTPUT_DIR/Latencydaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jitterdaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossdaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME.htm" 2> /dev/null
 			cat "$CSV_OUTPUT_DIR/Latencyweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jitterweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME.htm" 2> /dev/null
 			cat "$CSV_OUTPUT_DIR/Latencymonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jittermonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME.htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/DataDownloaddaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploaddaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsagedaily_$IFACE_NAME.htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/DataDownloadweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploadweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsageweekly_$IFACE_NAME.htm" 2> /dev/null
+			cat "$CSV_OUTPUT_DIR/DataDownloadmonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploadmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsagemonthly_$IFACE_NAME.htm" 2> /dev/null
 			
 			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME.htm"
 			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME.htm"
@@ -1606,6 +1622,9 @@ Generate_CSVs(){
 			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME.htm"
 			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME.htm"
 			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME.htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/DataUsagedaily_$IFACE_NAME.htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/DataUsageweekly_$IFACE_NAME.htm"
+			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/DataUsagemonthly_$IFACE_NAME.htm"
 			
 			INCLUDEURL=""
 			if [ "$STORERESULTURL" = "true" ]; then
@@ -1617,7 +1636,7 @@ Generate_CSVs(){
 				echo ".headers on"
 				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.tmp"
 			} > /tmp/spd-complete.sql
-			echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) order by [Timestamp] desc;" >> /tmp/spd-complete.sql
+			echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) order by [Timestamp] desc;" >> /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
 			rm -f /tmp/spd-complete.sql
 			
@@ -1626,6 +1645,8 @@ Generate_CSVs(){
 			rm -f "$CSV_OUTPUT_DIR/Latency"*
 			rm -f "$CSV_OUTPUT_DIR/Jitter"*
 			rm -f "$CSV_OUTPUT_DIR/PktLoss"*
+			rm -f "$CSV_OUTPUT_DIR/DataDownload"*
+			rm -f "$CSV_OUTPUT_DIR/DataUpload"*
 			
 			Generate_LastXResults "$IFACE_NAME"
 			rm -f "/tmp/spd-stats.sql"

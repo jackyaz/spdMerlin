@@ -56,7 +56,7 @@ td.nodata {
   color: white !important;
   padding: 4px !important;
   width: 740px !important;
-  font-size: 12px !important;
+  font-size: 11px !important;
 }
 
 .StatsTable td {
@@ -1389,12 +1389,14 @@ function BuildInterfaceTable(name){
 		charthtml+='</tr>';
 	} else{
 		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:85px;">';
-		charthtml+='<col style="width:85px;">';
-		charthtml+='<col style="width:85px;">';
-		charthtml+='<col style="width:85px;">';
-		charthtml+='<col style="width:100px;">';
-		charthtml+='<col style="width:180px;">';
+		charthtml+='<col style="width:75px;">';
+		charthtml+='<col style="width:65px;">';
+		charthtml+='<col style="width:65px;">';
+		charthtml+='<col style="width:65px;">';
+		charthtml+='<col style="width:65px;">';
+		charthtml+='<col style="width:80px;">';
+		charthtml+='<col style="width:80px;">';
+		charthtml+='<col style="width:135px;">';
 		charthtml+='<thead>';
 		charthtml+='<tr>';
 		charthtml+='<th class="keystatsnumber">Time</th>';
@@ -1402,7 +1404,9 @@ function BuildInterfaceTable(name){
 		charthtml+='<th class="keystatsnumber">Upload<br />(Mbps)</th>';
 		charthtml+='<th class="keystatsnumber">Latency<br />(ms)</th>';
 		charthtml+='<th class="keystatsnumber">Jitter<br />(ms)</th>';
-		charthtml+='<th class="keystatsnumber">Packet Loss<br />(%)</th>';
+		charthtml+='<th class="keystatsnumber">Packet<br />Loss (%)</th>';
+		charthtml+='<th class="keystatsnumber">Download<br />Data (MB)</th>';
+		charthtml+='<th class="keystatsnumber">Upload<br />Data (MB)</th>';
 		charthtml+='<th class="keystatsnumber">Result URL</th>';
 		charthtml+='</tr>';
 		charthtml+='</thead>';
@@ -1415,6 +1419,8 @@ function BuildInterfaceTable(name){
 			charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","")+'</td>';
+			charthtml+='<td>'+window["DataDataDownload_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataDataUpload_"+name][i]+'</td>';
 			charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
 			charthtml+='</tr>';
 		};
