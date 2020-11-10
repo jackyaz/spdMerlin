@@ -139,6 +139,10 @@ label.settingvalue {
   background-color: #CCCCCC !important;
   color: #888888 !important;
 }
+
+a.nohintstyle {
+  cursor: default !important;
+}
 </style>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/moment.js"></script>
@@ -174,6 +178,9 @@ var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
 
 var maxNoCharts = 0;
 var currentNoCharts = 0;
+
+var interfacelist = "";
+var interfacescomplete = [];
 
 var ShowLines = GetCookie("ShowLines","string");
 var ShowFill = GetCookie("ShowFill","string");
@@ -1225,7 +1232,6 @@ function get_interfaces_file(){
 		},
 		success: function(data){
 			var interfaces=data.split("\n");
-			
 			interfaces=interfaces.filter(Boolean);
 			interfacelist="";
 			var interfacecharttablehtml='<div style="line-height:10px;">&nbsp;</div>';
@@ -1238,10 +1244,10 @@ function get_interfaces_file(){
 			interfacecharttablehtml+='<tr><td align="center" style="padding: 0px;">';
 			
 			var interfaceconfigtablehtml='<tr id="rowautomaticspdtest">';
-			interfaceconfigtablehtml+='<th width="40%">Enabled for automatic speedtests?</th><td class="settingvalue">';
+			interfaceconfigtablehtml+='<th width="40%">Interfaces to use for automatic speedtests</th><td class="settingvalue">';
 			
 			var speedtestifaceconfigtablehtml='<tr id="rowmanualspdtest">';
-			speedtestifaceconfigtablehtml+='<th width="40%">Interfaces to run speedtest for</th><td class="settingvalue">';
+			speedtestifaceconfigtablehtml+='<th width="40%">Interfaces to use for manual speedtest</th><td class="settingvalue">';
 			speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_all" class="input" settingvalueradio" value="All" checked>All';
 			
 			var interfacecount=interfaces.length;
@@ -1249,14 +1255,15 @@ function get_interfaces_file(){
 				var interfacename = "";
 				if(interfaces[i].indexOf("#") != -1){
 					interfacename = interfaces[i].substring(0,interfaces[i].indexOf("#")).trim();
+					interfacescomplete.push(interfacename);
 					var interfacedisabled = "";
-					var clickhint = "";
+					var ifacelabel = interfacename.toUpperCase();
 					if(interfaces[i].indexOf("interface not up") != -1){
 						interfacedisabled = "disabled";
-						clickhint="SettingHint(1);"
+						ifacelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">'+interfacename.toUpperCase()+'</a>'
 					}
 					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
-					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue"><a class="hintstyle" href="javascript:void(0);" onclick="' + clickhint + '">'+interfacename.toUpperCase()+'</a></label>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
 					
 					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>'+interfacename.toUpperCase();
 					
@@ -1264,6 +1271,7 @@ function get_interfaces_file(){
 				}
 				else{
 					interfacename = interfaces[i].trim();
+					interfacescomplete.push(interfacename);
 					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
 				
@@ -1285,7 +1293,7 @@ function get_interfaces_file(){
 			speedtestifaceconfigtablehtml+='</td>';
 			speedtestifaceconfigtablehtml+='</tr>';
 			
-			$j("#scriptconfig").after(interfaceconfigtablehtml);
+			$j("#rowautomatedtests").after(interfaceconfigtablehtml);
 			$j("#thead_manualspeedtests").after(speedtestifaceconfigtablehtml);
 			
 			if(interfacelist.charAt(interfacelist.length-1) == ",") {
@@ -1573,7 +1581,7 @@ function AddEventHandlers(){
 <tr><td colspan="2">General Configuration (click to expand/collapse)</td></tr>
 </thead>
 <tr class="even" id="rowautomatedtests">
-<th width="40%">Run speedtests automatically on a schedule?</th>
+<th width="40%">Enable scheduled speedtests</th>
 <td class="settingvalue">
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_true" class="input" value="true" checked>Yes
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_false" class="input" value="false">No
@@ -1587,14 +1595,14 @@ function AddEventHandlers(){
 </td>
 </tr>
 <tr class="even" id="rowdataoutput">
-<th width="40%">Data Output Mode (for CSV export)</th>
+<th width="40%">Data Output Mode<br/><span style="color:#FFCC00;">(for weekly and monthly charts)</span></th>
 <td class="settingvalue">
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_average" class="input" value="average" checked>Average
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_raw" class="input" value="raw">Raw
 </td>
 </tr>
 <tr class="even" id="rowtimeoutput">
-<th width="40%">Time Output Mode (for CSV export)</th>
+<th width="40%">Time Output Mode<br/><span style="color:#FFCC00;">(for CSV export)</span></th>
 <td class="settingvalue">
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_non-unix" class="input" value="non-unix" checked>Non-Unix
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_unix" class="input" value="unix">Unix
