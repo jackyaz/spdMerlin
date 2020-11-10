@@ -1634,7 +1634,7 @@ Generate_CSVs(){
 			{
 				echo ".mode csv"
 				echo ".headers on"
-				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.tmp"
+				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.htm"
 			} > /tmp/spd-complete.sql
 			echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) order by [Timestamp] desc;" >> /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
@@ -1656,25 +1656,17 @@ Generate_CSVs(){
 		
 		tmpoutputdir="/tmp/""$SCRIPT_NAME_LOWER""results"
 		mkdir -p "$tmpoutputdir"
-		cp "$CSV_OUTPUT_DIR/"*.htm "$tmpoutputdir/."
-		mv "$CSV_OUTPUT_DIR/"*.tmp "$tmpoutputdir/."
+		mv "$CSV_OUTPUT_DIR/CompleteResults"*.htm "$tmpoutputdir/."
 		
 		if [ "$OUTPUTTIMEMODE" = "unix" ]; then
 			find "$tmpoutputdir/" -name '*.htm' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm}.csv"' _ {} \;
-			find "$tmpoutputdir/" -name '*.tmp' -exec sh -c 'i="$1"; mv -- "$i" "${i%.tmp}.csv"' _ {} \;
 		elif [ "$OUTPUTTIMEMODE" = "non-unix" ]; then
 			for i in "$tmpoutputdir/"*".htm"; do
-				awk -F"," 'NR==1 {OFS=","; print} NR>1 {OFS=","; $2=strftime("%Y-%m-%d %H:%M:%S", $2); print }' "$i" > "$i.out"
-			done
-			
-			for i in "$tmpoutputdir/"*".tmp"; do
 				awk -F"," 'NR==1 {OFS=","; print} NR>1 {OFS=","; $1=strftime("%Y-%m-%d %H:%M:%S", $1); print }' "$i" > "$i.out"
 			done
 			
 			find "$tmpoutputdir/" -name '*.htm.out' -exec sh -c 'i="$1"; mv -- "$i" "${i%.htm.out}.csv"' _ {} \;
-			find "$tmpoutputdir/" -name '*.tmp.out' -exec sh -c 'i="$1"; mv -- "$i" "${i%.tmp.out}.csv"' _ {} \;
 			rm -f "$tmpoutputdir/"*.htm
-			rm -f "$tmpoutputdir/"*.tmp
 		fi
 		
 		if [ ! -f /opt/bin/7z ]; then
