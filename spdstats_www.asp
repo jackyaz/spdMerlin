@@ -1165,6 +1165,12 @@ function reload_js(src){
 }
 
 function SaveConfig(){
+	for (var i = 0; i < interfacescomplete.length; i++) {
+		$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+		$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+	}
+	$j('input[name='+prefix+'_testfrequency]').prop("disabled",false);
+	$j('input[name='+prefix+'_testfrequency]').removeClass("disabled");
 	document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject())
 	var action_script_tmp = "start_spdmerlinconfig";
 	document.form.action_script.value = action_script_tmp;
@@ -1201,10 +1207,10 @@ function get_conf_file(){
 		success: function(data){
 			var configdata=data.split("\n");
 			configdata = configdata.filter(Boolean);
-			
 			for (var i = 0; i < configdata.length; i++){
 				if(configdata[i].indexOf("AUTOMATED") != -1){
 					document.form.spdmerlin_automated.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+					AutomaticInterfaceEnableDisable($j("#spdmerlin_auto_"+document.form.spdmerlin_automated.value)[0]);
 				}
 				else if(configdata[i].indexOf("TESTFREQUENCY") != -1){
 					document.form.spdmerlin_testfrequency.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
@@ -1217,6 +1223,12 @@ function get_conf_file(){
 				}
 				else if(configdata[i].indexOf("STORAGELOCATION") != -1){
 					document.form.spdmerlin_storagelocation.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				}
+				else if(configdata[i].indexOf("STORERESULTURL") != -1){
+					document.form.spdmerlin_storeresulturl.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				}
+				else if(configdata[i].indexOf("EXCLUDEFROMQOS") != -1){
+					document.form.spdmerlin_excludefromqos.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
 			}
 		}
@@ -1473,6 +1485,29 @@ function BuildInterfaceTable(name){
 	return charthtml;
 }
 
+function AutomaticInterfaceEnableDisable(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	var prefix = inputname.substring(0,inputname.lastIndexOf('_'));
+	
+	if(inputvalue == "false"){
+		for (var i = 0; i < interfacescomplete.length; i++) {
+			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
+			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
+		}
+		$j('input[name='+prefix+'_testfrequency]').prop("disabled",true);
+		$j('input[name='+prefix+'_testfrequency]').addClass("disabled");
+	}
+	else if(inputvalue == "true"){
+		for (var i = 0; i < interfacescomplete.length; i++) {
+			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+		}
+		$j('input[name='+prefix+'_testfrequency]').prop("disabled",false);
+		$j('input[name='+prefix+'_testfrequency]').removeClass("disabled");
+	}
+}
+
 function AddEventHandlers(){
 	$j(".collapsible-jquery").click(function(){
 		$j(this).siblings().toggle("fast",function(){
@@ -1583,8 +1618,8 @@ function AddEventHandlers(){
 <tr class="even" id="rowautomatedtests">
 <th width="40%">Enable scheduled speedtests</th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_true" class="input" value="true" checked>Yes
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_false" class="input" value="false">No
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_true" onchange="AutomaticInterfaceEnableDisable(this)" class="input" value="true" checked>Yes
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_false" onchange="AutomaticInterfaceEnableDisable(this)" class="input" value="false">No
 </td>
 </tr>
 <tr class="even" id="rowfrequency">
