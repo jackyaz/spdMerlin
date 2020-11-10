@@ -1650,6 +1650,24 @@ function AddEventHandlers(){
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_usb" class="input" value="usb">USB
 </td>
 </tr>
+
+<tr class="even" id="rowstoreresulturl">
+<th width="40%">Save speedtest URLs to database</th>
+<td class="settingvalue">
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_true" class="input" value="true">Yes
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_false" class="input" value="false" checked>No
+</td>
+</tr>
+
+<tr class="even" id="rowexcludefromqos">
+<th width="40%">Exclude speedtests from QoS</th>
+<td class="settingvalue">
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_true" class="input" value="true" checked>Yes
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_false" class="input" value="false">No
+</td>
+</tr>
+
+
 <tr class="apply_gen" valign="top" height="35px">
 <td colspan="2" style="background-color:rgb(77, 89, 93);">
 <input type="button" onclick="SaveConfig();" value="Save" class="button_gen" name="button">
