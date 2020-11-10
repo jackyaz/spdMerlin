@@ -582,13 +582,16 @@ Conf_Exists(){
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 27 ]; then
 			echo "STORERESULTURL=false" >> "$SCRIPT_CONF"
 		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 28 ]; then
+			echo "EXCLUDEFROMQOS=true" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=*" ; echo "SCHEDULEEND=*"; echo "MINUTE=*"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "STORERESULTURL=false"; } >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -1146,6 +1149,21 @@ StoreResultURL(){
 	esac
 }
 
+ExcludeFromQoS(){
+	case "$1" in
+	enable)
+		sed -i 's/^EXCLUDEFROMQOS.*$/EXCLUDEFROMQOS=true/' "$SCRIPT_CONF"
+	;;
+	disable)
+		sed -i 's/^EXCLUDEFROMQOS.*$/EXCLUDEFROMQOS=false/' "$SCRIPT_CONF"
+	;;
+	check)
+		EXCLUDEFROMQOS=$(grep "EXCLUDEFROMQOS" "$SCRIPT_CONF" | cut -f2 -d"=")
+		echo "$EXCLUDEFROMQOS"
+	;;
+	esac
+}
+
 AutoBWEnable(){
 	case "$1" in
 	enable)
@@ -1282,14 +1300,16 @@ Run_Speedtest(){
 		fi
 		
 		if [ "$IFACELIST" != "" ]; then
+			if [ "$(ExcludeFromQoS check)" = "true" ]; then
 			for proto in tcp udp; do
-				iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-				iptables -t mangle -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-				iptables -t mangle -A POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-			done
-			
-			if [ -f /jffs/addons/cake-qos/cake-qos ]; then
-				/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
+					iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -t mangle -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -t mangle -A POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+				done
+				
+				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
+					/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
+				fi
 			fi
 			
 			for IFACE_NAME in $IFACELIST; do
@@ -1430,16 +1450,17 @@ Run_Speedtest(){
 				fi
 			done
 			
-			for proto in tcp udp; do
-				iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-				iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-				iptables -t mangle -D POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-			done
-			
-			if [ -f /jffs/addons/cake-qos/cake-qos ]; then
-				/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
+			if [ "$(ExcludeFromQoS check)" = "true" ]; then
+				for proto in tcp udp; do
+					iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -t mangle -D POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+				done
+				
+				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
+					/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
+				fi
 			fi
-			
 			Generate_CSVs
 			
 			echo "Stats last updated: $timenowfriendly" > "/tmp/spdstatstitle.txt"
@@ -1699,6 +1720,7 @@ ScriptHeader(){
 MainMenu(){
 	AUTOMATIC_ENABLED=""
 	TEST_SCHEDULE=""
+	EXCLUDEFROMQOS_MENU=""
 	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
 	if TestSchedule check; then
 		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
@@ -1717,6 +1739,7 @@ MainMenu(){
 		TEST_SCHEDULE="No defined schedule - tests run every hour"
 		TEST_SCHEDULE2="Tests will run at 12 and 42 past the hour"
 	fi
+	if [ "$(ExcludeFromQoS check)" = "true" ]; then EXCLUDEFROMQOS_MENU="excluded from"; else EXCLUDEFROMQOS_MENU="included in"; fi
 	
 	printf "1.    Run a speedtest now\\n\\n"
 	printf "2.    Choose a preferred server for an interface\\n\\n"
@@ -1728,6 +1751,7 @@ MainMenu(){
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$(ScriptStorageLocation "check")"
+	printf "q.    Toggle exclusion %s speedtests from QoS\\n      Currently %s speedtests are \\e[1m%s\\e[0m QoS\\n\\n" "$SCRIPT_NAME" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
 	printf "a.    AutoBW\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
@@ -1793,6 +1817,11 @@ MainMenu(){
 			s)
 				printf "\\n"
 				Menu_ToggleStorageLocation
+				break
+			;;
+			q)
+				printf "\\n"
+				Menu_ToggleExcludeFromQoS
 				break
 			;;
 			a)
@@ -2207,6 +2236,14 @@ Menu_ToggleStorageLocation(){
 	elif [ "$(ScriptStorageLocation "check")" = "usb" ]; then
 		ScriptStorageLocation "jffs"
 		Create_Symlinks
+	fi
+}
+
+Menu_ToggleExcludeFromQoS(){
+	if [ "$(ExcludeFromQoS "check")" = "true" ]; then
+		ExcludeFromQoS "disable"
+	elif [ "$(ExcludeFromQoS "check")" = "false" ]; then
+		ExcludeFromQoS "enable"
 	fi
 }
 
