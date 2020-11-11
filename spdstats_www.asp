@@ -1220,28 +1220,13 @@ function get_conf_file(){
 		success: function(data){
 			var configdata=data.split("\n");
 			configdata = configdata.filter(Boolean);
+			
 			for (var i = 0; i < configdata.length; i++){
+				if(configdata[i].indexOf("PREFERRED") == -1 && configdata[i].indexOf("AUTOBW") == -1){
+					eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).value = configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				}
 				if(configdata[i].indexOf("AUTOMATED") != -1){
-					document.form.spdmerlin_automated.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 					AutomaticInterfaceEnableDisable($j("#spdmerlin_auto_"+document.form.spdmerlin_automated.value)[0]);
-				}
-				else if(configdata[i].indexOf("TESTFREQUENCY") != -1){
-					document.form.spdmerlin_testfrequency.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
-				}
-				else if(configdata[i].indexOf("OUTPUTDATAMODE") != -1){
-					document.form.spdmerlin_outputdatamode.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
-				}
-				else if(configdata[i].indexOf("OUTPUTTIMEMODE") != -1){
-					document.form.spdmerlin_outputtimemode.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
-				}
-				else if(configdata[i].indexOf("STORAGELOCATION") != -1){
-					document.form.spdmerlin_storagelocation.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
-				}
-				else if(configdata[i].indexOf("STORERESULTURL") != -1){
-					document.form.spdmerlin_storeresulturl.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
-				}
-				else if(configdata[i].indexOf("EXCLUDEFROMQOS") != -1){
-					document.form.spdmerlin_excludefromqos.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
 			}
 		}
