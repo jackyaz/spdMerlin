@@ -751,67 +751,61 @@ function round(value, decimals){
 }
 
 function ToggleLines(){
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		if(ShowLines == ""){
-			ShowLines = "line";
-			SetCookie("ShowLines","line");
-		}
-		else{
-			ShowLines = "";
-			SetCookie("ShowLines","");
-		}
-		for (i = 0; i < interfacetextarray.length; i++){
-			for (i2 = 0; i2 < typelist.length; i2++){
-				var maxlines = 6;
-				if(typelist[i2] == "Quality"){
-					maxlines = 9;
-				}
-				for (i3 = 0; i3 < maxlines; i3++){
-					window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].options.annotation.annotations[i3].type=ShowLines;
-				}
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
+	var interfacetextarray = interfacelist.split(',');
+	if(ShowLines == ""){
+		ShowLines = "line";
+		SetCookie("ShowLines","line");
+	}
+	else{
+		ShowLines = "";
+		SetCookie("ShowLines","");
+	}
+	for (i = 0; i < interfacetextarray.length; i++){
+		for (i2 = 0; i2 < typelist.length; i2++){
+			var maxlines = 6;
+			if(typelist[i2] == "Quality"){
+				maxlines = 9;
 			}
+			for (i3 = 0; i3 < maxlines; i3++){
+				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].options.annotation.annotations[i3].type=ShowLines;
+			}
+			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
 		}
 	}
 }
 
 function ToggleFill(){
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		if(ShowFill == "origin"){
-			ShowFill = false;
-			SetCookie("ShowFill",false);
-		}
-		else{
-			ShowFill = "origin";
-			SetCookie("ShowFill","origin");
-		}
-		
-		for (i = 0; i < interfacetextarray.length; i++){
-			for (i2 = 0; i2 < typelist.length; i2++){
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[0].fill=ShowFill;
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[1].fill=ShowFill;
-				if(typelist[i2] == "Quality"){
-					window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[2].fill=ShowFill;
-				}
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
+	var interfacetextarray = interfacelist.split(',');
+	if(ShowFill == "origin"){
+		ShowFill = false;
+		SetCookie("ShowFill",false);
+	}
+	else{
+		ShowFill = "origin";
+		SetCookie("ShowFill","origin");
+	}
+	
+	for (i = 0; i < interfacetextarray.length; i++){
+		for (i2 = 0; i2 < typelist.length; i2++){
+			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[0].fill=ShowFill;
+			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[1].fill=ShowFill;
+			if(typelist[i2] == "Quality"){
+				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[2].fill=ShowFill;
 			}
+			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
 		}
 	}
 }
 
 function RedrawAllCharts(){
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		var i;
-		for (i2 = 0; i2 < chartlist.length; i2++){
-			for (i3 = 0; i3 < interfacetextarray.length; i3++){
-				$j("#"+interfacetextarray[i3]+"_Period_Combined").val(GetCookie(interfacetextarray[i3]+"_Period_Combined","number"));
-				$j("#"+interfacetextarray[i3]+"_Period_Quality").val(GetCookie(interfacetextarray[i3]+"_Period_Quality","number"));
-				d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
-				d3.csv('/ext/spdmerlin/csv/Quality'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Quality"));
-			}
+	var interfacetextarray = interfacelist.split(',');
+	var i;
+	for (i2 = 0; i2 < chartlist.length; i2++){
+		for (i3 = 0; i3 < interfacetextarray.length; i3++){
+			$j("#"+interfacetextarray[i3]+"_Period_Combined").val(GetCookie(interfacetextarray[i3]+"_Period_Combined","number"));
+			$j("#"+interfacetextarray[i3]+"_Period_Quality").val(GetCookie(interfacetextarray[i3]+"_Period_Quality","number"));
+			d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
+			d3.csv('/ext/spdmerlin/csv/Quality'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Quality"));
 		}
 	}
 }
@@ -909,12 +903,10 @@ function SetGlobalDataset(txtchartname,dataobject){
 	window[txtchartname] = dataobject;
 	currentNoCharts++;
 	if(currentNoCharts == maxNoCharts){
-		if(interfacelist != ""){
-			var interfacetextarray = interfacelist.split(',');
-			for (i = 0; i < interfacetextarray.length; i++){
-				Draw_Chart(interfacetextarray[i],"Combined");
-				Draw_Chart(interfacetextarray[i],"Quality");
-			}
+		var interfacetextarray = interfacelist.split(',');
+		for (i = 0; i < interfacetextarray.length; i++){
+			Draw_Chart(interfacetextarray[i],"Combined");
+			Draw_Chart(interfacetextarray[i],"Quality");
 		}
 	}
 }
@@ -946,14 +938,12 @@ function getChartPeriod(period){
 }
 
 function ResetZoom(){
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++){
-			for (i2 = 0; i2 < typelist.length; i2++){
-				var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
-				if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
-				chartobj.resetZoom();
-			}
+	var interfacetextarray = interfacelist.split(',');
+	for (i = 0; i < interfacetextarray.length; i++){
+		for (i2 = 0; i2 < typelist.length; i2++){
+			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
+			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
+			chartobj.resetZoom();
 		}
 	}
 }
@@ -977,18 +967,16 @@ function ToggleDragZoom(button){
 		buttonvalue = "Drag Zoom On";
 	}
 	
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++){
-			for (i2 = 0; i2 < typelist.length; i2++){
-				var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
-				if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
-				chartobj.options.plugins.zoom.zoom.drag = drag;
-				chartobj.options.plugins.zoom.pan.enabled = pan;
-				chartobj.update();
-			}
-			button.value = buttonvalue;
+	var interfacetextarray = interfacelist.split(',');
+	for (i = 0; i < interfacetextarray.length; i++){
+		for (i2 = 0; i2 < typelist.length; i2++){
+			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
+			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
+			chartobj.options.plugins.zoom.zoom.drag = drag;
+			chartobj.options.plugins.zoom.pan.enabled = pan;
+			chartobj.update();
 		}
+		button.value = buttonvalue;
 	}
 }
 
@@ -1276,8 +1264,6 @@ function get_interfaces_file(){
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
 					
 					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>'+interfacename.toUpperCase();
-					
-					continue
 				}
 				else{
 					interfacename = interfaces[i].trim();
@@ -1310,11 +1296,9 @@ function get_interfaces_file(){
 				interfacelist = interfacelist.slice(0, -1);
 			}
 			
-			if(interfacelist != ""){
-				$j("#table_buttons2").after(interfacecharttablehtml);
-				maxNoCharts = interfacelist.split(',').length*3*2;
-				RedrawAllCharts();
-			}
+			$j("#table_buttons2").after(interfacecharttablehtml);
+			maxNoCharts = interfacelist.split(',').length*3*2;
+			RedrawAllCharts();
 			
 			AddEventHandlers();
 			get_conf_file();
@@ -1326,12 +1310,10 @@ function changeAllCharts(e){
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++){
-			Draw_Chart(interfacetextarray[i],"Combined");
-			Draw_Chart(interfacetextarray[i],"Quality");
-		}
+	var interfacetextarray = interfacelist.split(',');
+	for (i = 0; i < interfacetextarray.length; i++){
+		Draw_Chart(interfacetextarray[i],"Combined");
+		Draw_Chart(interfacetextarray[i],"Quality");
 	}
 }
 
