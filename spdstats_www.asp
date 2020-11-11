@@ -1315,10 +1315,11 @@ function get_interfaces_file(){
 			if(interfacelist != ""){
 				$j("#table_buttons2").after(interfacecharttablehtml);
 				maxNoCharts = interfacelist.split(',').length*3*2;
-				AddEventHandlers();
 				RedrawAllCharts();
-				get_conf_file();
 			}
+			
+			AddEventHandlers();
+			get_conf_file();
 		}
 	});
 }
