@@ -143,6 +143,19 @@ label.settingvalue {
 a.nohintstyle {
   cursor: default !important;
 }
+
+.removespacing {
+  padding-left: 0px !important;
+  margin-left: 0px !important;
+	margin-bottom: 5px !important;
+  text-align: center !important;
+}
+
+.schedulespan {
+  display:inline-block !important;
+  width:55px !important;
+  color:#FFFFFF !important;
+}
 </style>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/moment.js"></script>
@@ -1636,6 +1649,21 @@ function AddEventHandlers(){
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_auto_hourly" class="input" value="hourly">Hourly
 </td>
 </tr>
+
+<tr class="even" id="rowschedule">
+<th width="40%">Schedule for automatic speedtests</th>
+<td class="settingvalue"><span class="schedulespan">Start hour</span>
+<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_schedulestart" value="0" onkeypress="return validator.isNumber(this, event)" onblur="Validate_ScheduleRange(this)" />
+<span style="color:#FFCC00;">(between 0 and 23, default: 0)</span><br /><span class="schedulespan">End hour</span>
+<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_scheduleend" value="23" onkeypress="return validator.isNumber(this, event)" onblur="Validate_ScheduleRange(this)" />
+<span style="color:#FFCC00;">(between 0 and 23, default: 23)</span><br /><span class="schedulespan">Minute</span>
+<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_minute" value="12" onkeypress="return validator.isNumber(this, event)" onblur="Validate_ScheduleMinute(this)" />
+<span style="color:#FFCC00;">(between 0 and 59, default: 12)</span><br />
+</td>
+</tr>
+
+
+
 <tr class="even" id="rowdataoutput">
 <th width="40%">Data Output Mode<br/><span style="color:#FFCC00;">(for weekly and monthly charts)</span></th>
 <td class="settingvalue">
