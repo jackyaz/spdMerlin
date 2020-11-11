@@ -1289,6 +1289,14 @@ Run_Speedtest(){
 		IFACELIST=""
 		if [ -z "$specificiface" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
+				if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
+					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+				fi
+			done < "$SCRIPT_INTERFACES_USER"
+			
+			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+		elif [ "$specificiface" = "All" ]; then
+			while IFS='' read -r line || [ -n "$line" ]; do
 				if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
 					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
@@ -1545,9 +1553,7 @@ Generate_CSVs(){
 	IFACELIST=""
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
-		if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-			IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
-		fi
+		IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 	done < "$SCRIPT_INTERFACES_USER"
 	
 	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
@@ -2020,6 +2026,8 @@ Menu_RunSpeedtest(){
 			else
 				if [ "$iface_choice" -gt "1" ]; then
 					useiface="$(grep -v "interface not up" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p | cut -f1 -d"#" | sed 's/ *$//')"
+				else
+					useiface="All"
 				fi
 				validselection="true"
 			fi
@@ -2795,10 +2803,6 @@ case "$1" in
 		if [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""spdtest"; then
 			Check_Lock "webui"
 			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""spdtest_//")";
-			Print_Output "true" "$spdifacename"
-			if [ "$spdifacename" = "All" ]; then
-				spdifacename=""
-			fi
 			Run_Speedtest "webui" "$spdifacename"
 			Clear_Lock
 			exit 0
