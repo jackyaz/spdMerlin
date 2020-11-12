@@ -790,7 +790,7 @@ Auto_Cron(){
 				fi
 				if [ "$TESTFREQUENCY" = "halfhourly" ]; then
 					MINUTEEND=$((MINUTESTART + 30))
-					[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
+					[ "$MINUTEEND" -gt 59 ] && MINUTEEND=$((MINUTEEND - 60))
 					
 					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
 						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"

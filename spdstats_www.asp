@@ -93,49 +93,11 @@ label.settingvalue {
   margin-right: 13px !important;
 }
 
-.SettingsTable th {
-  background-color: #1F2D35 !important;
-  background: #2F3A3E !important;
-  border-bottom: none !important;
-  border-top: none !important;
-  font-size: 12px !important;
-  color: white !important;
-  padding: 4px !important;
-  padding: 0px !important;
-}
-
-.SettingsTable td {
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  border-right: none;
-  border-left: none;
-}
-
-.SettingsTable td.settingname {
-  border-right: solid 1px black;
-  background-color: #1F2D35 !important;
-  background: #2F3A3E !important;
-  width: 35% !important;
-}
-
-.SettingsTable td.settingvalue {
-  text-align: left !important;
-  border-right: solid 1px black;
-}
-
-.SettingsTable th:first-child{
-  border-left: none !important;
-}
-
-.SettingsTable th:last-child {
-  border-right: none !important;
-}
-
-.SettingsTable .invalid {
+.invalid {
   background-color: darkred !important;
 }
 
-.SettingsTable .disabled {
+.disabled {
   background-color: #CCCCCC !important;
   color: #888888 !important;
 }
@@ -1166,19 +1128,24 @@ function reload_js(src){
 }
 
 function SaveConfig(){
-	for (var i = 0; i < interfacescomplete.length; i++) {
-		$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
-		$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+	if(Validate_All()){
+		for (var i = 0; i < interfacescomplete.length; i++) {
+			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+		}
+		$j('input[name=spdmerlin_testfrequency]').prop("disabled",false);
+		$j('input[name=spdmerlin_testfrequency]').removeClass("disabled");
+		document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject());
+		var action_script_tmp = "start_spdmerlinconfig";
+		document.form.action_script.value = action_script_tmp;
+		var restart_time = 5;
+		document.form.action_wait.value = restart_time;
+		showLoading();
+		document.form.submit();
 	}
-	$j('input[name=spdmerlin_testfrequency]').prop("disabled",false);
-	$j('input[name=spdmerlin_testfrequency]').removeClass("disabled");
-	document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject())
-	var action_script_tmp = "start_spdmerlinconfig";
-	document.form.action_script.value = action_script_tmp;
-	var restart_time = 5;
-	document.form.action_wait.value = restart_time;
-	showLoading();
-	document.form.submit();
+	else{
+		return false;
+	}
 }
 
 function GetVersionNumber(versiontype){
@@ -1215,6 +1182,9 @@ function get_conf_file(){
 				}
 				if(configdata[i].indexOf("AUTOMATED") != -1){
 					AutomaticInterfaceEnableDisable($j("#spdmerlin_auto_"+document.form.spdmerlin_automated.value)[0]);
+				}
+				else if(configdata[i].indexOf("TESTFREQUENCY") != -1){
+					Toggle_ScheduleFrequency($j("#spdmerlin_freq_"+document.form.spdmerlin_testfrequency.value)[0]);
 				}
 			}
 		}
@@ -1495,6 +1465,76 @@ function AutomaticInterfaceEnableDisable(forminput){
 	}
 }
 
+function Toggle_ScheduleFrequency(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	Calculate_SecondMinute();
+	
+	if(inputvalue == "halfhourly"){
+		document.form.second_minute.style.display = "";
+		$j("#span_second_minute")[0].style.display = "";
+	}
+	else{
+		document.form.second_minute.style.display = "none";
+		$j("#span_second_minute")[0].style.display = "none";
+	}
+}
+
+function Validate_All(){
+	var validationfailed = false;
+	if(! Validate_ScheduleRange(document.form.spdmerlin_schedulestart)) validationfailed=true;
+	if(! Validate_ScheduleRange(document.form.spdmerlin_scheduleend)) validationfailed=true;
+	if(! Validate_ScheduleMinute(document.form.spdmerlin_minute)) validationfailed=true;
+	
+	if(validationfailed){
+		alert("Validation for some fields failed. Please correct invalid values and try again.");
+		return false;
+	}
+	else {
+		return true;
+	}
+}
+
+function Validate_ScheduleRange(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value*1;
+	
+	if(inputvalue > 23 || inputvalue < 0 || forminput.value.length < 1){
+		$j(forminput).addClass("invalid");
+		return false;
+	}
+	else{
+		$j(forminput).removeClass("invalid");
+		return true;
+	}
+}
+
+function Validate_ScheduleMinute(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value*1;
+	
+	if(inputvalue > 59 || inputvalue < 0 || forminput.value.length < 1){
+		document.form.second_minute.value = "";
+		$j(forminput).addClass("invalid");
+		return false;
+	}
+	else{
+		Calculate_SecondMinute();
+		$j(forminput).removeClass("invalid");
+		return true;
+	}
+}
+
+function Calculate_SecondMinute(){
+	if (document.form.spdmerlin_testfrequency.value == "halfhourly"){
+		document.form.second_minute.value= document.form.spdmerlin_minute.value*1 + 30;
+		if(document.form.second_minute.value > 59){
+			document.form.second_minute.value = document.form.second_minute.value*1 - 60;
+		}
+	}
+}
+
 function AddEventHandlers(){
 	$j(".collapsible-jquery").click(function(){
 		$j(this).siblings().toggle("fast",function(){
@@ -1612,23 +1652,23 @@ function AddEventHandlers(){
 <tr class="even" id="rowfrequency">
 <th width="40%">Frequency for automatic speedtests</th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_halfhourly" class="input" value="halfhourly" checked>Half-hourly
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_auto_hourly" class="input" value="hourly">Hourly
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_halfhourly" class="input" value="halfhourly" onchange="Toggle_ScheduleFrequency(this)" checked>Half-hourly
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_auto_hourly" class="input" value="hourly" onchange="Toggle_ScheduleFrequency(this)">Hourly
 </td>
 </tr>
 
 <tr class="even" id="rowschedule">
 <th width="40%">Schedule for automatic speedtests</th>
 <td class="settingvalue"><span class="schedulespan">Start hour</span>
-<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_schedulestart" value="0" onkeypress="return validator.isNumber(this, event)" onblur="Validate_ScheduleRange(this)" />
+<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_schedulestart" value="0" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleRange(this)" onblur="Validate_ScheduleRange(this)" />
 <span style="color:#FFCC00;">(between 0 and 23, default: 0)</span><br /><span class="schedulespan">End hour</span>
-<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_scheduleend" value="23" onkeypress="return validator.isNumber(this, event)" onblur="Validate_ScheduleRange(this)" />
+<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_scheduleend" value="23" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleRange(this)" onblur="Validate_ScheduleRange(this)" />
 <span style="color:#FFCC00;">(between 0 and 23, default: 23)</span><br /><span class="schedulespan">Minute</span>
-<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_minute" value="12" onkeypress="return validator.isNumber(this, event)" onblur="Validate_ScheduleMinute(this)" />
-<span style="color:#FFCC00;">(between 0 and 59, default: 12)</span><br />
+<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_minute" value="12" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleMinute(this)" onblur="Validate_ScheduleMinute(this)" />
+<span style="color:#FFCC00;">(between 0 and 59, default: 12)</span>&nbsp;&nbsp;&nbsp;&nbsp;<span style="display:inline-block;width:75px;text-align:right;color:#FFFFFF;" id="span_second_minute">Second minute</span>
+<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing disabled" name="second_minute" value="" disabled />
 </td>
 </tr>
-
 
 
 <tr class="even" id="rowdataoutput">
