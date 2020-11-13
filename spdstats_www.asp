@@ -1653,7 +1653,7 @@ function AddEventHandlers(){
 <th width="40%">Frequency for automatic speedtests</th>
 <td class="settingvalue">
 <input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_halfhourly" class="input" value="halfhourly" onchange="Toggle_ScheduleFrequency(this)" checked>Half-hourly
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_auto_hourly" class="input" value="hourly" onchange="Toggle_ScheduleFrequency(this)">Hourly
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_hourly" class="input" value="hourly" onchange="Toggle_ScheduleFrequency(this)">Hourly
 </td>
 </tr>
 
