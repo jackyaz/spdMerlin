@@ -1646,7 +1646,7 @@ function GenerateSpdTestServerPrefSelect(){
 		for (var i = 0; i < interfacescomplete.length; i++) {
 			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
 				var interfacename = interfacescomplete[i].toLowerCase();
-				serverprefhtml += '<span style="width:50px;display:none;" id="spdtest_serverprefselectspan_'+interfacename+'">'+interfacescomplete[i]+':</span><select name="spdtest_serverprefselect_'+interfacename+'" id="spdtest_serverprefselect_'+interfacename+'" style="display:none;"></select><br />';
+				serverprefhtml += '<span style="width:50px;display:none;" id="spdtest_serverprefselectspan_'+interfacename+'">'+interfacescomplete[i]+':</span><select name="spdtest_serverprefselect_'+interfacename+'" id="spdtest_serverprefselect_'+interfacename+'" style="display:none;max-width:415px;"></select><br />';
 			}
 		}
 	}
