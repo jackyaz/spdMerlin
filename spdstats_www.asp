@@ -156,6 +156,7 @@ var currentNoCharts = 0;
 
 var interfacelist = "";
 var interfacescomplete = [];
+var interfacesdisabled = [];
 
 var ShowLines = GetCookie("ShowLines","string");
 var ShowFill = GetCookie("ShowFill","string");
@@ -994,13 +995,93 @@ function DoUpdate(){
 	document.form.submit();
 }
 
+function getAllIndexes(arr, val) {
+	var indexes = [];
+	for(var i = 0; i < arr.length; i++){
+		if (arr[i].id == val){
+			indexes.push(i);
+		}
+	}
+	return indexes;
+}
+
+function get_spdtestservers_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spdmerlin_serverlist.htm?cachebuster='+ new Date().getTime(),
+		dataType: 'text',
+		timeout: 2000,
+		error: function(xhr){
+			setTimeout("get_spdtestservers_file();", 1000);
+		},
+		success: function(data){
+			var servers = [];
+			$j.each(data.split('\n').filter(Boolean), function (key, entry) {
+				var obj = {};
+				obj["id"] = entry.split('|')[0];
+				obj["name"] = entry.split('|')[1];
+				servers.push(obj);
+			});
+			
+			if(document.form.spdtest_enabled.value == "All"){
+				var arrifaceindex = getAllIndexes(servers,"-----");
+				for(var i = 0; i < arrifaceindex.length; i++){
+					let dropdown = $j($j("select[name^=spdtest_serverprefselect]")[i]);
+					dropdown.empty();
+					var arrtmp = [];
+					if(i == 0){
+						arrtmp = servers.slice(0, arrifaceindex[i]);
+					}
+					else if(i == arrifaceindex.length-1){
+						arrtmp = servers.slice(arrifaceindex[i-1]+1,servers.length-1);
+					}
+					else{
+						arrtmp = servers.slice(arrifaceindex[i-1]+1, arrifaceindex[i]);
+					}
+					$j.each(arrtmp, function (key, entry) {
+						dropdown.append($j('<option></option>').attr('value', entry.id+'|'+entry.name).text(entry.id+'|'+entry.name));
+					});
+					dropdown.prop('selectedIndex', 0);
+				}
+				
+				$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
+					$j(this)[0].style.display = "inline-block";
+				});
+				$j.each($j("span[id^=spdtest_serverprefselectspan]"), function(){
+					$j(this)[0].style.display = "inline-block";
+				});
+				showhide("imgServerList",false);
+			}
+			else{
+				let dropdown = $j('select[name=spdtest_serverprefselect]');
+				dropdown.empty();
+				$j.each(servers, function (key, entry) {
+					dropdown.append($j('<option></option>').attr('value', entry.id+'|'+entry.name).text(entry.id+'|'+entry.name));
+				});
+				dropdown.prop('selectedIndex', 0);
+				showhide("spdtest_serverprefselect",true);
+				showhide("imgServerList",false);
+			}
+			for (var i = 0; i < interfacescomplete.length; i++) {
+				if(interfacesdisabled.includes(interfacescomplete[i]) == false){
+					$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+					$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+				}
+			}
+			$j.each($j("input[name=spdtest_serverpref]"), function(){
+				$j(this).prop("disabled",false);
+				$j(this).removeClass("disabled");
+			});
+		}
+	});
+}
+
 function get_spdtestresult_file(){
 	$j.ajax({
 		url: '/ext/spdmerlin/spd-result.htm',
 		dataType: 'text',
 		timeout: 1000,
 		error: function(xhr){
-			setTimeout("get_spdtestresult_file();", 300);
+			setTimeout("get_spdtestresult_file();", 500);
 		},
 		success: function(data){
 			var lines = data.trim().split('\n');
@@ -1096,9 +1177,9 @@ function PostSpeedTest(){
 	showhide("imgSpdTest", false);
 	showhide("spdtest_text", false);
 	showhide("btnRunSpeedtest", true);
-	document.getElementById("table_allinterfaces").remove();
-	document.getElementById("rowautomaticspdtest").remove();
-	document.getElementById("rowmanualspdtest").remove();
+	$j("#table_allinterfaces").remove();
+	$j("#rowautomaticspdtest").remove();
+	$j("#rowmanualspdtest").remove();
 	currentNoCharts = 0;
 	reload_js('/ext/spdmerlin/spdjs.js');
 	reload_js('/ext/spdmerlin/spdtitletext.js');
@@ -1110,7 +1191,20 @@ function PostSpeedTest(){
 function RunSpeedtest(){
 	showhide("btnRunSpeedtest", false);
 	$j("#spdtest_output").html("");
-	document.formScriptActions.action_script.value="start_spdmerlinspdtest_" + document.form.spdtest_enabled.value;
+	
+	var spdtestservers = "";
+	if(document.form.spdtest_serverpref.value == "onetime"){
+		if(document.form.spdtest_enabled.value == "All"){
+			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
+				spdtestservers += $j(this).val().substring(0,$j(this).val().indexOf('|')) + '+';
+			});
+			spdtestservers = spdtestservers.slice(0,-1);
+		}
+		else{
+			spdtestservers = document.form.spdtest_serverprefselect.value.substring(0,document.form.spdtest_serverprefselect.value.indexOf('|'));
+		}
+	}
+	document.formScriptActions.action_script.value="start_spdmerlinspdtest_" + document.form.spdtest_serverpref.value + "_" + document.form.spdtest_enabled.value + "_" + spdtestservers.replace(/ /g,'%');
 	document.formScriptActions.submit();
 	showhide("imgSpdTest", true);
 	showhide("spdtest_text", false);
@@ -1202,6 +1296,9 @@ function get_interfaces_file(){
 			var interfaces=data.split("\n");
 			interfaces=interfaces.filter(Boolean);
 			interfacelist="";
+			interfacescomplete = [];
+			interfacesdisabled = [];
+
 			var interfacecharttablehtml='<div style="line-height:10px;">&nbsp;</div>';
 			interfacecharttablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_allinterfaces">';
 			interfacecharttablehtml+='<thead class="collapsible-jquery" id="thead_allinterfaces">';
@@ -1216,7 +1313,7 @@ function get_interfaces_file(){
 			
 			var speedtestifaceconfigtablehtml='<tr id="rowmanualspdtest">';
 			speedtestifaceconfigtablehtml+='<th width="40%">Interfaces to use for manual speedtest</th><td class="settingvalue">';
-			speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_all" class="input" settingvalueradio" value="All" checked>All';
+			speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_all" onchange="Change_SpdTestInterface(this)" class="input" settingvalueradio" value="All" checked>All';
 			
 			var interfacecount=interfaces.length;
 			for (var i = 0; i < interfacecount; i++){
@@ -1227,13 +1324,14 @@ function get_interfaces_file(){
 					var interfacedisabled = "";
 					var ifacelabel = interfacename.toUpperCase();
 					if(interfaces[i].indexOf("interface not up") != -1){
+						interfacesdisabled.push(interfacename);
 						interfacedisabled = "disabled";
 						ifacelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">'+interfacename.toUpperCase()+'</a>'
 					}
 					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
 					
-					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>'+interfacename.toUpperCase();
+					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>'+ifacelabel;
 				}
 				else{
 					interfacename = interfaces[i].trim();
@@ -1241,7 +1339,7 @@ function get_interfaces_file(){
 					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
 				
-					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalueradio" value="'+interfacename.toUpperCase()+'">'+interfacename.toUpperCase();
+					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input settingvalueradio" value="'+interfacename.toUpperCase()+'">'+interfacename.toUpperCase();
 				}
 				
 				interfacecharttablehtml += BuildInterfaceTable(interfacename);
@@ -1261,6 +1359,9 @@ function get_interfaces_file(){
 			
 			$j("#rowautomatedtests").after(interfaceconfigtablehtml);
 			$j("#thead_manualspeedtests").after(speedtestifaceconfigtablehtml);
+			
+			GenerateSpdTestServerPrefSelect();
+			document.form.spdtest_serverpref.value = "auto";
 			
 			if(interfacelist.charAt(interfacelist.length-1) == ",") {
 				interfacelist = interfacelist.slice(0, -1);
@@ -1457,8 +1558,10 @@ function AutomaticInterfaceEnableDisable(forminput){
 	}
 	else if(inputvalue == "true"){
 		for (var i = 0; i < interfacescomplete.length; i++) {
-			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
-			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
+				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+			}
 		}
 		$j('input[name='+prefix+'_testfrequency]').prop("disabled",false);
 		$j('input[name='+prefix+'_testfrequency]').removeClass("disabled");
@@ -1479,6 +1582,80 @@ function Toggle_ScheduleFrequency(forminput){
 		document.form.second_minute.style.display = "none";
 		$j("#span_second_minute")[0].style.display = "none";
 	}
+}
+
+function Change_SpdTestInterface(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	GenerateSpdTestServerPrefSelect();
+	Toggle_SpdTestServerPref(document.form.spdtest_serverpref);
+}
+
+function Toggle_SpdTestServerPref(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	if(inputvalue == "onetime"){
+		document.formScriptActions.action_script.value="start_spdmerlinserverlist_" + document.form.spdtest_enabled.value;
+		document.formScriptActions.submit();
+		for (var i = 0; i < interfacescomplete.length; i++) {
+			$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
+			$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
+		}
+		$j.each($j("input[name=spdtest_serverpref]"), function(){
+			$j(this).prop("disabled",true);
+			$j(this).addClass("disabled");
+		});
+		showhide("rowmanualserverprefselect", true);
+		showhide("imgServerList", true);
+		
+		if(document.form.spdtest_enabled.value == "All"){
+			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
+				$j(this).empty();
+			});
+		}
+		else{
+			$j('select[name=spdtest_serverprefselect]').empty();
+		}
+		setTimeout("get_spdtestservers_file();", 2000);
+	}
+	else{
+		showhide("rowmanualserverprefselect", false);
+		if(document.form.spdtest_enabled.value == "All"){
+			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
+				showhide($j(this)[0].id,false);
+			});
+			$j.each($j("span[id^=spdtest_serverprefselectspan]"), function(){
+				showhide($j(this)[0].id,false);
+			});
+		}
+		else{
+			showhide("spdtest_serverprefselect",false);
+		}
+		showhide("imgServerList", false);
+	}
+}
+
+function GenerateSpdTestServerPrefSelect(){
+	$j("#rowmanualserverprefselect").remove();
+	var serverprefhtml = '<tr class="even" id="rowmanualserverprefselect" style="display:none;">';
+	serverprefhtml += '<th width="40%">Choose a server</th><td class="settingvalue"><img id="imgServerList" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
+	
+	if(document.form.spdtest_enabled.value == "All"){
+		for (var i = 0; i < interfacescomplete.length; i++) {
+			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
+				var interfacename = interfacescomplete[i].toLowerCase();
+				serverprefhtml += '<span style="width:50px;display:none;" id="spdtest_serverprefselectspan_'+interfacename+'">'+interfacescomplete[i]+':</span><select name="spdtest_serverprefselect_'+interfacename+'" id="spdtest_serverprefselect_'+interfacename+'" style="display:none;"></select><br />';
+			}
+		}
+	}
+	else{
+		serverprefhtml += '<select name="spdtest_serverprefselect" id="spdtest_serverprefselect" style="display:none;"></select>';
+	}
+	
+	serverprefhtml += '</td></tr>';
+	$j("#rowmanualserverpref").after(serverprefhtml);
 }
 
 function Validate_All(){
@@ -1624,6 +1801,16 @@ function AddEventHandlers(){
 <thead class="collapsible-jquery" id="thead_manualspeedtests">
 <tr><td colspan="2">Manual Speedtest (click to expand/collapse)</td></tr>
 </thead>
+
+<tr class="even" id="rowmanualserverpref">
+<th width="40%">Mode for speedtest</th>
+<td class="settingvalue">
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_serverpref" id="spdtest_serverpref_auto" class="input" value="auto" onchange="Toggle_SpdTestServerPref(this)" checked>Auto-select server
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_serverpref" id="spdtest_serverpref_user" class="input" value="user" onchange="Toggle_SpdTestServerPref(this)">Preferred server
+<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_serverpref" id="spdtest_serverpref_onetime" class="input" value="onetime" onchange="Toggle_SpdTestServerPref(this)">Choose a server
+</td>
+</tr>
+
 <tr class="apply_gen" valign="top" height="35px">
 <td colspan="2" style="background-color:rgb(77, 89, 93);">
 <input type="button" onclick="RunSpeedtest();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest" id="btnRunSpeedtest">
@@ -1669,7 +1856,6 @@ function AddEventHandlers(){
 <input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing disabled" name="second_minute" value="" disabled />
 </td>
 </tr>
-
 
 <tr class="even" id="rowdataoutput">
 <th width="40%">Data Output Mode<br/><span style="color:#FFCC00;">(for weekly and monthly charts)</span></th>

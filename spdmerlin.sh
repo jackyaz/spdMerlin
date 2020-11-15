@@ -441,6 +441,7 @@ Create_Symlinks(){
 	ln -s /tmp/spd-stats.txt "$SCRIPT_WEB_DIR/spd-stats.htm" 2>/dev/null
 	ln -s /tmp/spd-result.txt "$SCRIPT_WEB_DIR/spd-result.htm" 2>/dev/null
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
+	ln -s /tmp/spdmerlin_serverlist.txt "$SCRIPT_WEB_DIR/spdmerlin_serverlist.htm" 2>/dev/null
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces_user.htm" 2>/dev/null
@@ -886,17 +887,18 @@ Mount_WebUI(){
 }
 
 GenerateServerList(){
+	promptforservername="$2"
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
 	serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$1")" --servers --format="json")" 2>/dev/null
 	if [ -z "$serverlist" ]; then
-		Print_Output "true" "Error retrieving server list for for $IFACE_NAME" "$CRIT"
+		Print_Output "true" "Error retrieving server list for for $1" "$CRIT"
 		serverno="exit"
 		return 1
 	fi
 	servercount="$(echo "$serverlist" | jq '.servers | length')"
 	COUNTER=1
 	until [ $COUNTER -gt "$servercount" ]; do
-		serverdetails="$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+		serverdetails="$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')|$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
 		
 		if [ "$COUNTER" -lt 10 ]; then
 			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
@@ -926,28 +928,32 @@ GenerateServerList(){
 						printf "\\n\\e[31mPlease enter a valid number\\e[0m\\n"
 					else
 						serverno="$customserver"
-						while true; do
-							printf "\\n\\e[1mWould you like to enter a name for this server? (default: Custom) (y/n)?\\e[0m    "
-							read -r "servername_select"
-							
-							if [ "$servername_select" = "n" ] || [ "$servername_select" = "N" ]; then
-								servername="Custom"
-								break
-							elif [ "$servername_select" = "y" ] || [ "$servername_select" = "Y" ]; then
-								printf "\\n\\e[1mPlease enter the name for this server:\\e[0m    "
-								read -r "servername"
-								printf "\\n\\e[1m%s\\e[0m\\n" "$servername"
-								printf "\\n\\e[1mIs that correct (y/n)?    \\e[0m"
-								read -r "servername_confirm"
-								if [ "$servername_confirm" = "y" ] || [ "$servername_confirm" = "Y" ]; then
+						if [ "$promptforservername" != "no" ]; then
+							while true; do
+								printf "\\n\\e[1mWould you like to enter a name for this server? (default: Custom) (y/n)?\\e[0m    "
+								read -r "servername_select"
+								
+								if [ "$servername_select" = "n" ] || [ "$servername_select" = "N" ]; then
+									servername="Custom"
 									break
+								elif [ "$servername_select" = "y" ] || [ "$servername_select" = "Y" ]; then
+									printf "\\n\\e[1mPlease enter the name for this server:\\e[0m    "
+									read -r "servername"
+									printf "\\n\\e[1m%s\\e[0m\\n" "$servername"
+									printf "\\n\\e[1mIs that correct (y/n)?    \\e[0m"
+									read -r "servername_confirm"
+									if [ "$servername_confirm" = "y" ] || [ "$servername_confirm" = "Y" ]; then
+										break
+									else
+										printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
+									fi
 								else
 									printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
 								fi
-							else
-								printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
-							fi
-						done
+							done
+						else
+							servername="Custom"
+						fi
 						
 						printf "\\n"
 						return 0
@@ -966,6 +972,43 @@ GenerateServerList(){
 			fi
 		fi
 	done
+}
+
+GenerateServerList_WebUI(){
+	rm -f /tmp/spdmerlin_serverlist.txt
+	spdteststring="$(echo "$1" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//")";
+	spdifacename="$(echo "$spdteststring" | cut -f1 -d'_')";
+	
+	if [ "$spdifacename" = "All" ]; then
+		while IFS='' read -r line || [ -n "$line" ]; do
+			if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
+				IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+			fi
+		done < "$SCRIPT_INTERFACES_USER"
+		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+		
+		for IFACE_NAME in $IFACELIST; do
+			serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json")" 2>/dev/null
+			servercount="$(echo "$serverlist" | jq '.servers | length')"
+			COUNTER=1
+			until [ $COUNTER -gt "$servercount" ]; do
+				printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> /tmp/spdmerlin_serverlist.tmp
+				COUNTER=$((COUNTER + 1))
+			done
+			#shellcheck disable=SC2039
+			printf "-----\\n" >> /tmp/spdmerlin_serverlist.tmp
+		done
+	else
+		serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json")" 2>/dev/null
+		servercount="$(echo "$serverlist" | jq '.servers | length')"
+		COUNTER=1
+		until [ $COUNTER -gt "$servercount" ]; do
+			printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> /tmp/spdmerlin_serverlist.tmp
+			COUNTER=$((COUNTER + 1))
+		done
+	fi
+	sleep 1
+	mv /tmp/spdmerlin_serverlist.tmp /tmp/spdmerlin_serverlist.txt
 }
 
 PreferredServer(){
@@ -1268,7 +1311,7 @@ Run_Speedtest(){
 	printf "" > "$resultfile"
 	
 	if Check_Swap ; then
-		if [ "$mode" != "webui" ]; then
+		if [ "$(echo "$mode" | grep -c "webui")" -eq 0 ]; then
 			if ! License_Acceptance "check" ; then
 				if [ "$mode" != "schedule" ]; then
 					if ! License_Acceptance "accept"; then
@@ -1282,8 +1325,6 @@ Run_Speedtest(){
 					return 1
 				fi
 			fi
-		else
-			mode="schedule"
 		fi
 		
 		IFACELIST=""
@@ -1293,7 +1334,6 @@ Run_Speedtest(){
 					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
-			
 			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		elif [ "$specificiface" = "All" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
@@ -1301,7 +1341,6 @@ Run_Speedtest(){
 					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
-			
 			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		else
 			IFACELIST="$specificiface"
@@ -1329,6 +1368,14 @@ Run_Speedtest(){
 					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
 					continue
 				else
+					if [ "$mode" = "webui_user" ]; then
+						mode="user"
+					elif [ "$mode" = "webui_auto" ]; then
+						mode="auto"
+					elif [ "$mode" = "webui_onetime" ]; then
+						mode="user"
+					fi
+					
 					if [ "$mode" = "schedule" ]; then
 						if PreferredServer check "$IFACE_NAME"; then
 							speedtestserverno="$(PreferredServer list "$IFACE_NAME" | cut -f1 -d"|")"
@@ -1337,7 +1384,7 @@ Run_Speedtest(){
 							mode="auto"
 						fi
 					elif [ "$mode" = "onetime" ]; then
-						GenerateServerList "$IFACE_NAME"
+						GenerateServerList "$IFACE_NAME" "no"
 						if [ "$serverno" != "exit" ]; then
 							speedtestserverno="$serverno"
 							speedtestservername="$servername"
@@ -1555,7 +1602,6 @@ Generate_CSVs(){
 	while IFS='' read -r line || [ -n "$line" ]; do
 		IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 	done < "$SCRIPT_INTERFACES_USER"
-	
 	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 	
 	if [ "$IFACELIST" != "" ]; then
@@ -2802,10 +2848,39 @@ case "$1" in
 	service_event)
 		if [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""spdtest"; then
 			Check_Lock "webui"
-			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""spdtest_//")";
-			Run_Speedtest "webui" "$spdifacename"
+			spdteststring="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""spdtest_//;s/%/ /g")";
+			spdtestmode="webui_$(echo "$spdteststring" | cut -f1 -d'_')";
+			spdifacename="$(echo "$spdteststring" | cut -f2 -d'_')";
+			
+			if [ "$spdtestmode" = "webui_onetime" ]; then
+				cp -a "$SCRIPT_CONF" "$SCRIPT_CONF.bak"
+				spdtestserverlist="$(echo "$spdteststring" | cut -f3 -d'_')";
+				if [ "$spdifacename" = "All" ]; then
+					while IFS='' read -r line || [ -n "$line" ]; do
+						if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
+							IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+						fi
+					done < "$SCRIPT_INTERFACES_USER"
+					IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+					
+					COUNT=1
+					for IFACE_NAME in $IFACELIST; do
+						spdtestserver="$(grep -m1 "$(echo "$spdtestserverlist" | cut -f"$COUNT" -d'+')" /tmp/spdmerlin_serverlist.txt)"
+						sed -i 's/^PREFERREDSERVER_'"$IFACE_NAME"'.*$/PREFERREDSERVER_'"$IFACE_NAME"'='"$spdtestserver"'/' "$SCRIPT_CONF"
+						COUNT=$((COUNT+1))
+					done
+				else
+					spdtestserver="$(grep -m1 "$spdtestserverlist" /tmp/spdmerlin_serverlist.txt)"
+					sed -i 's/^PREFERREDSERVER_'"$spdifacename"'.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
+				fi
+			fi
+			
+			Run_Speedtest "$spdtestmode" "$spdifacename"
+			cp -a "$SCRIPT_CONF.bak" "$SCRIPT_CONF"
 			Clear_Lock
 			exit 0
+		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
+			GenerateServerList_WebUI "$3"
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
 			Interfaces_FromSettings
 			Conf_FromSettings
