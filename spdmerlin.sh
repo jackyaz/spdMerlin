@@ -1553,6 +1553,39 @@ Run_Speedtest(){
 	fi
 }
 
+Run_Speedtest_WebUI(){
+	spdteststring="$(echo "$1" | sed "s/$SCRIPT_NAME_LOWER""spdtest_//;s/%/ /g")";
+	spdtestmode="webui_$(echo "$spdteststring" | cut -f1 -d'_')";
+	spdifacename="$(echo "$spdteststring" | cut -f2 -d'_')";
+	
+	cp -a "$SCRIPT_CONF" "$SCRIPT_CONF.bak"
+	
+	if [ "$spdtestmode" = "webui_onetime" ]; then
+		spdtestserverlist="$(echo "$spdteststring" | cut -f3 -d'_')";
+		if [ "$spdifacename" = "All" ]; then
+			while IFS='' read -r line || [ -n "$line" ]; do
+				if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
+					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+				fi
+			done < "$SCRIPT_INTERFACES_USER"
+			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+			
+			COUNT=1
+			for IFACE_NAME in $IFACELIST; do
+				spdtestserver="$(grep -m1 "$(echo "$spdtestserverlist" | cut -f"$COUNT" -d'+')" /tmp/spdmerlin_serverlist.txt)"
+				sed -i 's/^PREFERREDSERVER_'"$IFACE_NAME"'.*$/PREFERREDSERVER_'"$IFACE_NAME"'='"$spdtestserver"'/' "$SCRIPT_CONF"
+				COUNT=$((COUNT+1))
+			done
+		else
+			spdtestserver="$(grep -m1 "$spdtestserverlist" /tmp/spdmerlin_serverlist.txt)"
+			sed -i 's/^PREFERREDSERVER_'"$spdifacename"'.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
+		fi
+	fi
+	
+	Run_Speedtest "$spdtestmode" "$spdifacename"
+	cp -a "$SCRIPT_CONF.bak" "$SCRIPT_CONF"
+}
+
 Process_Upgrade(){
 	while IFS='' read -r line || [ -n "$line" ]; do
 		IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
@@ -2848,35 +2881,7 @@ case "$1" in
 	service_event)
 		if [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""spdtest"; then
 			Check_Lock "webui"
-			spdteststring="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""spdtest_//;s/%/ /g")";
-			spdtestmode="webui_$(echo "$spdteststring" | cut -f1 -d'_')";
-			spdifacename="$(echo "$spdteststring" | cut -f2 -d'_')";
-			
-			if [ "$spdtestmode" = "webui_onetime" ]; then
-				cp -a "$SCRIPT_CONF" "$SCRIPT_CONF.bak"
-				spdtestserverlist="$(echo "$spdteststring" | cut -f3 -d'_')";
-				if [ "$spdifacename" = "All" ]; then
-					while IFS='' read -r line || [ -n "$line" ]; do
-						if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-							IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
-						fi
-					done < "$SCRIPT_INTERFACES_USER"
-					IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
-					
-					COUNT=1
-					for IFACE_NAME in $IFACELIST; do
-						spdtestserver="$(grep -m1 "$(echo "$spdtestserverlist" | cut -f"$COUNT" -d'+')" /tmp/spdmerlin_serverlist.txt)"
-						sed -i 's/^PREFERREDSERVER_'"$IFACE_NAME"'.*$/PREFERREDSERVER_'"$IFACE_NAME"'='"$spdtestserver"'/' "$SCRIPT_CONF"
-						COUNT=$((COUNT+1))
-					done
-				else
-					spdtestserver="$(grep -m1 "$spdtestserverlist" /tmp/spdmerlin_serverlist.txt)"
-					sed -i 's/^PREFERREDSERVER_'"$spdifacename"'.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
-				fi
-			fi
-			
-			Run_Speedtest "$spdtestmode" "$spdifacename"
-			cp -a "$SCRIPT_CONF.bak" "$SCRIPT_CONF"
+			Run_Speedtest_WebUI "$3"
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
