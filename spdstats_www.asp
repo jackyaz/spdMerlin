@@ -1369,10 +1369,12 @@ function get_interfaces_file(){
 					interfacescomplete.push(interfacename);
 					var interfacedisabled = "";
 					var ifacelabel = interfacename.toUpperCase();
+					var changelabel = "Change?";
 					if(interfaces[i].indexOf("interface not up") != -1){
 						interfacesdisabled.push(interfacename);
 						interfacedisabled = "disabled";
-						ifacelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">'+interfacename.toUpperCase()+'</a>'
+						ifacelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">'+interfacename.toUpperCase()+'</a>';
+						changelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">Change?</a>';
 					}
 					interfaceconfigtablehtml+='<input type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
@@ -1380,9 +1382,9 @@ function get_interfaces_file(){
 					prefserverconfigtablehtml+='<input type="checkbox" name="spdmerlin_usepreferred_' + interfacename.toLowerCase() + '" id="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
 					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
 					
-					prefserverselecttablehtml+='<span style="margin-left:4px;vertical-align:top;max-width:465px;display:inline-block;" id="span_spdmerlin_preferredserver_'+interfacename.toLowerCase()+'">'+ifacelabel+':</span><br />';
+					prefserverselecttablehtml+='<span style="margin-left:4px;vertical-align:top;max-width:465px;display:inline-block;" id="span_spdmerlin_preferredserver_'+interfacename.toLowerCase()+'">'+interfacename.toUpperCase()+':</span><br />';
 					prefserverselecttablehtml+='<input type="checkbox" name="changepref_' + interfacename.toLowerCase() + '" id="changepref_'+ interfacename.toLowerCase() +'" class="input settingvalue ' + interfacedisabled + '" ' + interfacedisabled + '>';
-					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'" class="settingvalue">Change?</label>';
+					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'" class="settingvalue">'+changelabel+'</label>';
 					prefserverselecttablehtml+='<select class="disabled" name="spdmerlin_preferredserver_+'+interfacename.toLowerCase()+'" id="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" style="max-width:400px;" disabled></select><br />';
 					
 					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
