@@ -1035,17 +1035,6 @@ PreferredServer(){
 			PREFERREDSERVER=$(grep "PREFERREDSERVER_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
 			echo "$PREFERREDSERVER"
 		;;
-		validate)
-			#TODO: validate against XML here: https://c.speedtest.net/speedtest-servers-static.php
-			PREFERREDSERVER_NO="$(grep "PREFERREDSERVER_$2" "$SCRIPT_CONF" | cut -f2 -d"=" | cut -f1 -d"|")"
-			"$OOKLA_DIR"/speedtest --servers --format="csv" > /tmp/spdservers.txt
-			if grep -q "^\"$PREFERREDSERVER_NO" /tmp/spdservers.txt; then
-				rm -f /tmp/spdservers.txt
-				return 0
-			else
-				rm -f /tmp/spdservers.txt
-				return 1
-			fi
 	esac
 }
 
@@ -1404,14 +1393,6 @@ Run_Speedtest(){
 						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
 					else
-						#if [ "$mode" != "onetime" ]; then
-						#	if ! PreferredServer validate; then
-						#		Print_Output "true" "Preferred server no longer valid, please choose another" "$ERR"
-						#		Clear_Lock
-						#		return 1
-						#	fi
-						#fi
-						
 						if [ "$speedtestserverno" != "0" ]; then
 							Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
 							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
