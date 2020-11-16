@@ -2190,25 +2190,29 @@ Menu_ConfigurePreferred(){
 				COUNTER=$((COUNTER+1))
 			fi
 		done < "$SCRIPT_INTERFACES_USER"
-		printf "\\nChoose an option:    "
-		read -r "iface_choice"
-		
-		if [ "$iface_choice" = "e" ]; then
-			exitmenu="exit"
-			break
-		elif ! Validate_Number "" "$iface_choice" "silent"; then
-			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
-		else
-			if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$COUNTER" ]; then
-				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
+		while true; do
+			printf "\\nChoose an option:    "
+			read -r "iface_choice"
+			
+			if [ "$iface_choice" = "e" ]; then
+				exitmenu="exit"
+				break
+			elif ! Validate_Number "" "$iface_choice" "silent"; then
+				printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$((COUNTER-1))"
 			else
-				if [ "$iface_choice" -gt "1" ]; then
-					prefiface="$(grep -v "interface not up" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p | cut -f1 -d"#" | sed 's/ *$//')"
+				if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$((COUNTER-1))" ]; then
+					printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$((COUNTER-1))"
 				else
-					prefiface="All"
+					if [ "$iface_choice" -gt "1" ]; then
+						prefiface="$(grep -v "interface not up" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p | cut -f1 -d"#" | sed 's/ *$//')"
+						break
+					else
+						prefiface="All"
+						break
+					fi
 				fi
 			fi
-		fi
+		done
 	
 		printf "\\n"
 		
@@ -2227,7 +2231,7 @@ Menu_ConfigurePreferred(){
 						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
 					else
 						if [ "$usepref_choice" -lt 1 ] || [ "$usepref_choice" -gt "2" ]; then
-							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
 						else
 							prefenabledisable=""
 							if [ "$usepref_choice" -eq "1" ]; then
