@@ -442,6 +442,7 @@ Create_Symlinks(){
 	ln -s /tmp/spd-result.txt "$SCRIPT_WEB_DIR/spd-result.htm" 2>/dev/null
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
 	ln -s /tmp/spdmerlin_serverlist.txt "$SCRIPT_WEB_DIR/spdmerlin_serverlist.htm" 2>/dev/null
+	ln -s /tmp/spdmerlin_manual_serverlist.txt "$SCRIPT_WEB_DIR/spdmerlin_manual_serverlist.htm" 2>/dev/null
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces_user.htm" 2>/dev/null
@@ -975,7 +976,8 @@ GenerateServerList(){
 }
 
 GenerateServerList_WebUI(){
-	rm -f /tmp/spdmerlin_serverlist.txt
+	serverlistfile="$2"
+	rm -f "$serverlistfile"
 	spdteststring="$(echo "$1" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//")";
 	spdifacename="$(echo "$spdteststring" | cut -f1 -d'_')";
 	
@@ -1008,7 +1010,7 @@ GenerateServerList_WebUI(){
 		done
 	fi
 	sleep 1
-	mv /tmp/spdmerlin_serverlist.tmp /tmp/spdmerlin_serverlist.txt
+	mv /tmp/spdmerlin_serverlist.tmp "$serverlistfile"
 }
 
 PreferredServer(){
@@ -1553,12 +1555,12 @@ Run_Speedtest_WebUI(){
 			
 			COUNT=1
 			for IFACE_NAME in $IFACELIST; do
-				spdtestserver="$(grep -m1 "$(echo "$spdtestserverlist" | cut -f"$COUNT" -d'+')" /tmp/spdmerlin_serverlist.txt)"
+				spdtestserver="$(grep -m1 "$(echo "$spdtestserverlist" | cut -f"$COUNT" -d'+')" /tmp/spdmerlin_manual_serverlist.txt)"
 				sed -i 's/^PREFERREDSERVER_'"$IFACE_NAME"'.*$/PREFERREDSERVER_'"$IFACE_NAME"'='"$spdtestserver"'/' "$SCRIPT_CONF"
 				COUNT=$((COUNT+1))
 			done
 		else
-			spdtestserver="$(grep -m1 "$spdtestserverlist" /tmp/spdmerlin_serverlist.txt)"
+			spdtestserver="$(grep -m1 "$spdtestserverlist" /tmp/spdmerlin_manual_serverlist.txt)"
 			sed -i 's/^PREFERREDSERVER_'"$spdifacename"'.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
 		fi
 	fi
@@ -2870,7 +2872,7 @@ case "$1" in
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
-			GenerateServerList_WebUI "$3"
+			GenerateServerList_WebUI "$3" "/tmp/spdmerlin_manual_serverlist.txt"
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
 			Interfaces_FromSettings
 			Conf_FromSettings
