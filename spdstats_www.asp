@@ -1016,7 +1016,35 @@ function get_spdtestservers_file(){
 		},
 		success: function(data){
 			var servers = [];
-			$j.each(data.split('\n').filter(Boolean), function (key, entry) {
+			$j.each(data.split('\n').filter(Boolean), function (key, entry){
+				var obj = {};
+				obj["id"] = entry.split('|')[0];
+				obj["name"] = entry.split('|')[1];
+				servers.push(obj);
+			});
+			
+			let dropdown = $j('select[name=spdtest_serverprefselect]');
+			dropdown.empty();
+			$j.each(servers, function (key, entry){
+				dropdown.append($j('<option></option>').attr('value', entry.id+'|'+entry.name).text(entry.id+'|'+entry.name));
+			});
+			dropdown.prop('selectedIndex', 0);
+			showhide("imgServerList",false);
+		}
+	});
+}
+
+function get_manualspdtestservers_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spdmerlin_manual_serverlist.htm?cachebuster='+ new Date().getTime(),
+		dataType: 'text',
+		timeout: 2000,
+		error: function(xhr){
+			setTimeout("get_manualspdtestservers_file();", 1000);
+		},
+		success: function(data){
+			var servers = [];
+			$j.each(data.split('\n').filter(Boolean), function (key, entry){
 				var obj = {};
 				obj["id"] = entry.split('|')[0];
 				obj["name"] = entry.split('|')[1];
@@ -1589,7 +1617,7 @@ function Change_SpdTestInterface(forminput){
 	var inputname = forminput.name;
 	var inputvalue = forminput.value;
 	
-	GenerateSpdTestServerPrefSelect();
+	GenerateManualSpdTestServerPrefSelect();
 	Toggle_SpdTestServerPref(document.form.spdtest_serverpref);
 }
 
@@ -1609,7 +1637,7 @@ function Toggle_SpdTestServerPref(forminput){
 			$j(this).addClass("disabled");
 		});
 		showhide("rowmanualserverprefselect", true);
-		showhide("imgServerList", true);
+		showhide("imgManualServerList", true);
 		
 		if(document.form.spdtest_enabled.value == "All"){
 			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
@@ -1619,7 +1647,7 @@ function Toggle_SpdTestServerPref(forminput){
 		else{
 			$j('select[name=spdtest_serverprefselect]').empty();
 		}
-		setTimeout("get_spdtestservers_file();", 2000);
+		setTimeout("get_manualspdtestservers_file();", 2000);
 	}
 	else{
 		showhide("rowmanualserverprefselect", false);
@@ -1634,14 +1662,14 @@ function Toggle_SpdTestServerPref(forminput){
 		else{
 			showhide("spdtest_serverprefselect",false);
 		}
-		showhide("imgServerList", false);
+		showhide("imgManualServerList", false);
 	}
 }
 
-function GenerateSpdTestServerPrefSelect(){
+function GenerateManualSpdTestServerPrefSelect(){
 	$j("#rowmanualserverprefselect").remove();
 	var serverprefhtml = '<tr class="even" id="rowmanualserverprefselect" style="display:none;">';
-	serverprefhtml += '<th width="40%">Choose a server</th><td class="settingvalue"><img id="imgServerList" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
+	serverprefhtml += '<th width="40%">Choose a server</th><td class="settingvalue"><img id="imgManualServerList" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
 	
 	if(document.form.spdtest_enabled.value == "All"){
 		for (var i = 0; i < interfacescomplete.length; i++) {
