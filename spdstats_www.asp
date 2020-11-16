@@ -85,12 +85,9 @@ input.settingvalue {
   margin-left: 3px !important;
 }
 
-input.settingvalueradio {
-  margin-left: 15px !important;
-}
-
 label.settingvalue {
-  margin-right: 13px !important;
+  margin-right: 10px !important;
+  vertical-align: top !important;
 }
 
 .invalid {
@@ -106,10 +103,14 @@ a.nohintstyle {
   cursor: default !important;
 }
 
+span a {
+  color: #FFCC00 !important;
+}
+
 .removespacing {
   padding-left: 0px !important;
   margin-left: 0px !important;
-	margin-bottom: 5px !important;
+  margin-bottom: 5px !important;
   text-align: center !important;
 }
 
