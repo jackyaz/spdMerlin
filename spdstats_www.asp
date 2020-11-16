@@ -1805,9 +1805,9 @@ function AddEventHandlers(){
 <tr class="even" id="rowmanualserverpref">
 <th width="40%">Mode for speedtest</th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_serverpref" id="spdtest_serverpref_auto" class="input" value="auto" onchange="Toggle_SpdTestServerPref(this)" checked>Auto-select server
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_serverpref" id="spdtest_serverpref_user" class="input" value="user" onchange="Toggle_SpdTestServerPref(this)">Preferred server
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_serverpref" id="spdtest_serverpref_onetime" class="input" value="onetime" onchange="Toggle_SpdTestServerPref(this)">Choose a server
+<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_auto" class="input" value="auto" onchange="Toggle_SpdTestServerPref(this)" checked>Auto-select server
+<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_user" class="input" value="user" onchange="Toggle_SpdTestServerPref(this)">Preferred server
+<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_onetime" class="input" value="onetime" onchange="Toggle_SpdTestServerPref(this)">Choose a server
 </td>
 </tr>
 
@@ -1832,15 +1832,17 @@ function AddEventHandlers(){
 <tr class="even" id="rowautomatedtests">
 <th width="40%">Enable scheduled speedtests</th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_true" onchange="AutomaticInterfaceEnableDisable(this)" class="input" value="true" checked>Yes
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_automated" id="spdmerlin_auto_false" onchange="AutomaticInterfaceEnableDisable(this)" class="input" value="false">No
+<input type="radio" name="spdmerlin_automated" id="spdmerlin_auto_true" onchange="AutomaticInterfaceEnableDisable(this)" class="input" value="true" checked>
+<label for="spdmerlin_auto_true" class="settingvalue">Yes</label>
+<input type="radio" name="spdmerlin_automated" id="spdmerlin_auto_false" onchange="AutomaticInterfaceEnableDisable(this)" class="input" value="false">
+<label for="spdmerlin_auto_false" class="settingvalue">No</label>
 </td>
 </tr>
 <tr class="even" id="rowfrequency">
 <th width="40%">Frequency for automatic speedtests</th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_halfhourly" class="input" value="halfhourly" onchange="Toggle_ScheduleFrequency(this)" checked>Half-hourly
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_hourly" class="input" value="hourly" onchange="Toggle_ScheduleFrequency(this)">Hourly
+<input type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_halfhourly" class="input" value="halfhourly" onchange="Toggle_ScheduleFrequency(this)" checked>Half-hourly
+<input type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_hourly" class="input" value="hourly" onchange="Toggle_ScheduleFrequency(this)">Hourly
 </td>
 </tr>
 
@@ -1860,22 +1862,22 @@ function AddEventHandlers(){
 <tr class="even" id="rowdataoutput">
 <th width="40%">Data Output Mode<br/><span style="color:#FFCC00;">(for weekly and monthly charts)</span></th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_average" class="input" value="average" checked>Average
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_raw" class="input" value="raw">Raw
+<input type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_average" class="input" value="average" checked>Average
+<input type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_raw" class="input" value="raw">Raw
 </td>
 </tr>
 <tr class="even" id="rowtimeoutput">
 <th width="40%">Time Output Mode<br/><span style="color:#FFCC00;">(for CSV export)</span></th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_non-unix" class="input" value="non-unix" checked>Non-Unix
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_unix" class="input" value="unix">Unix
+<input type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_non-unix" class="input" value="non-unix" checked>Non-Unix
+<input type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_unix" class="input" value="unix">Unix
 </td>
 </tr>
 <tr class="even" id="rowstorageloc">
 <th width="40%">Data Storage Location</th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_jffs" class="input" value="jffs" checked>JFFS
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_usb" class="input" value="usb">USB
+<input type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_jffs" class="input" value="jffs" checked>JFFS
+<input type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_usb" class="input" value="usb">USB
 </td>
 </tr>
 <tr class="even" id="rowstoreresulturl">
@@ -1888,8 +1890,8 @@ function AddEventHandlers(){
 <tr class="even" id="rowexcludefromqos">
 <th width="40%">Exclude speedtests from QoS</th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_true" class="input" value="true" checked>Yes
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_false" class="input" value="false">No
+<input type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_true" class="input" value="true" checked>Yes
+<input type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_false" class="input" value="false">No
 </td>
 </tr>
 <tr class="apply_gen" valign="top" height="35px">
