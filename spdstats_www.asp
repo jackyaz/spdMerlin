@@ -839,9 +839,14 @@ $j.fn.serializeObject = function(){
 			o[this.name] = this.value || '';
 		}
 	});
+	
+	$j.each($j("input[name^='spdmerlin_usepreferred']"), function(){
+		o[this.id] = this.checked.toString();
+	});
+	
 	var ifacesenabled = [];
 	$j.each($j("input[name='spdmerlin_iface_enabled']:checked"), function(){
-		ifacesenabled.push($j(this).val());
+		ifacesenabled.push(this.value);
 	});
 	var ifacesenabledstring = ifacesenabled.join(",");
 	o["spdmerlin_ifaces_enabled"] = ifacesenabledstring;
@@ -996,7 +1001,7 @@ function DoUpdate(){
 	document.form.submit();
 }
 
-function getAllIndexes(arr, val) {
+function getAllIndexes(arr, val){
 	var indexes = [];
 	for(var i = 0; i < arr.length; i++){
 		if (arr[i].id == val){
@@ -1066,31 +1071,31 @@ function get_manualspdtestservers_file(){
 					else{
 						arrtmp = servers.slice(arrifaceindex[i-1]+1, arrifaceindex[i]);
 					}
-					$j.each(arrtmp, function (key, entry) {
+					$j.each(arrtmp, function (key, entry){
 						dropdown.append($j('<option></option>').attr('value', entry.id+'|'+entry.name).text(entry.id+'|'+entry.name));
 					});
 					dropdown.prop('selectedIndex', 0);
 				}
 				
 				$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
-					$j(this)[0].style.display = "inline-block";
+					this.style.display = "inline-block";
 				});
 				$j.each($j("span[id^=spdtest_serverprefselectspan]"), function(){
-					$j(this)[0].style.display = "inline-block";
+					this.style.display = "inline-block";
 				});
-				showhide("imgServerList",false);
+				showhide("imgManualServerList",false);
 			}
 			else{
 				let dropdown = $j('select[name=spdtest_serverprefselect]');
 				dropdown.empty();
-				$j.each(servers, function (key, entry) {
+				$j.each(servers, function (key, entry){
 					dropdown.append($j('<option></option>').attr('value', entry.id+'|'+entry.name).text(entry.id+'|'+entry.name));
 				});
 				dropdown.prop('selectedIndex', 0);
 				showhide("spdtest_serverprefselect",true);
-				showhide("imgServerList",false);
+				showhide("imgManualServerList",false);
 			}
-			for (var i = 0; i < interfacescomplete.length; i++) {
+			for (var i = 0; i < interfacescomplete.length; i++){
 				if(interfacesdisabled.includes(interfacescomplete[i]) == false){
 					$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 					$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
@@ -1208,6 +1213,7 @@ function PostSpeedTest(){
 	showhide("btnRunSpeedtest", true);
 	$j("#table_allinterfaces").remove();
 	$j("#rowautomaticspdtest").remove();
+	$j("#rowautospdprefserver").remove();
 	$j("#rowmanualspdtest").remove();
 	currentNoCharts = 0;
 	reload_js('/ext/spdmerlin/spdjs.js');
@@ -1225,7 +1231,7 @@ function RunSpeedtest(){
 	if(document.form.spdtest_serverpref.value == "onetime"){
 		if(document.form.spdtest_enabled.value == "All"){
 			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
-				spdtestservers += $j(this).val().substring(0,$j(this).val().indexOf('|')) + '+';
+				spdtestservers += this.value.substring(0,this.value.indexOf('|')) + '+';
 			});
 			spdtestservers = spdtestservers.slice(0,-1);
 		}
@@ -1252,7 +1258,7 @@ function reload_js(src){
 
 function SaveConfig(){
 	if(Validate_All()){
-		for (var i = 0; i < interfacescomplete.length; i++) {
+		for (var i = 0; i < interfacescomplete.length; i++){
 			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
 		}
@@ -1303,6 +1309,15 @@ function get_conf_file(){
 				if(configdata[i].indexOf("PREFERRED") == -1 && configdata[i].indexOf("AUTOBW") == -1){
 					eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).value = configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
+				else if(configdata[i].indexOf("USEPREFERRED") != -1){
+					if(configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"") == "true"){
+						eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).checked = true;
+					}
+				}
+				else if(configdata[i].indexOf("PREFERREDSERVER") != -1){
+					$j("#span_spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).html(configdata[i].split("=")[0].split("_")[1]+" - "+configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,""));
+				}
+				
 				if(configdata[i].indexOf("AUTOMATED") != -1){
 					AutomaticInterfaceEnableDisable($j("#spdmerlin_auto_"+document.form.spdmerlin_automated.value)[0]);
 				}
@@ -1331,18 +1346,20 @@ function get_interfaces_file(){
 			var interfacecharttablehtml='<div style="line-height:10px;">&nbsp;</div>';
 			interfacecharttablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_allinterfaces">';
 			interfacecharttablehtml+='<thead class="collapsible-jquery" id="thead_allinterfaces">';
-			interfacecharttablehtml+='<tr>';
-			interfacecharttablehtml+='<td>Interfaces (click to expand/collapse)</td>';
-			interfacecharttablehtml+='</tr>';
+			interfacecharttablehtml+='<tr><td>Interfaces (click to expand/collapse)</td></tr>';
 			interfacecharttablehtml+='</thead>';
 			interfacecharttablehtml+='<tr><td align="center" style="padding: 0px;">';
 			
-			var interfaceconfigtablehtml='<tr id="rowautomaticspdtest">';
-			interfaceconfigtablehtml+='<th width="40%">Interfaces to use for automatic speedtests</th><td class="settingvalue">';
+			var interfaceconfigtablehtml='<tr id="rowautomaticspdtest"><th width="40%">Interfaces to use for automatic speedtests</th><td class="settingvalue">';
 			
-			var speedtestifaceconfigtablehtml='<tr id="rowmanualspdtest">';
-			speedtestifaceconfigtablehtml+='<th width="40%">Interfaces to use for manual speedtest</th><td class="settingvalue">';
-			speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_all" onchange="Change_SpdTestInterface(this)" class="input" settingvalueradio" value="All" checked>All';
+			var prefserverconfigtablehtml='<tr id="rowautospdprefserver"><th width="40%">Interfaces that use a preferred server</th><td class="settingvalue">';
+			
+			var prefserverselecttablehtml='<tr id="rowautospdprefserverselect"><th width="40%">Preferred servers for interfaces</th><td class="settingvalue">';
+			prefserverselecttablehtml += '<img id="imgServerList" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
+			
+			var speedtestifaceconfigtablehtml='<tr id="rowmanualspdtest"><th width="40%">Interfaces to use for manual speedtest</th><td class="settingvalue">';
+			speedtestifaceconfigtablehtml+='<input type="radio" name="spdtest_enabled" id="spdtest_enabled_all" onchange="Change_SpdTestInterface(this)" class="input" settingvalueradio" value="All" checked>';
+			speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_all" class="settingvalue">All</label>';
 			
 			var interfacecount=interfaces.length;
 			for (var i = 0; i < interfacecount; i++){
@@ -1357,18 +1374,37 @@ function get_interfaces_file(){
 						interfacedisabled = "disabled";
 						ifacelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">'+interfacename.toUpperCase()+'</a>'
 					}
-					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
+					interfaceconfigtablehtml+='<input type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
 					
-					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>'+ifacelabel;
+					prefserverconfigtablehtml+='<input type="checkbox" name="spdmerlin_usepreferred_' + interfacename.toLowerCase() + '" id="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
+					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
+					
+					prefserverselecttablehtml+='<span style="margin-left:4px;vertical-align:top;max-width:465px;display:inline-block;" id="span_spdmerlin_preferredserver_'+interfacename.toLowerCase()+'">'+ifacelabel+':</span><br />';
+					prefserverselecttablehtml+='<input type="checkbox" name="changepref_' + interfacename.toLowerCase() + '" id="changepref_'+ interfacename.toLowerCase() +'" class="input settingvalue ' + interfacedisabled + '" ' + interfacedisabled + '>';
+					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'" class="settingvalue">Change?</label>';
+					prefserverselecttablehtml+='<select class="disabled" name="spdmerlin_preferredserver_+'+interfacename.toLowerCase()+'" id="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" style="max-width:400px;" disabled></select><br />';
+					
+					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
+					speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
 				}
 				else{
 					interfacename = interfaces[i].trim();
 					interfacescomplete.push(interfacename);
-					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
+					
+					interfaceconfigtablehtml+='<input type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
 					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
-				
-					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input settingvalueradio" value="'+interfacename.toUpperCase()+'">'+interfacename.toUpperCase();
+					
+					prefserverconfigtablehtml+='<input type="checkbox" name="spdmerlin_usepreferred_' + interfacename.toLowerCase() + '" id="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
+					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
+					
+					prefserverselecttablehtml+='<span style="margin-left:4px;vertical-align:top;max-width:465px;display:inline-block;" id="span_spdmerlin_preferredserver_'+interfacename.toLowerCase()+'">'+interfacename.toUpperCase()+':</span><br />';
+					prefserverselecttablehtml+='<input type="checkbox" name="changepref_' + interfacename.toLowerCase() + '" id="changepref_'+ interfacename.toLowerCase() +'" class="input settingvalue">';
+					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'" class="settingvalue">Change?</label>';
+					prefserverselecttablehtml+='<select class="disabled" name="spdmerlin_preferredserver_+'+interfacename.toLowerCase()+'" id="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" style="max-width:400px;" disabled></select><br />';
+					
+					speedtestifaceconfigtablehtml+='<input type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input settingvalueradio" value="'+interfacename.toUpperCase()+'">';
+					speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
 				}
 				
 				interfacecharttablehtml += BuildInterfaceTable(interfacename);
@@ -1376,23 +1412,25 @@ function get_interfaces_file(){
 				interfacelist+=interfacename+',';
 			}
 			
-			interfacecharttablehtml+='</td>';
-			interfacecharttablehtml+='</tr>';
-			interfacecharttablehtml+='</table>';
+			interfacecharttablehtml+='</td></tr></table>';
 			
-			interfaceconfigtablehtml+='</td>';
-			interfaceconfigtablehtml+='</tr>';
+			interfaceconfigtablehtml+='</td></tr>';
 			
-			speedtestifaceconfigtablehtml+='</td>';
-			speedtestifaceconfigtablehtml+='</tr>';
+			prefserverconfigtablehtml+='</td></tr>';
 			
+			prefserverselecttablehtml+='</td></tr>';
+			
+			speedtestifaceconfigtablehtml+='</td></tr>';
+			
+			$j("#rowautomatedtests").after(prefserverselecttablehtml);
+			$j("#rowautomatedtests").after(prefserverconfigtablehtml);
 			$j("#rowautomatedtests").after(interfaceconfigtablehtml);
 			$j("#thead_manualspeedtests").after(speedtestifaceconfigtablehtml);
 			
-			GenerateSpdTestServerPrefSelect();
+			GenerateManualSpdTestServerPrefSelect();
 			document.form.spdtest_serverpref.value = "auto";
 			
-			if(interfacelist.charAt(interfacelist.length-1) == ",") {
+			if(interfacelist.charAt(interfacelist.length-1) == ","){
 				interfacelist = interfacelist.slice(0, -1);
 			}
 			
@@ -1429,7 +1467,7 @@ function changeChart(e){
 	}
 }
 
-function SettingHint(hintid) {
+function SettingHint(hintid){
 	var tag_name = document.getElementsByTagName('a');
 	for (var i=0;i<tag_name.length;i++){
 		tag_name[i].onmouseout=nd;
@@ -1578,7 +1616,7 @@ function AutomaticInterfaceEnableDisable(forminput){
 	var prefix = inputname.substring(0,inputname.lastIndexOf('_'));
 	
 	if(inputvalue == "false"){
-		for (var i = 0; i < interfacescomplete.length; i++) {
+		for (var i = 0; i < interfacescomplete.length; i++){
 			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
 			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
 		}
@@ -1586,7 +1624,7 @@ function AutomaticInterfaceEnableDisable(forminput){
 		$j('input[name='+prefix+'_testfrequency]').addClass("disabled");
 	}
 	else if(inputvalue == "true"){
-		for (var i = 0; i < interfacescomplete.length; i++) {
+		for (var i = 0; i < interfacescomplete.length; i++){
 			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
 				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
@@ -1628,7 +1666,7 @@ function Toggle_SpdTestServerPref(forminput){
 	if(inputvalue == "onetime"){
 		document.formScriptActions.action_script.value="start_spdmerlinserverlist_" + document.form.spdtest_enabled.value;
 		document.formScriptActions.submit();
-		for (var i = 0; i < interfacescomplete.length; i++) {
+		for (var i = 0; i < interfacescomplete.length; i++){
 			$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
 			$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
 		}
@@ -1653,10 +1691,10 @@ function Toggle_SpdTestServerPref(forminput){
 		showhide("rowmanualserverprefselect", false);
 		if(document.form.spdtest_enabled.value == "All"){
 			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
-				showhide($j(this)[0].id,false);
+				showhide(this.id,false);
 			});
 			$j.each($j("span[id^=spdtest_serverprefselectspan]"), function(){
-				showhide($j(this)[0].id,false);
+				showhide(this.id,false);
 			});
 		}
 		else{
@@ -1672,7 +1710,7 @@ function GenerateManualSpdTestServerPrefSelect(){
 	serverprefhtml += '<th width="40%">Choose a server</th><td class="settingvalue"><img id="imgManualServerList" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
 	
 	if(document.form.spdtest_enabled.value == "All"){
-		for (var i = 0; i < interfacescomplete.length; i++) {
+		for (var i = 0; i < interfacescomplete.length; i++){
 			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
 				var interfacename = interfacescomplete[i].toLowerCase();
 				serverprefhtml += '<span style="width:50px;display:none;" id="spdtest_serverprefselectspan_'+interfacename+'">'+interfacescomplete[i]+':</span><select name="spdtest_serverprefselect_'+interfacename+'" id="spdtest_serverprefselect_'+interfacename+'" style="display:none;max-width:415px;"></select><br />';
@@ -1697,7 +1735,7 @@ function Validate_All(){
 		alert("Validation for some fields failed. Please correct invalid values and try again.");
 		return false;
 	}
-	else {
+	else{
 		return true;
 	}
 }
