@@ -994,23 +994,23 @@ GenerateServerList_WebUI(){
 			servercount="$(echo "$serverlist" | jq '.servers | length')"
 			COUNTER=1
 			until [ $COUNTER -gt "$servercount" ]; do
-				printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> /tmp/spdmerlin_serverlist.tmp
+				printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "$serverlistfile.tmp"
 				COUNTER=$((COUNTER + 1))
 			done
 			#shellcheck disable=SC2039
-			printf "-----\\n" >> /tmp/spdmerlin_serverlist.tmp
+			printf "-----\\n" >> "$serverlistfile.tmp"
 		done
 	else
 		serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json")" 2>/dev/null
 		servercount="$(echo "$serverlist" | jq '.servers | length')"
 		COUNTER=1
 		until [ $COUNTER -gt "$servercount" ]; do
-			printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> /tmp/spdmerlin_serverlist.tmp
+			printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "$serverlistfile.tmp"
 			COUNTER=$((COUNTER + 1))
 		done
 	fi
 	sleep 1
-	mv /tmp/spdmerlin_serverlist.tmp "$serverlistfile"
+	mv "$serverlistfile.tmp" "$serverlistfile.txt"
 }
 
 PreferredServer(){
@@ -2872,7 +2872,7 @@ case "$1" in
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
-			GenerateServerList_WebUI "$3" "/tmp/spdmerlin_manual_serverlist.txt"
+			GenerateServerList_WebUI "$3" "/tmp/spdmerlin_manual_serverlist"
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
 			Interfaces_FromSettings
 			Conf_FromSettings
