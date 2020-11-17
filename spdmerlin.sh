@@ -980,7 +980,7 @@ GenerateServerList_WebUI(){
 	
 	spdifacename="$1"
 	
-	if [ "$spdifacename" = "All" ]; then
+	if [ "$spdifacename" = "ALL" ]; then
 		while IFS='' read -r line || [ -n "$line" ]; do
 			if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
 				IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
@@ -2872,10 +2872,10 @@ case "$1" in
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlistmanual"; then
-			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlistmanual_//" | cut -f1 -d'_')";
+			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlistmanual_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
 			GenerateServerList_WebUI "$spdifacename" "spdmerlin_manual_serverlist"
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
-			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//" | cut -f1 -d'_')";
+			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
 			GenerateServerList_WebUI "$spdifacename" "spdmerlin_serverlist_$spdifacename"
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
 			Interfaces_FromSettings
