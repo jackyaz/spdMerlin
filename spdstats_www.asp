@@ -103,7 +103,7 @@ a.nohintstyle {
   cursor: default !important;
 }
 
-span a {
+td.settingvalue span a {
   color: #FFCC00 !important;
 }
 
