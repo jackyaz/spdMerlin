@@ -466,7 +466,7 @@ Conf_FromSettings(){
 			sed -i "s/spdmerlin_//g;s/ /=/g" "$TMPFILE"
 			while IFS='' read -r line || [ -n "$line" ]; do
 				SETTINGNAME="$(echo "$line" | cut -f1 -d'=' | awk '{ print toupper($1) }')"
-				SETTINGVALUE="$(echo "$line" | cut -f2 -d'=')"
+				SETTINGVALUE="$(echo "$line" | cut -f2- -d'=' | sed "s/=/ /g")"
 				sed -i "s/$SETTINGNAME=.*/$SETTINGNAME=$SETTINGVALUE/" "$SCRIPT_CONF"
 			done < "$TMPFILE"
 			grep 'spdmerlin_version' "$SETTINGSFILE" > "$TMPFILE"
