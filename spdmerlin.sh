@@ -441,8 +441,6 @@ Create_Symlinks(){
 	ln -s /tmp/spd-stats.txt "$SCRIPT_WEB_DIR/spd-stats.htm" 2>/dev/null
 	ln -s /tmp/spd-result.txt "$SCRIPT_WEB_DIR/spd-result.htm" 2>/dev/null
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
-	ln -s /tmp/spdmerlin_serverlist.txt "$SCRIPT_WEB_DIR/spdmerlin_serverlist.htm" 2>/dev/null
-	ln -s /tmp/spdmerlin_manual_serverlist.txt "$SCRIPT_WEB_DIR/spdmerlin_manual_serverlist.htm" 2>/dev/null
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces_user.htm" 2>/dev/null
@@ -977,7 +975,9 @@ GenerateServerList(){
 
 GenerateServerList_WebUI(){
 	serverlistfile="$2"
-	rm -f "$serverlistfile"
+	rm -f "/tmp/$serverlistfile"
+	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
+	
 	spdteststring="$(echo "$1" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//")";
 	spdifacename="$(echo "$spdteststring" | cut -f1 -d'_')";
 	
@@ -994,23 +994,24 @@ GenerateServerList_WebUI(){
 			servercount="$(echo "$serverlist" | jq '.servers | length')"
 			COUNTER=1
 			until [ $COUNTER -gt "$servercount" ]; do
-				printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "$serverlistfile.tmp"
+				printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "/tmp/$serverlistfile.tmp"
 				COUNTER=$((COUNTER + 1))
 			done
 			#shellcheck disable=SC2039
-			printf "-----\\n" >> "$serverlistfile.tmp"
+			printf "-----\\n" >> "/tmp/$serverlistfile.tmp"
 		done
 	else
 		serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json")" 2>/dev/null
 		servercount="$(echo "$serverlist" | jq '.servers | length')"
 		COUNTER=1
 		until [ $COUNTER -gt "$servercount" ]; do
-			printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "$serverlistfile.tmp"
+			printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "/tmp/$serverlistfile.tmp"
 			COUNTER=$((COUNTER + 1))
 		done
 	fi
 	sleep 1
-	mv "$serverlistfile.tmp" "$serverlistfile.txt"
+	mv "/tmp/$serverlistfile.tmp" "/tmp/$serverlistfile.txt"
+	ln -s "/tmp/$serverlistfile.txt" "$SCRIPT_WEB_DIR/$serverlistfile.htm" 2>/dev/null7
 }
 
 PreferredServer(){
@@ -2872,7 +2873,7 @@ case "$1" in
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
-			GenerateServerList_WebUI "$3" "/tmp/spdmerlin_manual_serverlist"
+			GenerateServerList_WebUI "$3" "spdmerlin_manual_serverlist"
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
 			Interfaces_FromSettings
 			Conf_FromSettings
