@@ -978,8 +978,7 @@ GenerateServerList_WebUI(){
 	rm -f "/tmp/$serverlistfile"
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
 	
-	spdteststring="$(echo "$1" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//")";
-	spdifacename="$(echo "$spdteststring" | cut -f1 -d'_')";
+	spdifacename="$1"
 	
 	if [ "$spdifacename" = "All" ]; then
 		while IFS='' read -r line || [ -n "$line" ]; do
@@ -2872,8 +2871,12 @@ case "$1" in
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
 			exit 0
+		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlistmanual"; then
+			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlistmanual_//" | cut -f1 -d'_')";
+			GenerateServerList_WebUI "$spdifacename" "spdmerlin_manual_serverlist"
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
-			GenerateServerList_WebUI "$3" "spdmerlin_manual_serverlist"
+			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//" | cut -f1 -d'_')";
+			GenerateServerList_WebUI "$spdifacename" "spdmerlin_serverlist_$spdifacename"
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
 			Interfaces_FromSettings
 			Conf_FromSettings
