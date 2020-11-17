@@ -1266,6 +1266,10 @@ function SaveConfig(){
 		for (var i = 0; i < interfacescomplete.length; i++){
 			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+			$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+			$j('#changepref_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
 		}
 		$j('input[name=spdmerlin_testfrequency]').prop("disabled",false);
 		$j('input[name=spdmerlin_testfrequency]').removeClass("disabled");
@@ -1627,6 +1631,10 @@ function AutomaticInterfaceEnableDisable(forminput){
 		for (var i = 0; i < interfacescomplete.length; i++){
 			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
 			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
+			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
+			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
+			$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
+			$j('#changepref_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
 		}
 		$j('input[name='+prefix+'_testfrequency]').prop("disabled",true);
 		$j('input[name='+prefix+'_testfrequency]').addClass("disabled");
@@ -1636,6 +1644,10 @@ function AutomaticInterfaceEnableDisable(forminput){
 			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
 				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+				$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+				$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+				$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+				$j('#changepref_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
 			}
 		}
 		$j('input[name='+prefix+'_testfrequency]').prop("disabled",false);
