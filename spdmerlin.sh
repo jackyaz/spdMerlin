@@ -2676,13 +2676,10 @@ Menu_AutoBW_Update(){
 	#Set Upload/Download Limit
 	Print_Output "true" " Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$WARN"
 	Print_Output "true" " Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$WARN"
-	#nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
-	#nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
-	#nvram commit
-	#service restart_qos >/dev/null 2>&1
-	#if [ -f /jffs/addon/flexqos/flexqos.sh ]; then
-	#	/jffs/addon/flexqos/flexqos.sh -check &
-	#fi
+	nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
+	nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
+	nvram commit
+	service restart_qos >/dev/null 2>&1
 	
 	Clear_Lock
 }
