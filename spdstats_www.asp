@@ -1266,8 +1266,8 @@ function SaveConfig(){
 		for (var i = 0; i < interfacescomplete.length; i++){
 			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
-			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
-			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+			$j('#spdmerlin_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+			$j('#spdmerlin_usepreferred_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
 			$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 			$j('#changepref_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
 		}
