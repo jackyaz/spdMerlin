@@ -2481,10 +2481,10 @@ Menu_AutoBW(){
 							exitmenu="exit"
 							break
 						elif ! Validate_Number "" "$autobwsfchoice" "silent"; then
-							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
 						else
 							if [ "$autobwsfchoice" -lt 1 ] || [ "$autobwsfchoice" -gt 2 ]; then
-								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
 							else
 								if [ "$autobwsfchoice" -eq 1 ]; then
 									updown="DOWN"
@@ -2543,10 +2543,10 @@ Menu_AutoBW(){
 							exitmenu="exit"
 							break
 						elif ! Validate_Number "" "$autobwchoice" "silent"; then
-							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
 						else
 							if [ "$autobwchoice" -lt 1 ] || [ "$autobwchoice" -gt 2 ]; then
-								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
 							else
 								if [ "$autobwchoice" -eq 1 ]; then
 									updown="DOWN"
