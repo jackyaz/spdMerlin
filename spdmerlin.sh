@@ -2520,6 +2520,10 @@ Menu_AutoBW(){
 						AutoBWConf "update" "SF" "$updown" "$sfvalue"
 						break
 					fi
+					
+					if [ "$exitmenu" = "exit" ]; then
+						break
+					fi
 				done
 				
 				printf "\\n"
