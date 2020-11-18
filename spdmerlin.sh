@@ -2474,25 +2474,28 @@ Menu_AutoBW(){
 					printf "Select a scale factor to set\\n"
 					printf "1.    Download\\n"
 					printf "2.    Upload\\n\\n"
-					printf "Choose an option:    "
-					read -r "autobwsfchoice"
-					if [ "$autobwsfchoice" = "e" ]; then
-						exitmenu="exit"
-						break
-					elif ! Validate_Number "" "$autobwsfchoice" "silent"; then
-						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
-					else
-						if [ "$autobwsfchoice" -lt 1 ] || [ "$autobwsfchoice" -gt 2 ]; then
-							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+					while true; do
+						printf "Choose an option:    "
+						read -r "autobwsfchoice"
+						if [ "$autobwsfchoice" = "e" ]; then
+							exitmenu="exit"
+							break
+						elif ! Validate_Number "" "$autobwsfchoice" "silent"; then
+							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
 						else
-							if [ "$autobwsfchoice" -eq 1 ]; then
-								updown="DOWN"
-							elif [ "$autobwsfchoice" -eq 2 ]; then
-								updown="UP"
+							if [ "$autobwsfchoice" -lt 1 ] || [ "$autobwsfchoice" -gt 2 ]; then
+								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+							else
+								if [ "$autobwsfchoice" -eq 1 ]; then
+									updown="DOWN"
+									break
+								elif [ "$autobwsfchoice" -eq 2 ]; then
+									updown="UP"
+									break
+								fi
 							fi
 						fi
-					fi
-					
+					done
 					if [ "$exitmenu" != "exit" ]; then
 						while true; do
 							printf "\\n"
@@ -2533,25 +2536,28 @@ Menu_AutoBW(){
 					printf "Select a bandwidth to set limit for\\n"
 					printf "1.    Download\\n"
 					printf "2.    Upload\\n\\n"
-					printf "Choose an option:    "
-					read -r "autobwchoice"
-					if [ "$autobwchoice" = "e" ]; then
-						exitmenu="exit"
-						break
-					elif ! Validate_Number "" "$autobwchoice" "silent"; then
-						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
-					else
-						if [ "$autobwchoice" -lt 1 ] || [ "$autobwchoice" -gt 2 ]; then
-							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+					while true; do
+						printf "Choose an option:    "
+						read -r "autobwchoice"
+						if [ "$autobwchoice" = "e" ]; then
+							exitmenu="exit"
+							break
+						elif ! Validate_Number "" "$autobwchoice" "silent"; then
+							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
 						else
-							if [ "$autobwchoice" -eq 1 ]; then
-								updown="DOWN"
-							elif [ "$autobwchoice" -eq 2 ]; then
-								updown="UP"
+							if [ "$autobwchoice" -lt 1 ] || [ "$autobwchoice" -gt 2 ]; then
+								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+							else
+								if [ "$autobwchoice" -eq 1 ]; then
+									updown="DOWN"
+									break
+								elif [ "$autobwchoice" -eq 2 ]; then
+									updown="UP"
+									break
+								fi
 							fi
 						fi
-					fi
-					
+					done
 					if [ "$exitmenu" != "exit" ]; then
 						while true; do
 							printf "\\n"
