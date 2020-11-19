@@ -1340,6 +1340,12 @@ Run_Speedtest(){
 				fi
 			fi
 			
+			applyautobw="false"
+			
+			if [ "$mode" = "schedule" ] && [ "$(AutoBWEnable "check")" = "true" ]; then
+				applyautobw="true"
+			fi
+			
 			for IFACE_NAME in $IFACELIST; do
 				IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				IFACE_LOWER="$(echo "$IFACE" | tr "A-Z" "a-z")"
@@ -1509,6 +1515,12 @@ Run_Speedtest(){
 			
 			rm -f "$tmpfile"
 			rm -f "/tmp/spdstatstitle.txt"
+			
+			if [ "$applyautobw" = "true" ]; then
+				Menu_AutoBW_Update
+			fi
+			
+			Clear_Lock
 		else
 			echo 'var spdteststatus = "Error";' > /tmp/detect_spdtest.js
 			Print_Output "true" "No interfaces enabled, exiting" "$CRIT"
