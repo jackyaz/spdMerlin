@@ -116,7 +116,7 @@ td.settingvalue span a {
 
 .schedulespan {
   display:inline-block !important;
-  width:55px !important;
+  width:60px !important;
   color:#FFFFFF !important;
 }
 </style>
@@ -1273,6 +1273,12 @@ function SaveConfig(){
 		}
 		$j('input[name=spdmerlin_testfrequency]').prop("disabled",false);
 		$j('input[name=spdmerlin_testfrequency]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw_ulimit]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw_ulimit]').prop("disabled",false);
+		$j('input[name^=spdmerlin_autobw_llimit]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw_llimit]').prop("disabled",false);
+		$j('input[name^=spdmerlin_autobw_sf]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw_sf]').prop("disabled",false);
 		document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject());
 		var action_script_tmp = "start_spdmerlinconfig";
 		document.form.action_script.value = action_script_tmp;
@@ -1315,7 +1321,7 @@ function get_conf_file(){
 			configdata = configdata.filter(Boolean);
 			
 			for (var i = 0; i < configdata.length; i++){
-				if(configdata[i].indexOf("PREFERRED") == -1 && configdata[i].indexOf("AUTOBW") == -1){
+				if(configdata[i].indexOf("PREFERRED") == -1){
 					eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).value = configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
 				else if(configdata[i].indexOf("USEPREFERRED") != -1){
@@ -1332,6 +1338,9 @@ function get_conf_file(){
 				}
 				else if(configdata[i].indexOf("TESTFREQUENCY") != -1){
 					Toggle_ScheduleFrequency($j("#spdmerlin_freq_"+document.form.spdmerlin_testfrequency.value)[0]);
+				}
+				else if(configdata[i].indexOf("AUTOBW") != -1){
+					AutoBWEnableDisable($j("#spdmerlin_autobw_"+document.form.spdmerlin_autobw_enabled.value)[0]);
 				}
 			}
 		}
@@ -1655,6 +1664,29 @@ function AutomaticInterfaceEnableDisable(forminput){
 	}
 }
 
+function AutoBWEnableDisable(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	var prefix = inputname.substring(0,inputname.indexOf('_'));
+	
+	if(inputvalue == "false"){
+		$j('input[name^='+prefix+'_autobw_ulimit]').addClass("disabled");
+		$j('input[name^='+prefix+'_autobw_ulimit]').prop("disabled",true);
+		$j('input[name^='+prefix+'_autobw_llimit]').addClass("disabled");
+		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",true);
+		$j('input[name^='+prefix+'_autobw_sf]').addClass("disabled");
+		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",true);
+	}
+	else if(inputvalue == "true"){
+		$j('input[name^='+prefix+'_autobw_ulimit]').removeClass("disabled");
+		$j('input[name^='+prefix+'_autobw_ulimit]').prop("disabled",false);
+		$j('input[name^='+prefix+'_autobw_llimit]').removeClass("disabled");
+		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",false);
+		$j('input[name^='+prefix+'_autobw_sf]').removeClass("disabled");
+		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",false);
+	}
+}
+
 function Toggle_ChangePrefServer(forminput){
 	var inputname = forminput.name;
 	var inputvalue = forminput.checked;
@@ -1901,13 +1933,11 @@ function AddEventHandlers(){
 </td>
 </tr>
 </table>
-
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_manualspeedtests">
 <thead class="collapsible-jquery" id="thead_manualspeedtests">
 <tr><td colspan="2">Manual Speedtest (click to expand/collapse)</td></tr>
 </thead>
-
 <tr class="even" id="rowmanualserverpref">
 <th width="40%">Mode for speedtest</th>
 <td class="settingvalue">
@@ -1916,7 +1946,6 @@ function AddEventHandlers(){
 <input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_onetime" class="input" value="onetime" onchange="Toggle_SpdTestServerPref(this)">Choose a server
 </td>
 </tr>
-
 <tr class="apply_gen" valign="top" height="35px">
 <td colspan="2" style="background-color:rgb(77, 89, 93);">
 <input type="button" onclick="RunSpeedtest();" value="Run speedtest" class="button_gen" name="btnRunSpeedtest" id="btnRunSpeedtest">
@@ -1929,14 +1958,16 @@ function AddEventHandlers(){
 <textarea cols="63" rows="8" wrap="off" readonly="readonly" id="spdtest_output" class="textarea_log_table" style="border:0px;font-family:Courier New, Courier, mono; font-size:11px;overflow-y:auto;overflow-x:hidden;">Speedtest output</textarea>
 </td></tr>
 </table>
-
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_config">
 <thead class="collapsible-jquery" id="scriptconfig">
 <tr><td colspan="2">General Configuration (click to expand/collapse)</td></tr>
 </thead>
+<tr class="even" valign="middle">
+<th colspan="2" width="40%" style="font-weight:bolder;">Automatic speedtest configuration</th>
+</tr>
 <tr class="even" id="rowautomatedtests">
-<th width="40%">Enable scheduled speedtests</th>
+<th width="40%">Enable automatic speedtests</th>
 <td class="settingvalue">
 <input type="radio" name="spdmerlin_automated" id="spdmerlin_auto_true" onchange="AutomaticInterfaceEnableDisable(this)" class="input" value="true" checked>
 <label for="spdmerlin_auto_true" class="settingvalue">Yes</label>
@@ -1951,20 +1982,53 @@ function AddEventHandlers(){
 <input type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_hourly" class="input" value="hourly" onchange="Toggle_ScheduleFrequency(this)">Hourly
 </td>
 </tr>
-
 <tr class="even" id="rowschedule">
 <th width="40%">Schedule for automatic speedtests</th>
 <td class="settingvalue"><span class="schedulespan">Start hour</span>
-<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_schedulestart" value="0" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleRange(this)" onblur="Validate_ScheduleRange(this)" />
+<input autocomplete="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_schedulestart" value="0" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleRange(this)" onblur="Validate_ScheduleRange(this)" />
 <span style="color:#FFCC00;">(between 0 and 23, default: 0)</span><br /><span class="schedulespan">End hour</span>
-<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_scheduleend" value="23" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleRange(this)" onblur="Validate_ScheduleRange(this)" />
+<input autocomplete="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_scheduleend" value="23" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleRange(this)" onblur="Validate_ScheduleRange(this)" />
 <span style="color:#FFCC00;">(between 0 and 23, default: 23)</span><br /><span class="schedulespan">Minute</span>
-<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_minute" value="12" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleMinute(this)" onblur="Validate_ScheduleMinute(this)" />
+<input autocomplete="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_minute" value="12" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleMinute(this)" onblur="Validate_ScheduleMinute(this)" />
 <span style="color:#FFCC00;">(between 0 and 59, default: 12)</span>&nbsp;&nbsp;&nbsp;&nbsp;<span style="display:inline-block;width:75px;text-align:right;color:#FFFFFF;" id="span_second_minute">Second minute</span>
-<input autocomplete="off" autocapitalize="off" type="text" maxlength="2" class="input_3_table removespacing disabled" name="second_minute" value="" disabled />
+<input autocomplete="off" type="text" maxlength="2" class="input_3_table removespacing disabled" name="second_minute" value="" disabled />
 </td>
 </tr>
-
+<tr class="even" valign="middle">
+<th colspan="2" width="40%" style="font-weight:bolder;">AutoBW configuration</th>
+</tr>
+<tr class="even" id="rowautobwenabled">
+<th width="40%">Enable AutoBW?<br/><span style="color:#FFCC00;">Automatically adjust QoS bandwidth limits using automatic speedtest data</span></th>
+<td class="settingvalue">
+<input type="radio" name="spdmerlin_autobw_enabled" id="spdmerlin_autobw_true" onchange="AutoBWEnableDisable(this)" class="input" value="true">
+<label for="spdmerlin_autobw_true" class="settingvalue">Yes</label>
+<input type="radio" name="spdmerlin_autobw_enabled" id="spdmerlin_autobw_false" onchange="AutoBWEnableDisable(this)" class="input" value="false" checked>
+<label for="spdmerlin_autobw_false" class="settingvalue">No</label>
+</td>
+</tr>
+<tr class="even" id="rowautobwsf">
+<th width="40%">Scale factor to use for speedtest results</th>
+<td class="settingvalue">
+<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_sf_down" value="100" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_SFRange(this)" onblur="Validate_SFRange(this)" /><span style="color:#FFFFFF;"> %</span>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_sf_up" value="100" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_SFRange(this)" onblur="Validate_SFRange(this)" /><span style="color:#FFFFFF;"> %</span>
+</td>
+</tr>
+<tr class="even" id="rowautobwlimits">
+<th width="40%">Bandwidth limits for AutoBW calculations<br/><span style="color:#FFCC00;">(for Upper Limit 0 = Unlimited)</span></th>
+<td class="settingvalue"><span style="font-weight:bolder;color:#FFFFFF;">Upper Limit:&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_ulimit_down" value="100" onkeypress="return validator.isNumber(this, event)" /><span style="color:#FFFFFF;"> Mbps</span>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_ulimit_up" value="20" onkeypress="return validator.isNumber(this, event)" /><span style="color:#FFFFFF;"> Mbps</span><br />
+<span style="font-weight:bolder;color:#FFFFFF;">Lower Limit:&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_llimit_down" value="50" onkeypress="return validator.isNumber(this, event)" /><span style="color:#FFFFFF;"> Mbps</span>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_llimit_up" value="10" onkeypress="return validator.isNumber(this, event)" /><span style="color:#FFFFFF;"> Mbps</span><br />
+</td>
+</tr>
+<tr class="even" valign="middle">
+<th colspan="2" width="40%" style="font-weight:bolder;">Script configuration</th>
+</tr>
 <tr class="even" id="rowdataoutput">
 <th width="40%">Data Output Mode<br/><span style="color:#FFCC00;">(for weekly and monthly charts)</span></th>
 <td class="settingvalue">
@@ -1989,8 +2053,8 @@ function AddEventHandlers(){
 <tr class="even" id="rowstoreresulturl">
 <th width="40%">Save speedtest URLs to database</th>
 <td class="settingvalue">
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_true" class="input" value="true">Yes
-<input autocomplete="off" autocapitalize="off" type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_false" class="input" value="false" checked>No
+<input type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_true" class="input" value="true">Yes
+<input type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_false" class="input" value="false" checked>No
 </td>
 </tr>
 <tr class="even" id="rowexcludefromqos">
@@ -2006,7 +2070,6 @@ function AddEventHandlers(){
 </td>
 </tr>
 </table>
-
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" style="border:0px;" id="table_buttons2">
 <thead class="collapsible-jquery" id="charttools">
