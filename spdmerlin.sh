@@ -2889,7 +2889,7 @@ case "$1" in
 			Conf_FromSettings
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
-			updatecheckresult="$(Update_Check)"
+			Update_Check
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""doupdate" ]; then
 			Update_Version "force" "unattended"
@@ -2926,7 +2926,7 @@ case "$1" in
 		exit 0
 	;;
 	checkupdate)
-		updatecheckresult="$(Update_Check)"
+		Update_Check
 		exit 0
 	;;
 	uninstall)
