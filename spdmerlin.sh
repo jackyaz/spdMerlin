@@ -79,13 +79,13 @@ Check_Lock(){
 	if [ -f "/tmp/$SCRIPT_NAME.lock" ]; then
 		ageoflock=$(($(date +%s) - $(date +%s -r /tmp/$SCRIPT_NAME.lock)))
 		if [ "$ageoflock" -gt 600 ]; then
-			Print_Output "true" "Stale lock file found (>600 seconds old) - purging lock" "$ERR"
+			Print_Output true "Stale lock file found (>600 seconds old) - purging lock" "$ERR"
 			kill "$(sed -n '1p' /tmp/$SCRIPT_NAME.lock)" >/dev/null 2>&1
 			Clear_Lock
 			echo "$$" > "/tmp/$SCRIPT_NAME.lock"
 			return 0
 		else
-			Print_Output "true" "Lock file found (age: $ageoflock seconds) - stopping to prevent duplicate runs" "$ERR"
+			Print_Output true "Lock file found (age: $ageoflock seconds) - stopping to prevent duplicate runs" "$ERR"
 			if [ -z "$1" ]; then
 				exit 1
 			else
@@ -114,7 +114,7 @@ Check_Swap(){
 ############################################################################
 
 Set_Version_Custom_Settings(){
-	SETTINGSFILE="/jffs/addons/custom_settings.txt"
+	SETTINGSFILE=/jffs/addons/custom_settings.txt
 	case "$1" in
 		local)
 			if [ -f "$SETTINGSFILE" ]; then
@@ -149,18 +149,18 @@ Update_Check(){
 	echo 'var updatestatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_update.js"
 	doupdate="false"
 	localver=$(grep "SCRIPT_VERSION=" /jffs/scripts/"$SCRIPT_NAME_LOWER" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
-	/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep -qF "jackyaz" || { Print_Output "true" "404 error detected - stopping update" "$ERR"; return 1; }
+	/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep -qF "jackyaz" || { Print_Output true "404 error detected - stopping update" "$ERR"; return 1; }
 	serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 	if [ "$localver" != "$serverver" ]; then
 		doupdate="version"
-		Set_Version_Custom_Settings "server" "$serverver"
+		Set_Version_Custom_Settings server "$serverver"
 		echo 'var updatestatus = "'"$serverver"'";'  > "$SCRIPT_WEB_DIR/detect_update.js"
 	else
 		localmd5="$(md5sum "/jffs/scripts/$SCRIPT_NAME_LOWER" | awk '{print $1}')"
 		remotemd5="$(curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | md5sum | awk '{print $1}')"
 		if [ "$localmd5" != "$remotemd5" ]; then
 			doupdate="md5"
-			Set_Version_Custom_Settings "server" "$serverver-hotfix"
+			Set_Version_Custom_Settings server "$serverver-hotfix"
 			echo 'var updatestatus = "'"$serverver-hotfix"'";'  > "$SCRIPT_WEB_DIR/detect_update.js"
 		fi
 	fi
@@ -178,45 +178,45 @@ Update_Version(){
 		serverver="$(echo "$updatecheckresult" | cut -f3 -d',')"
 		
 		if [ "$isupdate" = "version" ]; then
-			Print_Output "true" "New version of $SCRIPT_NAME available - updating to $serverver" "$PASS"
+			Print_Output true "New version of $SCRIPT_NAME available - updating to $serverver" "$PASS"
 		elif [ "$isupdate" = "md5" ]; then
-			Print_Output "true" "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
+			Print_Output true "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
 		fi
 		
-		Update_File "shared-jy.tar.gz"
+		Update_File shared-jy.tar.gz
 		
 		if [ "$isupdate" != "false" ]; then
 			Update_File "$ARCH.tar.gz"
-			Update_File "spdstats_www.asp"
+			Update_File spdstats_www.asp
 			
-			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
+			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 			Clear_Lock
 			if [ -z "$1" ]; then
-				exec "$0" "setversion"
+				exec "$0" setversion
 			elif [ "$1" = "unattended" ]; then
-				exec "$0" "setversion" "unattended"
+				exec "$0" setversion unattended
 			fi
 			exit 0
 		else
-			Print_Output "true" "No new version - latest is $localver" "$WARN"
+			Print_Output true "No new version - latest is $localver" "$WARN"
 			Clear_Lock
 		fi
 	fi
 	
 	if [ "$1" = "force" ]; then
 		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
-		Print_Output "true" "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
+		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 		Update_File "$ARCH.tar.gz"
-		Update_File "spdstats_www.asp"
-		Update_File "shared-jy.tar.gz"
-		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output "true" "$SCRIPT_NAME successfully updated"
+		Update_File spdstats_www.asp
+		Update_File shared-jy.tar.gz
+		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
 		chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
 		Clear_Lock
 		if [ -z "$2" ]; then
-			exec "$0" "setversion"
+			exec "$0" setversion
 		elif [ "$2" = "unattended" ]; then
-			exec "$0" "setversion" "unattended"
+			exec "$0" setversion unattended
 		fi
 		exit 0
 	fi
@@ -229,14 +229,14 @@ Update_File(){
 		tar -xzf "$tmpfile" -C "/tmp"
 		rm -f "$tmpfile"
 		localmd5="$(md5sum "$OOKLA_DIR/speedtest" | awk '{print $1}')"
-		tmpmd5="$(md5sum "/tmp/speedtest" | awk '{print $1}')"
+		tmpmd5="$(md5sum /tmp/speedtest | awk '{print $1}')"
 		if [ "$localmd5" != "$tmpmd5" ]; then
 			rm -f "$OOKLA_DIR/*"
 			Download_File "$SCRIPT_REPO/$1" "$OOKLA_DIR/$1"
 			tar -xzf "$OOKLA_DIR/$1" -C "$OOKLA_DIR"
 			rm -f "$OOKLA_DIR/$1"
 			chmod 0755 "$OOKLA_DIR/speedtest"
-			Print_Output "true" "New version of Speedtest CLI downloaded to $OOKLA_DIR/speedtest" "$PASS"
+			Print_Output true "New version of Speedtest CLI downloaded to $OOKLA_DIR/speedtest" "$PASS"
 		fi
 		rm -f "/tmp/speedtest*"
 	elif [ "$1" = "spdstats_www.asp" ]; then
@@ -249,7 +249,7 @@ Update_File(){
 				rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage" 2>/dev/null
 			fi
 			Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
-			Print_Output "true" "New version of $1 downloaded" "$PASS"
+			Print_Output true "New version of $1 downloaded" "$PASS"
 			Mount_WebUI
 		fi
 		rm -f "$tmpfile"
@@ -259,7 +259,7 @@ Update_File(){
 			Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
 			tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
 			rm -f "$SHARED_DIR/$1"
-			Print_Output "true" "New version of $1 downloaded" "$PASS"
+			Print_Output true "New version of $1 downloaded" "$PASS"
 		else
 			localmd5="$(cat "$SHARED_DIR/$1.md5")"
 			remotemd5="$(curl -fsL --retry 3 "$SHARED_REPO/$1.md5")"
@@ -268,7 +268,7 @@ Update_File(){
 				Download_File "$SHARED_REPO/$1.md5" "$SHARED_DIR/$1.md5"
 				tar -xzf "$SHARED_DIR/$1" -C "$SHARED_DIR"
 				rm -f "$SHARED_DIR/$1"
-				Print_Output "true" "New version of $1 downloaded" "$PASS"
+				Print_Output true "New version of $1 downloaded" "$PASS"
 			fi
 		fi
 	else
@@ -290,7 +290,7 @@ Validate_Number(){
 	else
 		formatted="$(echo "$1" | sed -e 's/|/ /g')"
 		if [ -z "$3" ]; then
-			Print_Output "false" "$formatted - $2 is not a number" "$ERR"
+			Print_Output false "$formatted - $2 is not a number" "$ERR"
 		fi
 		return 1
 	fi
@@ -330,16 +330,16 @@ License_Acceptance(){
 				
 				printf "\\n\\e[1mYou must accept the license agreements for Speedtest CLI. Do you want to continue? (y/n)\\e[0m\\n"
 				printf "\\e[1mNote: This will require an initial speedtest to run, please be patient\\e[0m\\n"
-				read -r "confirm"
+				read -r confirm
 				case "$confirm" in
 					y|Y)
 						"$OOKLA_DIR"/speedtest --accept-license >/dev/null 2>&1
 						"$OOKLA_DIR"/speedtest --accept-gdpr >/dev/null 2>&1
-						License_Acceptance "save"
+						License_Acceptance save
 						return 0
 					;;
 					*)
-						Print_Output "true" "Licenses not accepted, stopping" "$ERR"
+						Print_Output true "Licenses not accepted, stopping" "$ERR"
 						return 1
 					;;
 				esac
@@ -348,7 +348,7 @@ License_Acceptance(){
 		save)
 			if [ ! -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
 				cp "$HOME_DIR/.config/ookla/speedtest-cli.json" "$OOKLA_LICENSE_DIR/speedtest-cli.json"
-				Print_Output "true" "Licenses accepted and saved to persistent storage" "$PASS"
+				Print_Output true "Licenses accepted and saved to persistent storage" "$PASS"
 			fi
 		;;
 		load)
@@ -356,7 +356,7 @@ License_Acceptance(){
 				cp "$OOKLA_LICENSE_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
 				return 0
 			else
-				Print_Output "true" "Licenses haven't been accepted previously, nothing to load" "$ERR"
+				Print_Output true "Licenses haven't been accepted previously, nothing to load" "$ERR"
 				return 1
 			fi
 		;;
@@ -460,7 +460,7 @@ Conf_FromSettings(){
 	TMPFILE="/tmp/spdmerlin_settings.txt"
 	if [ -f "$SETTINGSFILE" ]; then
 		if [ "$(grep "spdmerlin_" $SETTINGSFILE | grep -v "version" -c)" -gt 0 ]; then
-			Print_Output "true" "Updated settings from WebUI found, merging into $SCRIPT_CONF" "$PASS"
+			Print_Output true "Updated settings from WebUI found, merging into $SCRIPT_CONF" "$PASS"
 			cp -a "$SCRIPT_CONF" "$SCRIPT_CONF.bak"
 			grep "spdmerlin_" "$SETTINGSFILE" | grep -v "version" > "$TMPFILE"
 			sed -i "s/spdmerlin_//g;s/ /=/g" "$TMPFILE"
@@ -476,7 +476,7 @@ Conf_FromSettings(){
 			rm -f "$TMPFILE"
 			rm -f "$SETTINGSFILE.bak"
 			
-			ScriptStorageLocation "$(ScriptStorageLocation "check")"
+			ScriptStorageLocation "$(ScriptStorageLocation check)"
 			Create_Symlinks
 			
 			Auto_Cron delete 2>/dev/null
@@ -484,9 +484,9 @@ Conf_FromSettings(){
 			
 			Generate_CSVs
 			
-			Print_Output "true" "Merge of updated settings from WebUI completed successfully" "$PASS"
+			Print_Output true "Merge of updated settings from WebUI completed successfully" "$PASS"
 		else
-			Print_Output "true" "No updated settings from WebUI found, no merge into $SCRIPT_CONF necessary" "$PASS"
+			Print_Output true "No updated settings from WebUI found, no merge into $SCRIPT_CONF necessary" "$PASS"
 		fi
 	fi
 }
@@ -496,7 +496,7 @@ Interfaces_FromSettings(){
 	TMPFILE="/tmp/spdmerlin_interfaces.txt"
 	if [ -f "$SETTINGSFILE" ]; then
 		if grep -q "spdmerlin_ifaces_enabled" "$SETTINGSFILE"; then
-			Print_Output "true" "Updated interfaces from WebUI found, merging into $SCRIPT_INTERFACES_USER" "$PASS"
+			Print_Output true "Updated interfaces from WebUI found, merging into $SCRIPT_INTERFACES_USER" "$PASS"
 			cp -a "$SCRIPT_INTERFACES_USER" "$SCRIPT_INTERFACES_USER.bak"
 			SETTINGVALUE="$(grep "spdmerlin_ifaces_enabled" "$SETTINGSFILE" | cut -f2 -d' ')"
 			sed -i "\\~spdmerlin_ifaces_enabled~d" "$SETTINGSFILE"
@@ -553,9 +553,9 @@ Interfaces_FromSettings(){
 			awk 'NF' "$SCRIPT_INTERFACES_USER" > /tmp/spd-interfaces
 			mv /tmp/spd-interfaces "$SCRIPT_INTERFACES_USER"
 			
-			Print_Output "true" "Merge of updated interfaces from WebUI completed successfully" "$PASS"
+			Print_Output true "Merge of updated interfaces from WebUI completed successfully" "$PASS"
 		else
-			Print_Output "true" "No updated interfaces from WebUI found, no merge into $SCRIPT_INTERFACES_USER necessary" "$PASS"
+			Print_Output true "No updated interfaces from WebUI found, no merge into $SCRIPT_INTERFACES_USER necessary" "$PASS"
 		fi
 	fi
 }
@@ -692,7 +692,7 @@ Generate_Interface_List(){
 	
 	while true; do
 	printf "\\n\\e[1mPlease select a chart to toggle inclusion in %s (1-%s):\\e[0m\\n" "$SCRIPT_NAME" "$interfacecount"
-	read -r "interface"
+	read -r interface
 	
 	if [ "$interface" = "e" ]; then
 		goback="true"
@@ -835,17 +835,17 @@ Get_WebUI_Page(){
 Mount_WebUI(){
 	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
 	if [ "$MyPage" = "none" ]; then
-		Print_Output "true" "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
+		Print_Output true "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
 		Clear_Lock
 		exit 1
 	fi
-	Print_Output "true" "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
+	Print_Output true "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
 	cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
 	echo "spdMerlin" > "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.').title"
 	
 	if [ "$(uname -o)" = "ASUSWRT-Merlin" ]; then
-		if [ ! -f "/tmp/index_style.css" ]; then
-			cp -f "/www/index_style.css" "/tmp/"
+		if [ ! -f /tmp/index_style.css ]; then
+			cp -f /www/index_style.css /tmp/
 		fi
 		
 		if ! grep -q '.menu_Addons' /tmp/index_style.css ; then
@@ -855,8 +855,8 @@ Mount_WebUI(){
 		umount /www/index_style.css 2>/dev/null
 		mount -o bind /tmp/index_style.css /www/index_style.css
 		
-		if [ ! -f "/tmp/menuTree.js" ]; then
-			cp -f "/www/require/modules/menuTree.js" "/tmp/"
+		if [ ! -f /tmp/menuTree.js ]; then
+			cp -f /www/require/modules/menuTree.js /tmp/
 		fi
 		
 		sed -i "\\~$MyPage~d" /tmp/menuTree.js
@@ -881,7 +881,7 @@ GenerateServerList(){
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
 	serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$1")" --servers --format="json")" 2>/dev/null
 	if [ -z "$serverlist" ]; then
-		Print_Output "true" "Error retrieving server list for for $1" "$CRIT"
+		Print_Output true "Error retrieving server list for for $1" "$CRIT"
 		serverno="exit"
 		return 1
 	fi
@@ -903,7 +903,7 @@ GenerateServerList(){
 	while true; do
 		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$servercount"
 		printf "\\n\\e[1mOr press c to enter a known server ID\\e[0m\\n"
-		read -r "server"
+		read -r server
 		
 		if [ "$server" = "e" ]; then
 			serverno="exit"
@@ -911,7 +911,7 @@ GenerateServerList(){
 		elif [ "$server" = "c" ]; then
 				while true; do
 					printf "\\n\\e[1mPlease enter server ID (WARNING: this is not validated) or e to go back\\e[0m\\n"
-					read -r "customserver"
+					read -r customserver
 					if [ "$customserver" = "e" ]; then
 						break
 					elif ! Validate_Number "" "$customserver" "silent"; then
@@ -921,17 +921,17 @@ GenerateServerList(){
 						if [ "$promptforservername" != "no" ]; then
 							while true; do
 								printf "\\n\\e[1mWould you like to enter a name for this server? (default: Custom) (y/n)?\\e[0m    "
-								read -r "servername_select"
+								read -r servername_select
 								
 								if [ "$servername_select" = "n" ] || [ "$servername_select" = "N" ]; then
 									servername="Custom"
 									break
 								elif [ "$servername_select" = "y" ] || [ "$servername_select" = "Y" ]; then
 									printf "\\n\\e[1mPlease enter the name for this server:\\e[0m    "
-									read -r "servername"
+									read -r servername
 									printf "\\n\\e[1m%s\\e[0m\\n" "$servername"
 									printf "\\n\\e[1mIs that correct (y/n)?    \\e[0m"
-									read -r "servername_confirm"
+									read -r servername_confirm
 									if [ "$servername_confirm" = "y" ] || [ "$servername_confirm" = "Y" ]; then
 										break
 									else
@@ -1090,7 +1090,7 @@ ScriptStorageLocation(){
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdtitletext.js" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdstats.db" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			SCRIPT_CONF="/opt/share/$SCRIPT_NAME_LOWER.d/config"
-			ScriptStorageLocation "load"
+			ScriptStorageLocation load
 		;;
 		jffs)
 			sed -i 's/^STORAGELOCATION.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
@@ -1104,7 +1104,7 @@ ScriptStorageLocation(){
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdtitletext.js" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdstats.db" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME_LOWER.d/config"
-			ScriptStorageLocation "load"
+			ScriptStorageLocation load
 		;;
 		check)
 			STORAGELOCATION=$(grep "STORAGELOCATION" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1261,7 +1261,7 @@ Generate_LastXResults(){
 		echo ".mode csv"
 		echo ".output /tmp/spd-lastx.csv"
 	} > /tmp/spd-lastx.sql
-	echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload] from spdstats_$1 order by [Timestamp] desc limit 10;" >> /tmp/spd-lastx.sql
+	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload] FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	sed -i 's/,,/,null,/g;s/,/ /g;s/"//g;' /tmp/spd-lastx.csv
 	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataResultURL_$1" "DataDataDownload_$1" "DataDataUpload_$1"
@@ -1272,14 +1272,14 @@ Generate_LastXResults(){
 Run_Speedtest(){
 	Create_Dirs
 	Conf_Exists
-	Set_Version_Custom_Settings "local"
+	Set_Version_Custom_Settings local
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
-	ScriptStorageLocation "load"
+	ScriptStorageLocation load
 	Create_Symlinks
-	License_Acceptance "load"
+	License_Acceptance load
 	
 	mode="$1"
 	specificiface="$2"
@@ -1294,16 +1294,16 @@ Run_Speedtest(){
 	
 	if Check_Swap ; then
 		if [ "$(echo "$mode" | grep -c "webui")" -eq 0 ]; then
-			if ! License_Acceptance "check" ; then
+			if ! License_Acceptance check ; then
 				if [ "$mode" != "schedule" ]; then
-					if ! License_Acceptance "accept"; then
+					if ! License_Acceptance accept; then
 						echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
 						Clear_Lock
 						return 1
 					fi
 				else
 					echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
-					Print_Output "true" "Licenses not accepted, please run spdMerlin to accept them" "$ERR"
+					Print_Output true "Licenses not accepted, please run spdMerlin to accept them" "$ERR"
 					return 1
 				fi
 			fi
@@ -1343,7 +1343,7 @@ Run_Speedtest(){
 			
 			applyautobw="false"
 			
-			if [ "$mode" = "schedule" ] && [ "$(AutoBWEnable "check")" = "true" ]; then
+			if [ "$mode" = "schedule" ] && [ "$(AutoBWEnable check)" = "true" ]; then
 				applyautobw="true"
 			fi
 			
@@ -1351,7 +1351,7 @@ Run_Speedtest(){
 				IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				IFACE_LOWER="$(echo "$IFACE" | tr "A-Z" "a-z")"
 				if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
-					Print_Output "true" "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
+					Print_Output true "$IFACE not up, please check. Skipping speedtest for $IFACE_NAME" "$WARN"
 					continue
 				else
 					if [ "$mode" = "webui_user" ]; then
@@ -1387,26 +1387,26 @@ Run_Speedtest(){
 					printf "" > "$tmpfile"
 					
 					if [ "$mode" = "auto" ]; then
-						Print_Output "true" "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
+						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
 					else
 						if [ "$speedtestserverno" != "0" ]; then
-							Print_Output "true" "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
+							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
 							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
 						else
-							Print_Output "true" "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
+							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
 							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
 						fi
 					fi
 					
 					if [ ! -f "$tmpfile" ] || [ -z "$(cat "$tmpfile")" ]; then
-						Print_Output "true" "Error running speedtest for $IFACE_NAME" "$CRIT"
+						Print_Output true "Error running speedtest for $IFACE_NAME" "$CRIT"
 						echo 'var spdteststatus = "Error";' > /tmp/detect_spdtest.js
 						Clear_Lock
 						return 1
 					fi
 					
-					ScriptStorageLocation "load"
+					ScriptStorageLocation load
 					
 					TZ=$(cat /etc/TZ)
 					export TZ
@@ -1461,7 +1461,7 @@ Run_Speedtest(){
 						touch "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME"
 					fi
 					
-					STORERESULTURL="$(StoreResultURL "check")"
+					STORERESULTURL="$(StoreResultURL check)"
 					
 					if [ "$STORERESULTURL" = "true" ]; then
 						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'$resulturl',$datadownload,$dataupload);" > /tmp/spd-stats.sql
@@ -1478,8 +1478,8 @@ Run_Speedtest(){
 					spdtestresult2="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1' | sed 's/%/%%/')"
 					
 					printf "\\n"
-					Print_Output "true" "Speedtest results - $spdtestresult" "$PASS"
-					Print_Output "true" "Connection quality - $spdtestresult2" "$PASS"
+					Print_Output true "Speedtest results - $spdtestresult" "$PASS"
+					Print_Output true "Connection quality - $spdtestresult2" "$PASS"
 					
 					{
 						printf "Speedtest result for %s\\n" "$IFACE_NAME"
@@ -1491,7 +1491,7 @@ Run_Speedtest(){
 					#extStats
 					extStats="/jffs/addons/extstats.d/mod_spdstats.sh"
 					if [ -f "$extStats" ]; then
-						sh "$extStats" "ext" "$download" "$upload"
+						sh "$extStats" ext "$download" "$upload"
 					fi
 				fi
 			done
@@ -1509,13 +1509,13 @@ Run_Speedtest(){
 			fi
 			Generate_CSVs
 			
-			echo "Stats last updated: $timenowfriendly" > "/tmp/spdstatstitle.txt"
-			WriteStats_ToJS "/tmp/spdstatstitle.txt" "$SCRIPT_STORAGE_DIR/spdtitletext.js" "SetSPDStatsTitle" "statstitle"
+			echo "Stats last updated: $timenowfriendly" > /tmp/spdstatstitle.txt
+			WriteStats_ToJS /tmp/spdstatstitle.txt "$SCRIPT_STORAGE_DIR/spdtitletext.js" SetSPDStatsTitle statstitle
 			
 			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
 			rm -f "$tmpfile"
-			rm -f "/tmp/spdstatstitle.txt"
+			rm -f /tmp/spdstatstitle.txt
 			
 			if [ "$applyautobw" = "true" ]; then
 				Menu_AutoBW_Update
@@ -1524,14 +1524,14 @@ Run_Speedtest(){
 			Clear_Lock
 		else
 			echo 'var spdteststatus = "Error";' > /tmp/detect_spdtest.js
-			Print_Output "true" "No interfaces enabled, exiting" "$CRIT"
+			Print_Output true "No interfaces enabled, exiting" "$CRIT"
 			Clear_Lock
 			return 1
 		fi
 		Clear_Lock
 	else
 		echo 'var spdteststatus = "NoSwap";' > /tmp/detect_spdtest.js
-		Print_Output "true" "Swap file not active, exiting" "$CRIT"
+		Print_Output true "Swap file not active, exiting" "$CRIT"
 		Clear_Lock
 		return 1
 	fi
@@ -1611,9 +1611,9 @@ Process_Upgrade(){
 }
 
 Generate_CSVs(){
-	OUTPUTDATAMODE="$(OutputDataMode "check")"
-	OUTPUTTIMEMODE="$(OutputTimeMode "check")"
-	STORERESULTURL="$(StoreResultURL "check")"
+	OUTPUTDATAMODE="$(OutputDataMode check)"
+	OUTPUTTIMEMODE="$(OutputTimeMode check)"
+	STORERESULTURL="$(StoreResultURL check)"
 	IFACELIST=""
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
@@ -1641,7 +1641,7 @@ Generate_CSVs(){
 					echo ".mode csv"
 					echo ".headers off"
 					echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME.tmp"
-					echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
+					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 				} > /tmp/spd-stats.sql
 				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 				rm -f /tmp/spd-stats.sql
@@ -1651,7 +1651,7 @@ Generate_CSVs(){
 						echo ".mode csv"
 						echo ".headers off"
 						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME.tmp"
-						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
+						echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
 					} > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
@@ -1660,7 +1660,7 @@ Generate_CSVs(){
 						echo ".mode csv"
 						echo ".headers off"
 						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME.tmp"
-						echo "select '$metric' Metric,[Timestamp] Time,[$metric] Value from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
+						echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
 					} > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
@@ -1705,7 +1705,7 @@ Generate_CSVs(){
 				echo ".headers on"
 				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.htm"
 			} > /tmp/spd-complete.sql
-			echo "select[Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] from spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) order by [Timestamp] desc;" >> /tmp/spd-complete.sql
+			echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) ORDER BY [Timestamp] DESC;" >> /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
 			rm -f /tmp/spd-complete.sql
 			
@@ -1718,12 +1718,12 @@ Generate_CSVs(){
 			rm -f "$CSV_OUTPUT_DIR/DataUpload"*
 			
 			Generate_LastXResults "$IFACE_NAME"
-			rm -f "/tmp/spd-stats.sql"
+			rm -f /tmp/spd-stats.sql
 		done
 		
 		dos2unix "$CSV_OUTPUT_DIR/"*.htm
 		
-		tmpoutputdir="/tmp/""$SCRIPT_NAME_LOWER""results"
+		tmpoutputdir="/tmp/${SCRIPT_NAME_LOWER}results"
 		mkdir -p "$tmpoutputdir"
 		mv "$CSV_OUTPUT_DIR/CompleteResults"*.htm "$tmpoutputdir/."
 		
@@ -1742,8 +1742,8 @@ Generate_CSVs(){
 			opkg update
 			opkg install p7zip
 		fi
-		/opt/bin/7z a -y -bsp0 -bso0 -tzip "/tmp/""$SCRIPT_NAME_LOWER""data.zip" "$tmpoutputdir/*"
-		mv "/tmp/""$SCRIPT_NAME_LOWER""data.zip" "$CSV_OUTPUT_DIR"
+		/opt/bin/7z a -y -bsp0 -bso0 -tzip "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$tmpoutputdir/*"
+		mv "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$CSV_OUTPUT_DIR"
 		rm -rf "$tmpoutputdir"
 	fi
 }
@@ -1752,13 +1752,13 @@ Shortcut_spdMerlin(){
 	case $1 in
 		create)
 			if [ -d "/opt/bin" ] && [ ! -f "/opt/bin/$SCRIPT_NAME_LOWER" ] && [ -f "/jffs/scripts/$SCRIPT_NAME_LOWER" ]; then
-				ln -s /jffs/scripts/"$SCRIPT_NAME_LOWER" /opt/bin
-				chmod 0755 /opt/bin/"$SCRIPT_NAME_LOWER"
+				ln -s "/jffs/scripts/$SCRIPT_NAME_LOWER" /opt/bin
+				chmod 0755 "/opt/bin/$SCRIPT_NAME_LOWER"
 			fi
 		;;
 		delete)
 			if [ -f "/opt/bin/$SCRIPT_NAME_LOWER" ]; then
-				rm -f /opt/bin/"$SCRIPT_NAME_LOWER"
+				rm -f "/opt/bin/$SCRIPT_NAME_LOWER"
 			fi
 		;;
 	esac
@@ -1767,7 +1767,7 @@ Shortcut_spdMerlin(){
 PressEnter(){
 	while true; do
 		printf "Press enter to continue..."
-		read -r "key"
+		read -r key
 		case "$key" in
 			*)
 				break
@@ -1827,12 +1827,12 @@ MainMenu(){
 	printf "2.    Choose a preferred server for an interface\\n\\n"
 	printf "3.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
 	printf "4.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
-	printf "5.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode "check")"
-	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode "check")"
-	printf "7.    Toggle storage of speedtest result URLs\\n      Currently \\e[1m%s\\e[0m\\n\\n" "$(StoreResultURL "check")"
+	printf "5.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode check)"
+	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
+	printf "7.    Toggle storage of speedtest result URLs\\n      Currently \\e[1m%s\\e[0m\\n\\n" "$(StoreResultURL check)"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
-	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$(ScriptStorageLocation "check")"
+	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$(ScriptStorageLocation check)"
 	printf "q.    Toggle exclusion %s speedtests from QoS\\n      Currently %s speedtests are \\e[1m%s\\e[0m QoS\\n\\n" "$SCRIPT_NAME" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
 	printf "a.    AutoBW\\n\\n"
 	printf "u.    Check for updates\\n"
@@ -1892,7 +1892,7 @@ MainMenu(){
 				break
 			;;
 			r)
-				Menu_ProcessInterfaces "force"
+				Menu_ProcessInterfaces force
 				PressEnter
 				break
 			;;
@@ -1913,7 +1913,7 @@ MainMenu(){
 			;;
 			u)
 				printf "\\n"
-				if Check_Lock "menu"; then
+				if Check_Lock menu; then
 					Menu_Update
 				fi
 				PressEnter
@@ -1921,7 +1921,7 @@ MainMenu(){
 			;;
 			uf)
 				printf "\\n"
-				if Check_Lock "menu"; then
+				if Check_Lock menu; then
 					Menu_ForceUpdate
 				fi
 				PressEnter
@@ -1935,7 +1935,7 @@ MainMenu(){
 			z)
 				while true; do
 					printf "\\n\\e[1mAre you sure you want to uninstall %s? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
-					read -r "confirm"
+					read -r confirm
 					case "$confirm" in
 						y|Y)
 							Menu_Uninstall
@@ -1963,27 +1963,27 @@ Check_Requirements(){
 	if [ "$(nvram get jffs2_scripts)" -ne 1 ]; then
 		nvram set jffs2_scripts=1
 		nvram commit
-		Print_Output "true" "Custom JFFS Scripts enabled" "$WARN"
+		Print_Output true "Custom JFFS Scripts enabled" "$WARN"
 	fi
 	
 	if ! Check_Swap; then
-		Print_Output "true" "No Swap file detected!" "$ERR"
+		Print_Output true "No Swap file detected!" "$ERR"
 		CHECKSFAILED="true"
 	fi
 	
-	if [ ! -f "/opt/bin/opkg" ]; then
-		Print_Output "true" "Entware not detected!" "$ERR"
+	if [ ! -f /opt/bin/opkg ]; then
+		Print_Output true "Entware not detected!" "$ERR"
 		CHECKSFAILED="true"
 	fi
 	
 	if ! Firmware_Version_Check; then
-		Print_Output "true" "Unsupported firmware version detected" "$ERR"
-		Print_Output "true" "$SCRIPT_NAME requires Merlin 384.15/384.13_4 or Fork 43E5 (or later)" "$ERR"
+		Print_Output true "Unsupported firmware version detected" "$ERR"
+		Print_Output true "$SCRIPT_NAME requires Merlin 384.15/384.13_4 or Fork 43E5 (or later)" "$ERR"
 		CHECKSFAILED="true"
 	fi
 	
 	if [ "$CHECKSFAILED" = "false" ]; then
-		Print_Output "true" "Installing required packages from Entware" "$PASS"
+		Print_Output true "Installing required packages from Entware" "$PASS"
 		opkg update
 		opkg install sqlite3-cli
 		opkg install jq
@@ -1995,13 +1995,13 @@ Check_Requirements(){
 }
 
 Menu_Install(){
-	Print_Output "true" "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
+	Print_Output true "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
 	sleep 1
 	
-	Print_Output "true" "Checking your router meets the requirements for $SCRIPT_NAME"
+	Print_Output true "Checking your router meets the requirements for $SCRIPT_NAME"
 	
 	if ! Check_Requirements; then
-		Print_Output "true" "Requirements for $SCRIPT_NAME not met, please see above for the reason(s)" "$CRIT"
+		Print_Output true "Requirements for $SCRIPT_NAME not met, please see above for the reason(s)" "$CRIT"
 		PressEnter
 		Clear_Lock
 		rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
@@ -2010,8 +2010,8 @@ Menu_Install(){
 	
 	Create_Dirs
 	Conf_Exists
-	Set_Version_Custom_Settings "local"
-	ScriptStorageLocation "load"
+	Set_Version_Custom_Settings local
+	ScriptStorageLocation load
 	Create_Symlinks
 	
 	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
@@ -2019,15 +2019,15 @@ Menu_Install(){
 	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 	chmod 0755 "$OOKLA_DIR/speedtest"
 	
-	Update_File "spdstats_www.asp"
-	Update_File "shared-jy.tar.gz"
+	Update_File spdstats_www.asp
+	Update_File shared-jy.tar.gz
 	
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
 	
-	License_Acceptance "accept"
+	License_Acceptance accept
 	
 	Clear_Lock
 }
@@ -2045,14 +2045,14 @@ Menu_ProcessInterfaces(){
 Menu_Startup(){
 	Create_Dirs
 	Conf_Exists
-	Set_Version_Custom_Settings "local"
-	ScriptStorageLocation "load"
+	Set_Version_Custom_Settings local
+	ScriptStorageLocation load
 	Create_Symlinks
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
-	License_Acceptance "load"
+	License_Acceptance load
 	Mount_WebUI
 	Clear_Lock
 }
@@ -2074,7 +2074,7 @@ Menu_RunSpeedtest(){
 			fi
 		done < "$SCRIPT_INTERFACES_USER"
 		printf "\\nChoose an option:    "
-		read -r "iface_choice"
+		read -r iface_choice
 		
 		if [ "$iface_choice" = "e" ]; then
 			exitmenu="exit"
@@ -2105,7 +2105,7 @@ Menu_RunSpeedtest(){
 				printf "2.    Preferred server\\n"
 				printf "3.    Choose a server\\n"
 				printf "\\nChoose an option:    "
-				read -r "usepref_choice"
+				read -r usepref_choice
 				
 				if [ "$usepref_choice" = "e" ]; then
 					exitmenu="exit"
@@ -2137,7 +2137,7 @@ Menu_RunSpeedtest(){
 			done
 		fi
 		if [ "$exitmenu" != "exit" ] && [ "$validselection" != "false" ]; then
-			if Check_Lock "menu"; then
+			if Check_Lock menu; then
 				Run_Speedtest "$usepreferred" "$useiface"
 				Clear_Lock
 			fi
@@ -2176,7 +2176,7 @@ Menu_ConfigurePreferred(){
 		done < "$SCRIPT_INTERFACES_USER"
 		while true; do
 			printf "\\nChoose an option:    "
-			read -r "iface_choice"
+			read -r iface_choice
 			
 			if [ "$iface_choice" = "e" ]; then
 				exitmenu="exit"
@@ -2207,18 +2207,18 @@ Menu_ConfigurePreferred(){
 					printf "1.    Turn on preferred servers\\n"
 					printf "2.    Turn off preferred servers\\n"
 					printf "\\nChoose an option:    "
-					read -r "usepref_choice"
+					read -r usepref_choice
 					
 					if [ "$usepref_choice" = "e" ]; then
 						break
 					elif ! Validate_Number "" "$usepref_choice" "silent"; then
 						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
 					else
-						if [ "$usepref_choice" -lt 1 ] || [ "$usepref_choice" -gt "2" ]; then
+						if [ "$usepref_choice" -lt 1 ] || [ "$usepref_choice" -gt 2 ]; then
 							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
 						else
 							prefenabledisable=""
-							if [ "$usepref_choice" -eq "1" ]; then
+							if [ "$usepref_choice" -eq 1 ]; then
 								prefenabledisable="enable"
 							else
 								prefenabledisable="disable"
@@ -2241,17 +2241,17 @@ Menu_ConfigurePreferred(){
 					printf "1.    Toggle preferred server on/off - currently: %s\\n" "$pref_enabled"
 					printf "2.    Set preferred server - currently: %s\\n" "$(PreferredServer list "$prefiface" | cut -f2 -d"|")"
 					printf "\\nChoose an option:    "
-					read -r "ifpref_choice"
+					read -r ifpref_choice
 					
 					if [ "$ifpref_choice" = "e" ]; then
 						break
 					elif ! Validate_Number "" "$ifpref_choice" "silent"; then
 						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
 					else
-						if [ "$ifpref_choice" -lt 1 ] || [ "$ifpref_choice" -gt "2" ]; then
+						if [ "$ifpref_choice" -lt 1 ] || [ "$ifpref_choice" -gt 2 ]; then
 							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
 						else
-							if [ "$ifpref_choice" -eq "1" ]; then
+							if [ "$ifpref_choice" -eq 1 ]; then
 								printf "\\n"
 								if PreferredServer check "$prefiface"; then
 									PreferredServer disable "$prefiface"
@@ -2259,7 +2259,7 @@ Menu_ConfigurePreferred(){
 									PreferredServer enable "$prefiface"
 								fi
 								break
-							elif [ "$ifpref_choice" -eq "2" ]; then
+							elif [ "$ifpref_choice" -eq 2 ]; then
 								printf "\\n"
 								PreferredServer "update" "$prefiface"
 								break
@@ -2294,52 +2294,52 @@ Menu_ToggleAutomated(){
 }
 
 Menu_ToggleOutputDataMode(){
-	if [ "$(OutputDataMode "check")" = "raw" ]; then
-		OutputDataMode "average"
-	elif [ "$(OutputDataMode "check")" = "average" ]; then
-		OutputDataMode "raw"
+	if [ "$(OutputDataMode check)" = "raw" ]; then
+		OutputDataMode average
+	elif [ "$(OutputDataMode check)" = "average" ]; then
+		OutputDataMode raw
 	fi
 }
 
 Menu_ToggleOutputTimeMode(){
-	if [ "$(OutputTimeMode "check")" = "unix" ]; then
-		OutputTimeMode "non-unix"
-	elif [ "$(OutputTimeMode "check")" = "non-unix" ]; then
-		OutputTimeMode "unix"
+	if [ "$(OutputTimeMode check)" = "unix" ]; then
+		OutputTimeMode non-unix
+	elif [ "$(OutputTimeMode check)" = "non-unix" ]; then
+		OutputTimeMode unix
 	fi
 }
 
 Menu_ToggleStoreResultURL(){
-	if [ "$(StoreResultURL "check")" = "true" ]; then
-		StoreResultURL "disable"
-	elif [ "$(StoreResultURL "check")" = "false" ]; then
-		StoreResultURL "enable"
+	if [ "$(StoreResultURL check)" = "true" ]; then
+		StoreResultURL disable
+	elif [ "$(StoreResultURL check)" = "false" ]; then
+		StoreResultURL enable
 	fi
 }
 
 Menu_ToggleStorageLocation(){
-	if [ "$(ScriptStorageLocation "check")" = "jffs" ]; then
-		ScriptStorageLocation "usb"
+	if [ "$(ScriptStorageLocation check)" = "jffs" ]; then
+		ScriptStorageLocation usb
 		Create_Symlinks
-	elif [ "$(ScriptStorageLocation "check")" = "usb" ]; then
-		ScriptStorageLocation "jffs"
+	elif [ "$(ScriptStorageLocation check)" = "usb" ]; then
+		ScriptStorageLocation jffs
 		Create_Symlinks
 	fi
 }
 
 Menu_ToggleExcludeFromQoS(){
-	if [ "$(ExcludeFromQoS "check")" = "true" ]; then
-		ExcludeFromQoS "disable"
-	elif [ "$(ExcludeFromQoS "check")" = "false" ]; then
-		ExcludeFromQoS "enable"
+	if [ "$(ExcludeFromQoS check)" = "true" ]; then
+		ExcludeFromQoS disable
+	elif [ "$(ExcludeFromQoS check)" = "false" ]; then
+		ExcludeFromQoS enable
 	fi
 }
 
 Menu_ToggleAutoBW(){
-	if [ "$(AutoBWEnable "check")" = "true" ]; then
-		AutoBWEnable "disable"
-	elif [ "$(AutoBWEnable "check")" = "false" ]; then
-		AutoBWEnable "enable"
+	if [ "$(AutoBWEnable check)" = "true" ]; then
+		AutoBWEnable disable
+	elif [ "$(AutoBWEnable check)" = "false" ]; then
+		AutoBWEnable enable
 	fi
 }
 
@@ -2353,7 +2353,7 @@ Menu_EditSchedule(){
 	
 	while true; do
 		printf "\\n\\e[1mPlease enter a start hour (0-23):\\e[0m\\n"
-		read -r "hour"
+		read -r hour
 		
 		if [ "$hour" = "e" ]; then
 			exitmenu="exit"
@@ -2374,7 +2374,7 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
 			printf "\\n\\e[1mPlease enter an end hour (0-23):\\e[0m\\n"
-			read -r "hour"
+			read -r hour
 			
 			if [ "$hour" = "e" ]; then
 				exitmenu="exit"
@@ -2396,7 +2396,7 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
 			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m\\n"
-			read -r "minute"
+			read -r minute
 			
 			if [ "$minute" = "e" ]; then
 				exitmenu="exit"
@@ -2421,7 +2421,7 @@ Menu_EditSchedule(){
 			printf "1.    Every 30 minutes (twice an hour)\\n"
 			printf "2.    Every 60 minutes (once an hour)\\n\\n"
 			printf "Choose an option:    "
-			read -r "frequency"
+			read -r frequency
 			case "$frequency" in
 				1)
 					testfrequency="halfhourly"
@@ -2445,7 +2445,7 @@ Menu_EditSchedule(){
 	fi
 	
 	if [ "$exitmenu" != "exit" ]; then
-		TestSchedule "update" "$starthour" "$endhour" "$startminute" "$testfrequency"
+		TestSchedule update "$starthour" "$endhour" "$startminute" "$testfrequency"
 	fi
 }
 
@@ -2455,22 +2455,22 @@ Menu_AutoBW(){
 		
 		AUTOBW_MENU=""
 		
-		if [ "$(AutoBWEnable "check")" = "true" ]; then
+		if [ "$(AutoBWEnable check)" = "true" ]; then
 			AUTOBW_MENU="Enabled"
-		elif [ "$(AutoBWEnable "check")" = "false" ]; then
+		elif [ "$(AutoBWEnable check)" = "false" ]; then
 			AUTOBW_MENU="Disabled"
 		fi
 		
 		printf "1.    Update QoS bandwidth values now\\n\\n"
-		printf "2.    Configure scale factor\\n      Download: %s%%  -  Upload: %s%%\\n\\n" "$(AutoBWConf "check" "SF" "DOWN")" "$(AutoBWConf "check" "SF" "UP")"
-		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: %s Mbps  -  Upload: %s Mbps\\n      Lower Limit    Download: %s Mbps  -  Upload: %s Mbps\\n\\n" "$(AutoBWConf "check" "ULIMIT" "DOWN")" "$(AutoBWConf "check" "ULIMIT" "UP")" "$(AutoBWConf "check" "LLIMIT" "DOWN")" "$(AutoBWConf "check" "LLIMIT" "UP")"
+		printf "2.    Configure scale factor\\n      Download: %s%%  -  Upload: %s%%\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
+		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: %s Mbps  -  Upload: %s Mbps\\n      Lower Limit    Download: %s Mbps  -  Upload: %s Mbps\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
 		printf "4.    Toggle AutoBW on/off\\n      Currently: %s\\n\\n" "$AUTOBW_MENU"
 		printf "e.    Go back\\n\\n"
 		printf "\\e[1m####################################################################\\e[0m\\n"
 		printf "\\n"
 		
 		printf "Choose an option:    "
-		read -r "autobwmenu"
+		read -r autobwmenu
 		case "$autobwmenu" in
 			1)
 				printf "\\n"
@@ -2490,11 +2490,11 @@ Menu_AutoBW(){
 					printf "2.    Upload\\n\\n"
 					while true; do
 						printf "Choose an option:    "
-						read -r "autobwsfchoice"
+						read -r autobwsfchoice
 						if [ "$autobwsfchoice" = "e" ]; then
 							exitmenu="exit"
 							break
-						elif ! Validate_Number "" "$autobwsfchoice" "silent"; then
+						elif ! Validate_Number "" "$autobwsfchoice" silent; then
 							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
 						else
 							if [ "$autobwsfchoice" -lt 1 ] || [ "$autobwsfchoice" -gt 2 ]; then
@@ -2514,7 +2514,7 @@ Menu_AutoBW(){
 						while true; do
 							printf "\\n"
 							printf "Enter percentage to scale bandwidth by (1-100):    "
-							read -r "autobwsfvalue"
+							read -r autobwsfvalue
 								if [ "$autobwsfvalue" = "e" ]; then
 									exitmenu="exit"
 									break
@@ -2531,7 +2531,7 @@ Menu_AutoBW(){
 						done
 					fi
 					if [ "$exitmenu" != "exit" ]; then
-						AutoBWConf "update" "SF" "$updown" "$sfvalue"
+						AutoBWConf update SF "$updown" "$sfvalue"
 						break
 					fi
 					
@@ -2556,11 +2556,11 @@ Menu_AutoBW(){
 					printf "2.    Upload\\n\\n"
 					while true; do
 						printf "Choose an option:    "
-						read -r "autobwchoice"
+						read -r autobwchoice
 						if [ "$autobwchoice" = "e" ]; then
 							exitmenu="exit"
 							break
-						elif ! Validate_Number "" "$autobwchoice" "silent"; then
+						elif ! Validate_Number "" "$autobwchoice" silent; then
 							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
 						else
 							if [ "$autobwchoice" -lt 1 ] || [ "$autobwchoice" -gt 2 ]; then
@@ -2583,11 +2583,11 @@ Menu_AutoBW(){
 							printf "1.    Upper\\n"
 							printf "2.    Lower\\n\\n"
 							printf "Choose an option:    "
-							read -r "autobwlimit"
+							read -r autobwlimit
 								if [ "$autobwlimit" = "e" ]; then
 									exitmenu="exit"
 									break
-								elif ! Validate_Number "" "$autobwlimit" "silent"; then
+								elif ! Validate_Number "" "$autobwlimit" silent; then
 									printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
 								else
 									if [ "$autobwlimit" -lt 1 ] || [ "$autobwlimit" -gt 100 ]; then
@@ -2605,11 +2605,11 @@ Menu_AutoBW(){
 									while true; do
 										printf "\\n"
 										printf "Enter value to set limit to (0 = unlimited for upper):    "
-										read -r "autobwlimvalue"
+										read -r autobwlimvalue
 										if [ "$autobwlimvalue" = "e" ]; then
 											exitmenu="exit"
 											break
-										elif ! Validate_Number "" "$autobwlimvalue" "silent"; then
+										elif ! Validate_Number "" "$autobwlimvalue" silent; then
 											printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
 										else
 											limitvalue="$autobwlimvalue"
@@ -2617,7 +2617,7 @@ Menu_AutoBW(){
 										fi
 									done
 									if [ "$exitmenu" != "exit" ]; then
-										AutoBWConf "update" "$limithighlow" "$updown" "$limitvalue"
+										AutoBWConf update "$limithighlow" "$updown" "$limitvalue"
 										exitmenu="exit"
 										break
 									fi
@@ -2645,17 +2645,17 @@ Menu_AutoBW(){
 
 Menu_AutoBW_Update(){
 	if [ "$(nvram get qos_enable)" = "0" ]; then
-		Print_Output "true" "QoS is not enabled, please enable this in the Asus WebUI." "$ERR"
+		Print_Output true "QoS is not enabled, please enable this in the Asus WebUI." "$ERR"
 		return 1
 	fi
 	
-	dsf="$(AutoBWConf "check" "SF" "DOWN" | awk '{printf ($1/100)}')"
-	usf="$(AutoBWConf "check" "SF" "UP" | awk '{printf ($1/100)}')"
+	dsf="$(AutoBWConf check SF DOWN | awk '{printf ($1/100)}')"
+	usf="$(AutoBWConf check SF UP | awk '{printf ($1/100)}')"
 	
-	dlimitlow="$(($(AutoBWConf "check" "LLIMIT" "DOWN")*1024))"
-	dlimithigh="$(($(AutoBWConf "check" "ULIMIT" "DOWN")*1024))"
-	ulimitlow="$(($(AutoBWConf "check" "LLIMIT" "UP")*1024))"
-	ulimithigh="$(($(AutoBWConf "check" "ULIMIT" "UP")*1024))"
+	dlimitlow="$(($(AutoBWConf check LLIMIT DOWN)*1024))"
+	dlimithigh="$(($(AutoBWConf check ULIMIT DOWN)*1024))"
+	ulimitlow="$(($(AutoBWConf check LLIMIT UP)*1024))"
+	ulimithigh="$(($(AutoBWConf check ULIMIT UP)*1024))"
 	
 	metriclist="Download Upload"
 	
@@ -2665,7 +2665,7 @@ Menu_AutoBW_Update(){
 			echo ".mode list"
 			echo ".headers off"
 			echo ".output /tmp/spdbw$metric"
-			echo "select avg($metric) from (select $metric FROM spdstats_WAN ORDER BY [Timestamp] desc LIMIT 10);"
+			echo "SELECT avg($metric) FROM (SELECT $metric FROM spdstats_WAN ORDER BY [Timestamp] DESC LIMIT 10);"
 		} > /tmp/spd-autobw.sql
 		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-autobw.sql
 		rm -f /tmp/spd-autobw.sql
@@ -2679,18 +2679,18 @@ Menu_AutoBW_Update(){
 	rm -f /tmp/spdbwUpload
 	
 	if [ "$dspdkbps" -lt "$dlimitlow" ]; then
-		Print_Output "true" "Download speed ($dspdkbps Kbps) < lower limit ($dlimitlow Kbps)" "$WARN"
+		Print_Output true "Download speed ($dspdkbps Kbps) < lower limit ($dlimitlow Kbps)" "$WARN"
 		dspdkbps="$dlimitlow"
 	elif [ "$dspdkbps" -gt "$dlimithigh" ] && [ "$dlimithigh" -gt 0 ]; then
-		Print_Output "true" "Download speed ($dspdkbps Kbps) > upper limit ($dlimithigh Kbps)" "$WARN"
+		Print_Output true "Download speed ($dspdkbps Kbps) > upper limit ($dlimithigh Kbps)" "$WARN"
 		dspdkbps="$dlimithigh"
 	fi
 	
 	if [ "$uspdkbps" -lt "$ulimitlow" ]; then
-		Print_Output "true" "Upload speed ($uspdkbps Kbps) < lower limit ($ulimitlow Kbps)" "$WARN"
+		Print_Output true "Upload speed ($uspdkbps Kbps) < lower limit ($ulimitlow Kbps)" "$WARN"
 		uspdkbps="$ulimitlow"
 	elif [ "$uspdkbps" -gt "$ulimithigh" ] && [ "$ulimithigh" -gt 0 ]; then
-		Print_Output "true" "Upload speed ($uspdkbps Kbps) > upper limit ($ulimithigh Kbps)" "$WARN"
+		Print_Output true "Upload speed ($uspdkbps Kbps) > upper limit ($ulimithigh Kbps)" "$WARN"
 		uspdkbps="$ulimithigh"
 	fi
 	
@@ -2698,8 +2698,8 @@ Menu_AutoBW_Update(){
 	old_dspdkbps="$(nvram get qos_ibw)"
 	
 	#Set Upload/Download Limit
-	Print_Output "true" " Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$WARN"
-	Print_Output "true" " Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$WARN"
+	Print_Output true " Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$WARN"
+	Print_Output true " Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$WARN"
 	nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
 	nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
 	nvram commit
@@ -2714,12 +2714,12 @@ Menu_Update(){
 }
 
 Menu_ForceUpdate(){
-	Update_Version "force"
+	Update_Version force
 	Clear_Lock
 }
 
 Menu_Uninstall(){
-	Print_Output "true" "Removing $SCRIPT_NAME..." "$PASS"
+	Print_Output true "Removing $SCRIPT_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
 	Auto_ServiceEvent delete 2>/dev/null
@@ -2734,20 +2734,17 @@ Menu_Uninstall(){
 	
 	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
 	
-	while true; do
-		printf "\\n\\e[1mDo you want to delete %s stats and config? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
-		read -r "confirm"
-		case "$confirm" in
-			y|Y)
-				rm -rf "$SCRIPT_DIR" 2>/dev/null
-				rm -rf "$SCRIPT_STORAGE_DIR" 2>/dev/null
-				break
-			;;
-			*)
-				break
-			;;
-		esac
-	done
+	printf "\\n\\e[1mDo you want to delete %s stats and config? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
+	read -r confirm
+	case "$confirm" in
+		y|Y)
+			rm -rf "$SCRIPT_DIR" 2>/dev/null
+			rm -rf "$SCRIPT_STORAGE_DIR" 2>/dev/null
+		;;
+		*)
+			:
+		;;
+	esac
 	Shortcut_spdMerlin delete
 	
 	rm -rf "$SCRIPT_WEB_DIR" 2>/dev/null
@@ -2755,7 +2752,7 @@ Menu_Uninstall(){
 	rm -rf "$OOKLA_LICENSE_DIR" 2>/dev/null
 	rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
 	Clear_Lock
-	Print_Output "true" "Uninstall completed" "$PASS"
+	Print_Output true "Uninstall completed" "$PASS"
 }
 
 NTP_Ready(){
@@ -2770,16 +2767,16 @@ NTP_Ready(){
 		while [ "$(nvram get ntp_ready)" = "0" ] && [ "$ntpwaitcount" -lt "300" ]; do
 			ntpwaitcount="$((ntpwaitcount + 1))"
 			if [ "$ntpwaitcount" = "60" ]; then
-				Print_Output "true" "Waiting for NTP to sync..." "$WARN"
+				Print_Output true "Waiting for NTP to sync..." "$WARN"
 			fi
 			sleep 1
 		done
 		if [ "$ntpwaitcount" -ge "300" ]; then
-			Print_Output "true" "NTP failed to sync after 5 minutes. Please resolve!" "$CRIT"
+			Print_Output true "NTP failed to sync after 5 minutes. Please resolve!" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
-			Print_Output "true" "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
+			Print_Output true "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
 			Clear_Lock
 		fi
 	fi
@@ -2793,20 +2790,20 @@ Entware_Ready(){
 		fi
 	fi
 		
-	if [ ! -f "/opt/bin/opkg" ] && ! echo "$@" | grep -wqE "(install|uninstall|update|forceupdate)"; then
+	if [ ! -f /opt/bin/opkg ] && ! echo "$@" | grep -wqE "(install|uninstall|update|forceupdate)"; then
 		Check_Lock
 		sleepcount=1
 		while [ ! -f "/opt/bin/opkg" ] && [ "$sleepcount" -le 10 ]; do
-			Print_Output "true" "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
+			Print_Output true "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
 			sleepcount="$((sleepcount + 1))"
 			sleep 10
 		done
-		if [ ! -f "/opt/bin/opkg" ]; then
-			Print_Output "true" "Entware not found and is required for $SCRIPT_NAME to run, please resolve" "$CRIT"
+		if [ ! -f /opt/bin/opkg ]; then
+			Print_Output true "Entware not found and is required for $SCRIPT_NAME to run, please resolve" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
-			Print_Output "true" "Entware found, $SCRIPT_NAME will now continue" "$PASS"
+			Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
 			Clear_Lock
 		fi
 	fi
@@ -2830,18 +2827,18 @@ CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 
 if [ -z "$1" ]; then
 	if [ ! -f /opt/bin/sqlite3 ]; then
-		Print_Output "true" "Installing required version of sqlite3 from Entware" "$PASS"
+		Print_Output true "Installing required version of sqlite3 from Entware" "$PASS"
 		opkg update
 		opkg install sqlite3-cli
 	fi
-	rm -f "spdstatsdata.js" 2>/dev/null
-	rm -f "spdstatstext.js" 2>/dev/null
-	rm -f "spdlastx.js" 2>/dev/null
+	rm -f spdstatsdata.js 2>/dev/null
+	rm -f spdstatstext.js 2>/dev/null
+	rm -f spdlastx.js 2>/dev/null
 	
 	Create_Dirs
 	Conf_Exists
-	Set_Version_Custom_Settings "local"
-	ScriptStorageLocation "load"
+	Set_Version_Custom_Settings local
+	ScriptStorageLocation load
 	Create_Symlinks
 	
 	Process_Upgrade
@@ -2850,7 +2847,7 @@ if [ -z "$1" ]; then
 	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_spdMerlin create
-	License_Acceptance "load"
+	License_Acceptance load
 	ScriptHeader
 	MainMenu
 	exit 0
@@ -2870,13 +2867,13 @@ case "$1" in
 	;;
 	generate)
 		Check_Lock
-		Run_Speedtest "schedule"
+		Run_Speedtest schedule
 		Clear_Lock
 		exit 0
 	;;
 	service_event)
 		if [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""spdtest"; then
-			Check_Lock "webui"
+			Check_Lock webui
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
 			exit 0
@@ -2894,7 +2891,7 @@ case "$1" in
 			Update_Check
 			exit 0
 		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""doupdate" ]; then
-			Update_Version "force" "unattended"
+			Update_Version force unattended
 			exit 0
 		fi
 		exit 0
@@ -2912,16 +2909,16 @@ case "$1" in
 		exit 0
 	;;
 	update)
-		Update_Version "unattended"
+		Update_Version unattended
 		exit 0
 	;;
 	forceupdate)
-		Update_Version "force" "unattended"
+		Update_Version force unattended
 		exit 0
 	;;
 	setversion)
-		Set_Version_Custom_Settings "local"
-		Set_Version_Custom_Settings "server" "$SCRIPT_VERSION"
+		Set_Version_Custom_Settings local
+		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 		if [ -z "$2" ]; then
 			exec "$0"
 		fi
@@ -2938,12 +2935,12 @@ case "$1" in
 	;;
 	develop)
 		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="develop"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
-		exec "$0" "update"
+		exec "$0" update
 		exit 0
 	;;
 	stable)
 		sed -i 's/^readonly SCRIPT_BRANCH.*$/readonly SCRIPT_BRANCH="master"/' "/jffs/scripts/$SCRIPT_NAME_LOWER"
-		exec "$0" "update"
+		exec "$0" update
 		exit 0
 	;;
 	*)
