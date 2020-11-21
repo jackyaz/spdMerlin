@@ -221,9 +221,12 @@ var $j=jQuery.noConflict(),maxNoCharts=0,currentNoCharts=0,interfacelist="",inte
 <tr class="even" id="rowmanualserverpref">
 <th width="40%">Mode for speedtest</th>
 <td class="settingvalue">
-<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_auto" class="input" value="auto" onchange="Toggle_SpdTestServerPref(this)" checked>Auto-select server
-<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_user" class="input" value="user" onchange="Toggle_SpdTestServerPref(this)">Preferred server
-<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_onetime" class="input" value="onetime" onchange="Toggle_SpdTestServerPref(this)">Choose a server
+<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_auto" class="input" value="auto" onchange="Toggle_SpdTestServerPref(this)" checked>
+<label for="spdtest_serverpref_auto" class="settingvalue">Auto-select server</label>
+<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_user" class="input" value="user" onchange="Toggle_SpdTestServerPref(this)">
+<label for="spdtest_serverpref_user" class="settingvalue">Preferred server</label>
+<input type="radio" name="spdtest_serverpref" id="spdtest_serverpref_onetime" class="input" value="onetime" onchange="Toggle_SpdTestServerPref(this)">
+<label for="spdtest_serverpref_onetime" class="settingvalue">Choose a server</label>
 </td>
 </tr>
 <tr class="apply_gen" valign="top" height="35px">
@@ -258,8 +261,10 @@ var $j=jQuery.noConflict(),maxNoCharts=0,currentNoCharts=0,interfacelist="",inte
 <tr class="even" id="rowfrequency">
 <th width="40%">Frequency for automatic speedtests</th>
 <td class="settingvalue">
-<input type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_halfhourly" class="input" value="halfhourly" onchange="Toggle_ScheduleFrequency(this)" checked>Half-hourly
-<input type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_hourly" class="input" value="hourly" onchange="Toggle_ScheduleFrequency(this)">Hourly
+<input type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_halfhourly" class="input" value="halfhourly" onchange="Toggle_ScheduleFrequency(this)" checked>
+<label for="spdmerlin_freq_halfhourly" class="settingvalue">Half-hourly</label>
+<input type="radio" name="spdmerlin_testfrequency" id="spdmerlin_freq_hourly" class="input" value="hourly" onchange="Toggle_ScheduleFrequency(this)">
+<label for="spdmerlin_freq_hourly" class="settingvalue">Hourly</label>
 </td>
 </tr>
 <tr class="even" id="rowschedule">
@@ -312,36 +317,46 @@ var $j=jQuery.noConflict(),maxNoCharts=0,currentNoCharts=0,interfacelist="",inte
 <tr class="even" id="rowdataoutput">
 <th width="40%">Data Output Mode<br/><span style="color:#FFCC00;">(for weekly and monthly charts)</span></th>
 <td class="settingvalue">
-<input type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_average" class="input" value="average" checked>Average
-<input type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_raw" class="input" value="raw">Raw
+<input type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_average" class="input" value="average" checked>
+<label for="spdmerlin_dataoutput_average" class="settingvalue">Average</label>
+<input type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_raw" class="input" value="raw">
+<label for="spdmerlin_dataoutput_raw" class="settingvalue">Raw</label>
 </td>
 </tr>
 <tr class="even" id="rowtimeoutput">
 <th width="40%">Time Output Mode<br/><span style="color:#FFCC00;">(for CSV export)</span></th>
 <td class="settingvalue">
-<input type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_non-unix" class="input" value="non-unix" checked>Non-Unix
-<input type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_unix" class="input" value="unix">Unix
+<input type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_non-unix" class="input" value="non-unix" checked>
+<label for="spdmerlin_timeoutput_non-unix" class="settingvalue">Non-Unix</label>
+<input type="radio" name="spdmerlin_outputtimemode" id="spdmerlin_timeoutput_unix" class="input" value="unix">
+<label for="spdmerlin_timeoutput_unix" class="settingvalue">Unix</label>
 </td>
 </tr>
 <tr class="even" id="rowstorageloc">
 <th width="40%">Data Storage Location</th>
 <td class="settingvalue">
-<input type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_jffs" class="input" value="jffs" checked>JFFS
-<input type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_usb" class="input" value="usb">USB
+<input type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_jffs" class="input" value="jffs" checked>
+<label for="spdmerlin_storageloc_jffs" class="settingvalue">JFFS</label>
+<input type="radio" name="spdmerlin_storagelocation" id="spdmerlin_storageloc_usb" class="input" value="usb">
+<label for="spdmerlin_storageloc_usb" class="settingvalue">USB</label>
 </td>
 </tr>
 <tr class="even" id="rowstoreresulturl">
 <th width="40%">Save speedtest URLs to database</th>
 <td class="settingvalue">
-<input type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_true" class="input" value="true">Yes
-<input type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_false" class="input" value="false" checked>No
+<input type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_true" class="input" value="true">
+<label for="spdmerlin_store_true" class="settingvalue">Yes</label>
+<input type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_false" class="input" value="false" checked>
+<label for="spdmerlin_store_false" class="settingvalue">No</label>
 </td>
 </tr>
 <tr class="even" id="rowexcludefromqos">
 <th width="40%">Exclude speedtests from QoS</th>
 <td class="settingvalue">
-<input type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_true" class="input" value="true" checked>Yes
-<input type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_false" class="input" value="false">No
+<input type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_true" class="input" value="true" checked>
+<label for="spdmerlin_exclude_true" class="settingvalue">Yes</label>
+<input type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_false" class="input" value="false">
+<label for="spdmerlin_exclude_false" class="settingvalue">No</label>
 </td>
 </tr>
 <tr class="apply_gen" valign="top" height="35px">
@@ -356,7 +371,7 @@ var $j=jQuery.noConflict(),maxNoCharts=0,currentNoCharts=0,interfacelist="",inte
 <tr><td colspan="2">Chart Display Options (click to expand/collapse)</td></tr>
 </thead>
 <tr>
-<th width="20%"><span style="color:#FFFFFF;">Time format</span><br /><span style="color:#FFFFFF;">for tooltips and Last 24h chart axis</span></th>
+<th width="20%"><span style="color:#FFFFFF;">Time format</span><br /><span style="color:#FFCC00;">(for tooltips and Last 24h chart axis)</span></th>
 <td>
 <select style="width:100px" class="input_option" onchange="changeAllCharts(this)" id="Time_Format">
 <option value="0">24h</option>
