@@ -3,6 +3,10 @@ var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
 var maxNoCharts = 0;
 var currentNoCharts = 0;
 
+var interfacelist = "";
+var interfacescomplete = [];
+var interfacesdisabled = [];
+
 var ShowLines = GetCookie("ShowLines","string");
 var ShowFill = GetCookie("ShowFill","string");
 if(ShowFill == ""){
@@ -559,67 +563,61 @@ function round(value, decimals){
 }
 
 function ToggleLines(){
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		if(ShowLines == ""){
-			ShowLines = "line";
-			SetCookie("ShowLines","line");
-		}
-		else{
-			ShowLines = "";
-			SetCookie("ShowLines","");
-		}
-		for (i = 0; i < interfacetextarray.length; i++){
-			for (i2 = 0; i2 < typelist.length; i2++){
-				var maxlines = 6;
-				if(typelist[i2] == "Quality"){
-					maxlines = 9;
-				}
-				for (i3 = 0; i3 < maxlines; i3++){
-					window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].options.annotation.annotations[i3].type=ShowLines;
-				}
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
+	var interfacetextarray = interfacelist.split(',');
+	if(ShowLines == ""){
+		ShowLines = "line";
+		SetCookie("ShowLines","line");
+	}
+	else{
+		ShowLines = "";
+		SetCookie("ShowLines","");
+	}
+	for (i = 0; i < interfacetextarray.length; i++){
+		for (i2 = 0; i2 < typelist.length; i2++){
+			var maxlines = 6;
+			if(typelist[i2] == "Quality"){
+				maxlines = 9;
 			}
+			for (i3 = 0; i3 < maxlines; i3++){
+				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].options.annotation.annotations[i3].type=ShowLines;
+			}
+			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
 		}
 	}
 }
 
 function ToggleFill(){
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		if(ShowFill == "origin"){
-			ShowFill = false;
-			SetCookie("ShowFill",false);
-		}
-		else{
-			ShowFill = "origin";
-			SetCookie("ShowFill","origin");
-		}
-		
-		for (i = 0; i < interfacetextarray.length; i++){
-			for (i2 = 0; i2 < typelist.length; i2++){
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[0].fill=ShowFill;
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[1].fill=ShowFill;
-				if(typelist[i2] == "Quality"){
-					window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[2].fill=ShowFill;
-				}
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
+	var interfacetextarray = interfacelist.split(',');
+	if(ShowFill == "origin"){
+		ShowFill = false;
+		SetCookie("ShowFill",false);
+	}
+	else{
+		ShowFill = "origin";
+		SetCookie("ShowFill","origin");
+	}
+	
+	for (i = 0; i < interfacetextarray.length; i++){
+		for (i2 = 0; i2 < typelist.length; i2++){
+			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[0].fill=ShowFill;
+			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[1].fill=ShowFill;
+			if(typelist[i2] == "Quality"){
+				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[2].fill=ShowFill;
 			}
+			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
 		}
 	}
 }
 
 function RedrawAllCharts(){
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		var i;
-		for (i2 = 0; i2 < chartlist.length; i2++){
-			for (i3 = 0; i3 < interfacetextarray.length; i3++){
-				$j("#"+interfacetextarray[i3]+"_Period_Combined").val(GetCookie(interfacetextarray[i3]+"_Period_Combined","number"));
-				$j("#"+interfacetextarray[i3]+"_Period_Quality").val(GetCookie(interfacetextarray[i3]+"_Period_Quality","number"));
-				d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
-				d3.csv('/ext/spdmerlin/csv/Quality'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Quality"));
-			}
+	var interfacetextarray = interfacelist.split(',');
+	var i;
+	for (i2 = 0; i2 < chartlist.length; i2++){
+		for (i3 = 0; i3 < interfacetextarray.length; i3++){
+			$j("#"+interfacetextarray[i3]+"_Period_Combined").val(GetCookie(interfacetextarray[i3]+"_Period_Combined","number"));
+			$j("#"+interfacetextarray[i3]+"_Period_Quality").val(GetCookie(interfacetextarray[i3]+"_Period_Quality","number"));
+			d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
+			d3.csv('/ext/spdmerlin/csv/Quality'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Quality"));
 		}
 	}
 }
@@ -680,24 +678,23 @@ $j.fn.serializeObject = function(){
 	var o = custom_settings;
 	var a = this.serializeArray();
 	$j.each(a, function(){
-		if(o[this.name] !== undefined && this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1){
+		if(o[this.name] !== undefined && this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1){
 			if(!o[this.name].push){
 				o[this.name] = [o[this.name]];
 			}
 			o[this.name].push(this.value || '');
-		} else if(this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1){
+		} else if(this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1){
 			o[this.name] = this.value || '';
 		}
 	});
-	return o;
-};
-
-$j.fn.serializeObjectInterfaces = function(){
-	var o = custom_settings;
-	var a = this.serializeArray();
+	
+	$j.each($j("input[name^='spdmerlin_usepreferred']"), function(){
+		o[this.id] = this.checked.toString();
+	});
+	
 	var ifacesenabled = [];
 	$j.each($j("input[name='spdmerlin_iface_enabled']:checked"), function(){
-		ifacesenabled.push($j(this).val());
+		ifacesenabled.push(this.value);
 	});
 	var ifacesenabledstring = ifacesenabled.join(",");
 	o["spdmerlin_ifaces_enabled"] = ifacesenabledstring;
@@ -723,12 +720,10 @@ function SetGlobalDataset(txtchartname,dataobject){
 	window[txtchartname] = dataobject;
 	currentNoCharts++;
 	if(currentNoCharts == maxNoCharts){
-		if(interfacelist != ""){
-			var interfacetextarray = interfacelist.split(',');
-			for (i = 0; i < interfacetextarray.length; i++){
-				Draw_Chart(interfacetextarray[i],"Combined");
-				Draw_Chart(interfacetextarray[i],"Quality");
-			}
+		var interfacetextarray = interfacelist.split(',');
+		for (i = 0; i < interfacetextarray.length; i++){
+			Draw_Chart(interfacetextarray[i],"Combined");
+			Draw_Chart(interfacetextarray[i],"Quality");
 		}
 	}
 }
@@ -760,14 +755,12 @@ function getChartPeriod(period){
 }
 
 function ResetZoom(){
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++){
-			for (i2 = 0; i2 < typelist.length; i2++){
-				var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
-				if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
-				chartobj.resetZoom();
-			}
+	var interfacetextarray = interfacelist.split(',');
+	for (i = 0; i < interfacetextarray.length; i++){
+		for (i2 = 0; i2 < typelist.length; i2++){
+			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
+			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
+			chartobj.resetZoom();
 		}
 	}
 }
@@ -791,18 +784,16 @@ function ToggleDragZoom(button){
 		buttonvalue = "Drag Zoom On";
 	}
 	
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++){
-			for (i2 = 0; i2 < typelist.length; i2++){
-				var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
-				if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
-				chartobj.options.plugins.zoom.zoom.drag = drag;
-				chartobj.options.plugins.zoom.pan.enabled = pan;
-				chartobj.update();
-			}
-			button.value = buttonvalue;
+	var interfacetextarray = interfacelist.split(',');
+	for (i = 0; i < interfacetextarray.length; i++){
+		for (i2 = 0; i2 < typelist.length; i2++){
+			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
+			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
+			chartobj.options.plugins.zoom.zoom.drag = drag;
+			chartobj.options.plugins.zoom.pan.enabled = pan;
+			chartobj.update();
 		}
+		button.value = buttonvalue;
 	}
 }
 
@@ -858,6 +849,135 @@ function DoUpdate(){
 	document.form.submit();
 }
 
+function getAllIndexes(arr, val){
+	var indexes = [];
+	for(var i = 0; i < arr.length; i++){
+		if (arr[i].id == val){
+			indexes.push(i);
+		}
+	}
+	return indexes;
+}
+
+function get_spdtestservers_file(ifacename){
+	$j.ajax({
+		url: '/ext/spdmerlin/spdmerlin_serverlist_'+ifacename.toUpperCase()+'.htm?cachebuster='+ new Date().getTime(),
+		dataType: 'text',
+		timeout: 2000,
+		error: function(xhr){
+			setTimeout("get_spdtestservers_file('"+ifacename+"');", 1000);
+		},
+		success: function(data){
+			var servers = [];
+			$j.each(data.split('\n').filter(Boolean), function (key, entry){
+				var obj = {};
+				obj["id"] = entry.split('|')[0];
+				obj["name"] = entry.split('|')[1];
+				servers.push(obj);
+			});
+			
+			$j("#spdmerlin_preferredserver_"+ifacename).prop("disabled",false);
+			$j("#spdmerlin_preferredserver_"+ifacename).removeClass("disabled");
+			
+			let dropdown = $j("#spdmerlin_preferredserver_"+ifacename);
+			dropdown.empty();
+			$j.each(servers, function (key, entry){
+				dropdown.append($j('<option></option>').attr('value', entry.id+'|'+entry.name).text(entry.id+'|'+entry.name));
+			});
+			dropdown.prop('selectedIndex', 0);
+			
+			$j("#spdmerlin_preferredserver_"+ifacename)[0].style.display = "";
+			showhide("imgServerList_"+ifacename, false);
+		}
+	});
+}
+
+function get_manualspdtestservers_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spdmerlin_manual_serverlist.htm?cachebuster='+ new Date().getTime(),
+		dataType: 'text',
+		timeout: 2000,
+		error: function(xhr){
+			setTimeout("get_manualspdtestservers_file();", 1000);
+		},
+		success: function(data){
+			var servers = [];
+			$j.each(data.split('\n').filter(Boolean), function (key, entry){
+				var obj = {};
+				obj["id"] = entry.split('|')[0];
+				obj["name"] = entry.split('|')[1];
+				servers.push(obj);
+			});
+			
+			if(document.form.spdtest_enabled.value == "All"){
+				var arrifaceindex = getAllIndexes(servers,"-----");
+				for(var i = 0; i < arrifaceindex.length; i++){
+					let dropdown = $j($j("select[name^=spdtest_serverprefselect]")[i]);
+					dropdown.empty();
+					var arrtmp = [];
+					if(i == 0){
+						arrtmp = servers.slice(0, arrifaceindex[i]);
+					}
+					else if(i == arrifaceindex.length-1){
+						arrtmp = servers.slice(arrifaceindex[i-1]+1,servers.length-1);
+					}
+					else{
+						arrtmp = servers.slice(arrifaceindex[i-1]+1, arrifaceindex[i]);
+					}
+					$j.each(arrtmp, function (key, entry){
+						dropdown.append($j('<option></option>').attr('value', entry.id+'|'+entry.name).text(entry.id+'|'+entry.name));
+					});
+					dropdown.prop('selectedIndex', 0);
+				}
+				
+				$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
+					this.style.display = "inline-block";
+				});
+				$j.each($j("span[id^=spdtest_serverprefselectspan]"), function(){
+					this.style.display = "inline-block";
+				});
+				showhide("imgManualServerList",false);
+			}
+			else{
+				let dropdown = $j('select[name=spdtest_serverprefselect]');
+				dropdown.empty();
+				$j.each(servers, function (key, entry){
+					dropdown.append($j('<option></option>').attr('value', entry.id+'|'+entry.name).text(entry.id+'|'+entry.name));
+				});
+				dropdown.prop('selectedIndex', 0);
+				showhide("spdtest_serverprefselect",true);
+				showhide("imgManualServerList",false);
+			}
+			for (var i = 0; i < interfacescomplete.length; i++){
+				if(interfacesdisabled.includes(interfacescomplete[i]) == false){
+					$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+					$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+				}
+			}
+			$j.each($j("input[name=spdtest_serverpref]"), function(){
+				$j(this).prop("disabled",false);
+				$j(this).removeClass("disabled");
+			});
+		}
+	});
+}
+
+function get_spdtestresult_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spd-result.htm',
+		dataType: 'text',
+		timeout: 1000,
+		error: function(xhr){
+			setTimeout("get_spdtestresult_file();", 500);
+		},
+		success: function(data){
+			var lines = data.trim().split('\n');
+			data = lines.join('\n');
+			$j("#spdtest_output").html(data);
+		}
+	});
+}
+
 function get_spdtest_file(){
 	$j.ajax({
 		url: '/ext/spdmerlin/spd-stats.htm',
@@ -899,8 +1019,8 @@ function update_spdtest(){
 				}
 			}
 			else if(spdteststatus == "Done"){
+				get_spdtestresult_file();
 				document.getElementById("spdtest_text").innerHTML = "Refreshing tables and charts...";
-				document.getElementById("spdtest_output").parentElement.parentElement.style.display = "none";
 				setTimeout('PostSpeedTest();', 1000);
 				clearInterval(myinterval);
 			}
@@ -944,9 +1064,13 @@ function PostSpeedTest(){
 	showhide("imgSpdTest", false);
 	showhide("spdtest_text", false);
 	showhide("btnRunSpeedtest", true);
-	document.getElementById("table_allinterfaces").remove();
+	$j("#table_allinterfaces").remove();
+	$j("#rowautomaticspdtest").remove();
+	$j("#rowautospdprefserver").remove();
+	$j("#rowmanualspdtest").remove();
 	currentNoCharts = 0;
 	reload_js('/ext/spdmerlin/spdjs.js');
+	reload_js('/ext/spdmerlin/spdtitletext.js');
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	SetSPDStatsTitle();
 	get_interfaces_file();
@@ -954,7 +1078,21 @@ function PostSpeedTest(){
 
 function RunSpeedtest(){
 	showhide("btnRunSpeedtest", false);
-	document.formScriptActions.action_script.value="start_spdmerlin";
+	$j("#spdtest_output").html("");
+	
+	var spdtestservers = "";
+	if(document.form.spdtest_serverpref.value == "onetime"){
+		if(document.form.spdtest_enabled.value == "All"){
+			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
+				spdtestservers += this.value.substring(0,this.value.indexOf('|')) + '+';
+			});
+			spdtestservers = spdtestservers.slice(0,-1);
+		}
+		else{
+			spdtestservers = document.form.spdtest_serverprefselect.value.substring(0,document.form.spdtest_serverprefselect.value.indexOf('|'));
+		}
+	}
+	document.formScriptActions.action_script.value="start_spdmerlinspdtest_" + document.form.spdtest_serverpref.value + "_" + document.form.spdtest_enabled.value + "_" + spdtestservers.replace(/ /g,'%');
 	document.formScriptActions.submit();
 	showhide("imgSpdTest", true);
 	showhide("spdtest_text", false);
@@ -971,24 +1109,35 @@ function reload_js(src){
 	$j('<script>').attr('src', src+'?cachebuster='+ new Date().getTime()).appendTo('head');
 }
 
-function applyRule(){
-	document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject())
-	var action_script_tmp = "start_spdmerlinconfig";
-	document.form.action_script.value = action_script_tmp;
-	var restart_time = 5;
-	document.form.action_wait.value = restart_time;
-	showLoading();
-	document.form.submit();
-}
-
-function SaveInterfaces(){
-	document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObjectInterfaces())
-	var action_script_tmp = "start_spdmerlinconfiginterfaces";
-	document.form.action_script.value = action_script_tmp;
-	var restart_time = 5;
-	document.form.action_wait.value = restart_time;
-	showLoading();
-	document.form.submit();
+function SaveConfig(){
+	if(Validate_All()){
+		for (var i = 0; i < interfacescomplete.length; i++){
+			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+			$j('#spdmerlin_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+			$j('#spdmerlin_usepreferred_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+			$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+			$j('#changepref_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+		}
+		$j('input[name=spdmerlin_testfrequency]').prop("disabled",false);
+		$j('input[name=spdmerlin_testfrequency]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw_ulimit]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw_ulimit]').prop("disabled",false);
+		$j('input[name^=spdmerlin_autobw_llimit]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw_llimit]').prop("disabled",false);
+		$j('input[name^=spdmerlin_autobw_sf]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw_sf]').prop("disabled",false);
+		document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject());
+		var action_script_tmp = "start_spdmerlinconfig";
+		document.form.action_script.value = action_script_tmp;
+		var restart_time = 5;
+		document.form.action_wait.value = restart_time;
+		showLoading();
+		document.form.submit();
+	}
+	else{
+		return false;
+	}
 }
 
 function GetVersionNumber(versiontype){
@@ -1020,14 +1169,26 @@ function get_conf_file(){
 			configdata = configdata.filter(Boolean);
 			
 			for (var i = 0; i < configdata.length; i++){
-				if(configdata[i].indexOf("OUTPUTDATAMODE") != -1){
-					document.form.spdmerlin_outputdatamode.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				if(configdata[i].indexOf("PREFERRED") == -1){
+					eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).value = configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
-				else if(configdata[i].indexOf("OUTPUTTIMEMODE") != -1){
-					document.form.spdmerlin_outputtimemode.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				else if(configdata[i].indexOf("USEPREFERRED") != -1){
+					if(configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"") == "true"){
+						eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).checked = true;
+					}
 				}
-				else if(configdata[i].indexOf("STORAGELOCATION") != -1){
-					document.form.spdmerlin_storagelocation.value=configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				else if(configdata[i].indexOf("PREFERREDSERVER") != -1){
+					$j("#span_spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).html(configdata[i].split("=")[0].split("_")[1]+" - "+configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,""));
+				}
+				
+				if(configdata[i].indexOf("AUTOMATED") != -1){
+					AutomaticInterfaceEnableDisable($j("#spdmerlin_auto_"+document.form.spdmerlin_automated.value)[0]);
+				}
+				else if(configdata[i].indexOf("TESTFREQUENCY") != -1){
+					Toggle_ScheduleFrequency($j("#spdmerlin_freq_"+document.form.spdmerlin_testfrequency.value)[0]);
+				}
+				else if(configdata[i].indexOf("AUTOBW") != -1){
+					AutoBWEnableDisable($j("#spdmerlin_autobw_"+document.form.spdmerlin_autobw_enabled.value)[0]);
 				}
 			}
 		}
@@ -1043,47 +1204,76 @@ function get_interfaces_file(){
 		},
 		success: function(data){
 			var interfaces=data.split("\n");
-			
 			interfaces=interfaces.filter(Boolean);
 			interfacelist="";
+			interfacescomplete = [];
+			interfacesdisabled = [];
+
 			var interfacecharttablehtml='<div style="line-height:10px;">&nbsp;</div>';
 			interfacecharttablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable" id="table_allinterfaces">';
 			interfacecharttablehtml+='<thead class="collapsible-jquery" id="thead_allinterfaces">';
-			interfacecharttablehtml+='<tr>';
-			interfacecharttablehtml+='<td>Interfaces (click to expand/collapse)</td>';
-			interfacecharttablehtml+='</tr>';
+			interfacecharttablehtml+='<tr><td>Interfaces (click to expand/collapse)</td></tr>';
 			interfacecharttablehtml+='</thead>';
 			interfacecharttablehtml+='<tr><td align="center" style="padding: 0px;">';
 			
-			var interfaceconfigtablehtml='<div style="line-height:10px;">&nbsp;</div>';
-			interfaceconfigtablehtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable SettingsTable" id="table_configinterfaces">';
-			interfaceconfigtablehtml+='<thead class="collapsible-jquery" id="thead_configinterfaces">';
-			interfaceconfigtablehtml+='<tr>';
-			interfaceconfigtablehtml+='<td colspan="2">Interface Configuration (click to expand/collapse)</td>';
-			interfaceconfigtablehtml+='</tr>';
-			interfaceconfigtablehtml+='</thead>';
-			interfaceconfigtablehtml+='<tr>';
-			interfaceconfigtablehtml+='<td class="settingname">Enabled for speedtest?</td><td class="settingvalue">';
+			var interfaceconfigtablehtml='<tr id="rowautomaticspdtest"><th width="40%">Interfaces to use for automatic speedtests</th><td class="settingvalue">';
+			
+			var prefserverconfigtablehtml='<tr id="rowautospdprefserver"><th width="40%">Interfaces that use a preferred server</th><td class="settingvalue">';
+			
+			var prefserverselecttablehtml='<tr id="rowautospdprefserverselect"><th width="40%">Preferred servers for interfaces</th><td class="settingvalue">';
+			
+			var speedtestifaceconfigtablehtml='<tr id="rowmanualspdtest"><th width="40%">Interfaces to use for manual speedtest</th><td class="settingvalue">';
+			speedtestifaceconfigtablehtml+='<input type="radio" name="spdtest_enabled" id="spdtest_enabled_all" onchange="Change_SpdTestInterface(this)" class="input" settingvalueradio" value="All" checked>';
+			speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_all" class="settingvalue">All</label>';
 			
 			var interfacecount=interfaces.length;
 			for (var i = 0; i < interfacecount; i++){
 				var interfacename = "";
 				if(interfaces[i].indexOf("#") != -1){
 					interfacename = interfaces[i].substring(0,interfaces[i].indexOf("#")).trim();
+					interfacescomplete.push(interfacename);
 					var interfacedisabled = "";
-					var clickhint = "";
+					var ifacelabel = interfacename.toUpperCase();
+					var changelabel = "Change?";
 					if(interfaces[i].indexOf("interface not up") != -1){
+						interfacesdisabled.push(interfacename);
 						interfacedisabled = "disabled";
-						clickhint="SettingHint(1);"
+						ifacelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">'+interfacename.toUpperCase()+'</a>';
+						changelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">Change?</a>';
 					}
-					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + '" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
-					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'"><a class="hintstyle" href="javascript:void(0);" onclick="' + clickhint + '">'+interfacename.toUpperCase()+'</a></label>';
-					continue
+					interfaceconfigtablehtml+='<input type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
+					
+					prefserverconfigtablehtml+='<input type="checkbox" name="spdmerlin_usepreferred_' + interfacename.toLowerCase() + '" id="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
+					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
+					
+					prefserverselecttablehtml+='<span style="margin-left:4px;vertical-align:top;max-width:465px;display:inline-block;" id="span_spdmerlin_preferredserver_'+interfacename.toLowerCase()+'">'+interfacename.toUpperCase()+':</span><br />';
+					prefserverselecttablehtml+='<input type="checkbox" name="changepref_' + interfacename.toLowerCase() + '" id="changepref_'+ interfacename.toLowerCase() +'" class="input settingvalue ' + interfacedisabled + '" ' + interfacedisabled + ' onchange="Toggle_ChangePrefServer(this)">';
+					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'" class="settingvalue">'+changelabel+'</label>';
+					prefserverselecttablehtml+='<img id="imgServerList_'+ interfacename.toLowerCase() +'" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
+					prefserverselecttablehtml+='<select class="disabled" name="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" id="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" style="min-width:100px;max-width:400px;display:none;vertical-align:top;" disabled></select><br />';
+					
+					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
+					speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
 				}
 				else{
 					interfacename = interfaces[i].trim();
-					interfaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input" value="'+interfacename.toUpperCase()+'" checked>';
-					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'">'+interfacename.toUpperCase()+'</label>';
+					interfacescomplete.push(interfacename);
+					
+					interfaceconfigtablehtml+='<input type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
+					
+					prefserverconfigtablehtml+='<input type="checkbox" name="spdmerlin_usepreferred_' + interfacename.toLowerCase() + '" id="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
+					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
+					
+					prefserverselecttablehtml+='<span style="margin-left:4px;vertical-align:top;max-width:465px;display:inline-block;" id="span_spdmerlin_preferredserver_'+interfacename.toLowerCase()+'">'+interfacename.toUpperCase()+':</span><br />';
+					prefserverselecttablehtml+='<input type="checkbox" name="changepref_' + interfacename.toLowerCase() + '" id="changepref_'+ interfacename.toLowerCase() +'" class="input settingvalue" onchange="Toggle_ChangePrefServer(this)">';
+					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'" class="settingvalue">Change?</label>';
+					prefserverselecttablehtml+='<img id="imgServerList_'+ interfacename.toLowerCase() +'" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
+					prefserverselecttablehtml+='<select class="disabled" name="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" id="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" style="min-width:100px;max-width:400px;display:none;vertical-align:top;" disabled></select><br />';
+					
+					speedtestifaceconfigtablehtml+='<input type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input settingvalueradio" value="'+interfacename.toUpperCase()+'">';
+					speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
 				}
 				
 				interfacecharttablehtml += BuildInterfaceTable(interfacename);
@@ -1091,32 +1281,34 @@ function get_interfaces_file(){
 				interfacelist+=interfacename+',';
 			}
 			
-			interfacecharttablehtml+='</td>';
-			interfacecharttablehtml+='</tr>';
-			interfacecharttablehtml+='</table>';
+			interfacecharttablehtml+='</td></tr></table>';
 			
-			interfaceconfigtablehtml+='</td>';
-			interfaceconfigtablehtml+='</tr>';
-			interfaceconfigtablehtml+='<tr class="apply_gen" valign="top" height="35px">';
-			interfaceconfigtablehtml+='<td colspan="2" style="background-color:rgb(77, 89, 93);">';
-			interfaceconfigtablehtml+='<input type="button" onclick="SaveInterfaces();" value="Save" class="button_gen" name="button">';
-			interfaceconfigtablehtml+='</td>';
-			interfaceconfigtablehtml+='</tr>';
-			interfaceconfigtablehtml+='</table>';
+			interfaceconfigtablehtml+='</td></tr>';
 			
-			$j("#table_buttons").after(interfaceconfigtablehtml);
+			prefserverconfigtablehtml+='</td></tr>';
 			
-			if(interfacelist.charAt(interfacelist.length-1) == ",") {
+			prefserverselecttablehtml+='</td></tr>';
+			
+			speedtestifaceconfigtablehtml+='</td></tr>';
+			
+			$j("#rowautomatedtests").after(prefserverselecttablehtml);
+			$j("#rowautomatedtests").after(prefserverconfigtablehtml);
+			$j("#rowautomatedtests").after(interfaceconfigtablehtml);
+			$j("#thead_manualspeedtests").after(speedtestifaceconfigtablehtml);
+			
+			GenerateManualSpdTestServerPrefSelect();
+			document.form.spdtest_serverpref.value = "auto";
+			
+			if(interfacelist.charAt(interfacelist.length-1) == ","){
 				interfacelist = interfacelist.slice(0, -1);
 			}
 			
-			if(interfacelist != ""){
-				$j("#table_buttons2").after(interfacecharttablehtml);
-				maxNoCharts = interfacelist.split(',').length*3*2;
-				AddEventHandlers();
-				RedrawAllCharts();
-				get_conf_file();
-			}
+			$j("#table_buttons2").after(interfacecharttablehtml);
+			maxNoCharts = interfacelist.split(',').length*3*2;
+			RedrawAllCharts();
+			
+			AddEventHandlers();
+			get_conf_file();
 		}
 	});
 }
@@ -1125,12 +1317,10 @@ function changeAllCharts(e){
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
-	if(interfacelist != ""){
-		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++){
-			Draw_Chart(interfacetextarray[i],"Combined");
-			Draw_Chart(interfacetextarray[i],"Quality");
-		}
+	var interfacetextarray = interfacelist.split(',');
+	for (i = 0; i < interfacetextarray.length; i++){
+		Draw_Chart(interfacetextarray[i],"Combined");
+		Draw_Chart(interfacetextarray[i],"Quality");
 	}
 }
 
@@ -1146,7 +1336,7 @@ function changeChart(e){
 	}
 }
 
-function SettingHint(hintid) {
+function SettingHint(hintid){
 	var tag_name = document.getElementsByTagName('a');
 	for (var i=0;i<tag_name.length;i++){
 		tag_name[i].onmouseout=nd;
@@ -1187,19 +1377,25 @@ function BuildInterfaceTable(name){
 		charthtml+='</tr>';
 	} else{
 		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:120px;">';
+		charthtml+='<col style="width:75px;">';
+		charthtml+='<col style="width:65px;">';
+		charthtml+='<col style="width:65px;">';
+		charthtml+='<col style="width:65px;">';
+		charthtml+='<col style="width:65px;">';
+		charthtml+='<col style="width:80px;">';
+		charthtml+='<col style="width:80px;">';
+		charthtml+='<col style="width:135px;">';
 		charthtml+='<thead>';
 		charthtml+='<tr>';
 		charthtml+='<th class="keystatsnumber">Time</th>';
-		charthtml+='<th class="keystatsnumber">Download (Mbps)</th>';
-		charthtml+='<th class="keystatsnumber">Upload (Mbps)</th>';
-		charthtml+='<th class="keystatsnumber">Latency (ms)</th>';
-		charthtml+='<th class="keystatsnumber">Jitter (ms)</th>';
-		charthtml+='<th class="keystatsnumber">Packet Loss (%)</th>';
+		charthtml+='<th class="keystatsnumber">Download<br />(Mbps)</th>';
+		charthtml+='<th class="keystatsnumber">Upload<br />(Mbps)</th>';
+		charthtml+='<th class="keystatsnumber">Latency<br />(ms)</th>';
+		charthtml+='<th class="keystatsnumber">Jitter<br />(ms)</th>';
+		charthtml+='<th class="keystatsnumber">Packet<br />Loss (%)</th>';
+		charthtml+='<th class="keystatsnumber">Download<br />Data (MB)</th>';
+		charthtml+='<th class="keystatsnumber">Upload<br />Data (MB)</th>';
+		charthtml+='<th class="keystatsnumber">Result URL</th>';
 		charthtml+='</tr>';
 		charthtml+='</thead>';
 		
@@ -1210,7 +1406,10 @@ function BuildInterfaceTable(name){
 			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataPktLoss_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","")+'</td>';
+			charthtml+='<td>'+window["DataDataDownload_"+name][i]+'</td>';
+			charthtml+='<td>'+window["DataDataUpload_"+name][i]+'</td>';
+			charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
 			charthtml+='</tr>';
 		};
 	}
@@ -1278,6 +1477,225 @@ function BuildInterfaceTable(name){
 	charthtml+='</tr>';
 	charthtml+='</table>';
 	return charthtml;
+}
+
+function AutomaticInterfaceEnableDisable(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	var prefix = inputname.substring(0,inputname.lastIndexOf('_'));
+	
+	if(inputvalue == "false"){
+		for (var i = 0; i < interfacescomplete.length; i++){
+			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
+			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
+			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
+			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
+			$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
+			$j('#changepref_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
+		}
+		$j('input[name='+prefix+'_testfrequency]').prop("disabled",true);
+		$j('input[name='+prefix+'_testfrequency]').addClass("disabled");
+	}
+	else if(inputvalue == "true"){
+		for (var i = 0; i < interfacescomplete.length; i++){
+			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
+				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+				$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+				$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+				$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
+				$j('#changepref_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
+			}
+		}
+		$j('input[name='+prefix+'_testfrequency]').prop("disabled",false);
+		$j('input[name='+prefix+'_testfrequency]').removeClass("disabled");
+	}
+}
+
+function AutoBWEnableDisable(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	var prefix = inputname.substring(0,inputname.indexOf('_'));
+	
+	if(inputvalue == "false"){
+		$j('input[name^='+prefix+'_autobw_ulimit]').addClass("disabled");
+		$j('input[name^='+prefix+'_autobw_ulimit]').prop("disabled",true);
+		$j('input[name^='+prefix+'_autobw_llimit]').addClass("disabled");
+		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",true);
+		$j('input[name^='+prefix+'_autobw_sf]').addClass("disabled");
+		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",true);
+	}
+	else if(inputvalue == "true"){
+		$j('input[name^='+prefix+'_autobw_ulimit]').removeClass("disabled");
+		$j('input[name^='+prefix+'_autobw_ulimit]').prop("disabled",false);
+		$j('input[name^='+prefix+'_autobw_llimit]').removeClass("disabled");
+		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",false);
+		$j('input[name^='+prefix+'_autobw_sf]').removeClass("disabled");
+		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",false);
+	}
+}
+
+function Toggle_ChangePrefServer(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.checked;
+	
+	var ifacename = inputname.split("_")[1];
+	
+	if(inputvalue == true){
+		document.formScriptActions.action_script.value="start_spdmerlinserverlist_"+ifacename;
+		document.formScriptActions.submit();
+		showhide("imgServerList_"+ifacename, true);
+		setTimeout("get_spdtestservers_file('"+ifacename+"');", 2000);
+	}
+	else{
+		$j("#spdmerlin_preferredserver_"+ifacename)[0].style.display = "none";
+		$j("#spdmerlin_preferredserver_"+ifacename).prop("disabled",true);
+		$j("#spdmerlin_preferredserver_"+ifacename).addClass("disabled");
+	}
+}
+
+function Toggle_ScheduleFrequency(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	Calculate_SecondMinute();
+	
+	if(inputvalue == "halfhourly"){
+		document.form.second_minute.style.display = "";
+		$j("#span_second_minute")[0].style.display = "";
+	}
+	else{
+		document.form.second_minute.style.display = "none";
+		$j("#span_second_minute")[0].style.display = "none";
+	}
+}
+
+function Change_SpdTestInterface(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	GenerateManualSpdTestServerPrefSelect();
+	Toggle_SpdTestServerPref(document.form.spdtest_serverpref);
+}
+
+function Toggle_SpdTestServerPref(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	if(inputvalue == "onetime"){
+		document.formScriptActions.action_script.value="start_spdmerlinserverlistmanual_" + document.form.spdtest_enabled.value;
+		document.formScriptActions.submit();
+		for (var i = 0; i < interfacescomplete.length; i++){
+			$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
+			$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
+		}
+		$j.each($j("input[name=spdtest_serverpref]"), function(){
+			$j(this).prop("disabled",true);
+			$j(this).addClass("disabled");
+		});
+		showhide("rowmanualserverprefselect", true);
+		showhide("imgManualServerList", true);
+		
+		if(document.form.spdtest_enabled.value == "All"){
+			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
+				$j(this).empty();
+			});
+		}
+		else{
+			$j('select[name=spdtest_serverprefselect]').empty();
+		}
+		setTimeout("get_manualspdtestservers_file();", 2000);
+	}
+	else{
+		showhide("rowmanualserverprefselect", false);
+		if(document.form.spdtest_enabled.value == "All"){
+			$j.each($j("select[name^=spdtest_serverprefselect]"), function(){
+				showhide(this.id,false);
+			});
+			$j.each($j("span[id^=spdtest_serverprefselectspan]"), function(){
+				showhide(this.id,false);
+			});
+		}
+		else{
+			showhide("spdtest_serverprefselect",false);
+		}
+		showhide("imgManualServerList", false);
+	}
+}
+
+function GenerateManualSpdTestServerPrefSelect(){
+	$j("#rowmanualserverprefselect").remove();
+	var serverprefhtml = '<tr class="even" id="rowmanualserverprefselect" style="display:none;">';
+	serverprefhtml += '<th width="40%">Choose a server</th><td class="settingvalue"><img id="imgManualServerList" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
+	
+	if(document.form.spdtest_enabled.value == "All"){
+		for (var i = 0; i < interfacescomplete.length; i++){
+			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
+				var interfacename = interfacescomplete[i].toLowerCase();
+				serverprefhtml += '<span style="width:50px;display:none;" id="spdtest_serverprefselectspan_'+interfacename+'">'+interfacescomplete[i]+':</span><select name="spdtest_serverprefselect_'+interfacename+'" id="spdtest_serverprefselect_'+interfacename+'" style="display:none;max-width:415px;"></select><br />';
+			}
+		}
+	}
+	else{
+		serverprefhtml += '<select name="spdtest_serverprefselect" id="spdtest_serverprefselect" style="display:none;"></select>';
+	}
+	
+	serverprefhtml += '</td></tr>';
+	$j("#rowmanualserverpref").after(serverprefhtml);
+}
+
+function Validate_All(){
+	var validationfailed = false;
+	if(! Validate_ScheduleRange(document.form.spdmerlin_schedulestart)) validationfailed=true;
+	if(! Validate_ScheduleRange(document.form.spdmerlin_scheduleend)) validationfailed=true;
+	if(! Validate_ScheduleMinute(document.form.spdmerlin_minute)) validationfailed=true;
+	
+	if(validationfailed){
+		alert("Validation for some fields failed. Please correct invalid values and try again.");
+		return false;
+	}
+	else{
+		return true;
+	}
+}
+
+function Validate_ScheduleRange(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value*1;
+	
+	if(inputvalue > 23 || inputvalue < 0 || forminput.value.length < 1){
+		$j(forminput).addClass("invalid");
+		return false;
+	}
+	else{
+		$j(forminput).removeClass("invalid");
+		return true;
+	}
+}
+
+function Validate_ScheduleMinute(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value*1;
+	
+	if(inputvalue > 59 || inputvalue < 0 || forminput.value.length < 1){
+		document.form.second_minute.value = "";
+		$j(forminput).addClass("invalid");
+		return false;
+	}
+	else{
+		Calculate_SecondMinute();
+		$j(forminput).removeClass("invalid");
+		return true;
+	}
+}
+
+function Calculate_SecondMinute(){
+	if (document.form.spdmerlin_testfrequency.value == "halfhourly"){
+		document.form.second_minute.value= document.form.spdmerlin_minute.value*1 + 30;
+		if(document.form.second_minute.value > 59){
+			document.form.second_minute.value = document.form.second_minute.value*1 - 60;
+		}
+	}
 }
 
 function AddEventHandlers(){
