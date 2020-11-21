@@ -967,6 +967,7 @@ GenerateServerList(){
 GenerateServerList_WebUI(){
 	serverlistfile="$2"
 	rm -f "/tmp/$serverlistfile.txt"
+	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
 	
 	spdifacename="$1"
 	
