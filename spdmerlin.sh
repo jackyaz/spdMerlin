@@ -1640,7 +1640,7 @@ Generate_CSVs(){
 				{
 					echo ".mode csv"
 					echo ".headers off"
-					echo ".output $CSV_OUTPUT_DIR/$metric""daily_$IFACE_NAME.tmp"
+					echo ".output $CSV_OUTPUT_DIR/${metric}daily_$IFACE_NAME.tmp"
 					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
 				} > /tmp/spd-stats.sql
 				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1650,7 +1650,7 @@ Generate_CSVs(){
 					{
 						echo ".mode csv"
 						echo ".headers off"
-						echo ".output $CSV_OUTPUT_DIR/$metric""weekly_$IFACE_NAME.tmp"
+						echo ".output $CSV_OUTPUT_DIR/${metric}weekly_$IFACE_NAME.tmp"
 						echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
 					} > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1659,17 +1659,17 @@ Generate_CSVs(){
 					{
 						echo ".mode csv"
 						echo ".headers off"
-						echo ".output $CSV_OUTPUT_DIR/$metric""monthly_$IFACE_NAME.tmp"
+						echo ".output $CSV_OUTPUT_DIR/${metric}monthly_$IFACE_NAME.tmp"
 						echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
 					} > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 				elif [ "$OUTPUTDATAMODE" = "average" ]; then
-					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" "weekly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
+					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" weekly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 					
-					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" "monthly" "$IFACE_NAME" "/tmp/spd-stats.sql" "$timenow"
+					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" monthly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
 				fi
