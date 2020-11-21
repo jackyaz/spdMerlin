@@ -787,9 +787,9 @@ Auto_Cron(){
 						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 					else
 						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 						else
-							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 						fi
 					fi
 				elif [ "$TESTFREQUENCY" = "hourly" ]; then
@@ -797,9 +797,9 @@ Auto_Cron(){
 						cru a "$SCRIPT_NAME" "$MINUTESTART * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 					else
 						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-							cru a "$SCRIPT_NAME" "$MINUTESTART ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 						else
-							cru a "$SCRIPT_NAME" "$MINUTESTART ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 						fi
 					fi
 				fi
@@ -2345,6 +2345,7 @@ Menu_ToggleAutoBW(){
 Menu_EditSchedule(){
 	exitmenu="false"
 	starthour=""
+	endhour=""
 	startminute=""
 	testfrequency=""
 	ScriptHeader
