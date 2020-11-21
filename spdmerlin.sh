@@ -1845,7 +1845,7 @@ MainMenu(){
 	
 	while true; do
 		printf "Choose an option:    "
-		read -r "menu"
+		read -r menu
 		case "$menu" in
 			1)
 				printf "\\n"
