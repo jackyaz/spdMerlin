@@ -1000,7 +1000,7 @@ GenerateServerList_WebUI(){
 	fi
 	sleep 1
 	mv "/tmp/$serverlistfile.tmp" "/tmp/$serverlistfile.txt"
-	ln -s "/tmp/$serverlistfile.txt" "$SCRIPT_WEB_DIR/$serverlistfile.htm" 2>/dev/null7
+	ln -s "/tmp/$serverlistfile.txt" "$SCRIPT_WEB_DIR/$serverlistfile.htm" 2>/dev/null
 }
 
 PreferredServer(){
