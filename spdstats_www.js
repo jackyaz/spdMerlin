@@ -898,7 +898,7 @@ function get_manualspdtestservers_file(){
 		dataType: 'text',
 		timeout: 2000,
 		error: function(xhr){
-			setTimeout("get_manualspdtestservers_file();", 1000);
+			setTimeout("get_manualspdtestservers_file();", 2000);
 		},
 		success: function(data){
 			var servers = [];
@@ -1021,7 +1021,7 @@ function update_spdtest(){
 			else if(spdteststatus == "Done"){
 				get_spdtestresult_file();
 				document.getElementById("spdtest_text").innerHTML = "Refreshing tables and charts...";
-				setTimeout('PostSpeedTest();', 1000);
+				setTimeout('PostSpeedTest();', 1500);
 				clearInterval(myinterval);
 			}
 			else if(spdteststatus == "LOCKED"){
@@ -1067,13 +1067,14 @@ function PostSpeedTest(){
 	$j("#table_allinterfaces").remove();
 	$j("#rowautomaticspdtest").remove();
 	$j("#rowautospdprefserver").remove();
+	$j("#rowautospdprefserverselect").remove();
 	$j("#rowmanualspdtest").remove();
 	currentNoCharts = 0;
 	reload_js('/ext/spdmerlin/spdjs.js');
 	reload_js('/ext/spdmerlin/spdtitletext.js');
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	SetSPDStatsTitle();
-	get_interfaces_file();
+	setTimeout('get_interfaces_file();', 1500);
 }
 
 function RunSpeedtest(){
@@ -1101,7 +1102,7 @@ function RunSpeedtest(){
 
 var myinterval;
 function StartSpeedTestInterval(){
-	myinterval = setInterval("update_spdtest();", 400);
+	myinterval = setInterval("update_spdtest();", 500);
 }
 
 function reload_js(src){
