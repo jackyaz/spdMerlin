@@ -1021,8 +1021,8 @@ function update_spdtest(){
 			else if(spdteststatus == "Done"){
 				get_spdtestresult_file();
 				document.getElementById("spdtest_text").innerHTML = "Refreshing tables and charts...";
-				setTimeout('PostSpeedTest();', 1500);
 				clearInterval(myinterval);
+				PostSpeedTest();
 			}
 			else if(spdteststatus == "LOCKED"){
 				showhide("imgSpdTest", false);
@@ -1061,9 +1061,6 @@ function update_spdtest(){
 }
 
 function PostSpeedTest(){
-	showhide("imgSpdTest", false);
-	showhide("spdtest_text", false);
-	showhide("btnRunSpeedtest", true);
 	$j("#table_allinterfaces").remove();
 	$j("#rowautomaticspdtest").remove();
 	$j("#rowautospdprefserver").remove();
@@ -1074,7 +1071,7 @@ function PostSpeedTest(){
 	reload_js('/ext/spdmerlin/spdtitletext.js');
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	SetSPDStatsTitle();
-	setTimeout('get_interfaces_file();', 1500);
+	setTimeout('get_interfaces_file();', 3000);
 }
 
 function RunSpeedtest(){
@@ -1204,6 +1201,9 @@ function get_interfaces_file(){
 			setTimeout("get_interfaces_file();", 1000);
 		},
 		success: function(data){
+			showhide("spdtest_text", false);
+			showhide("imgSpdTest", false);
+			showhide("btnRunSpeedtest", true);
 			var interfaces=data.split("\n");
 			interfaces=interfaces.filter(Boolean);
 			interfacelist="";
