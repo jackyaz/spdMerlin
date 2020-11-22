@@ -1,11 +1,11 @@
-# spdMerlin - Automatic speedtest for AsusWRT Merlin - with graphs
+# spdMerlin
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
-## v3.6.1
-### Updated on 2020-05-25
+## v4.0.0
+### Updated on 2020-11-22
 ## About
-Run automated speedtests for your Internet on your router with graphs available on the Addons page of the WebUI.
+spdMerlin is an internet speedtest and monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries. It tracks download/upload bandwidth as well as latency, jitter and packet loss.
 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
@@ -15,16 +15,10 @@ spdMerlin includes the required licenses, which must be accepted on first run of
 
 This script began as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
 
-A swap file is required to ensure smooth operation of the script.
-
-The speedtest is scheduled to run at 12 past and 42 past the hour, every hour, by default.
+A swap file is required.
 
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
-
-![Menu UI](https://puu.sh/FOli0/6f1f708fca.png)
-
-![Graph example](https://puu.sh/FOwBz/bf40227c34.png)
 
 [**PayPal donation**](https://paypal.me/jackyaz21)
 
@@ -41,6 +35,10 @@ Using your preferred SSH client/terminal, copy and paste the following command, 
 ```
 
 ## Usage
+### WebUI
+spdMerlin can be configured via the WebUI, in the Addons section.
+
+### Command Line
 To launch the spdMerlin menu after installation, use:
 ```sh
 spdmerlin
@@ -51,8 +49,11 @@ If this does not work, you will need to use the full path:
 /jffs/scripts/spdmerlin
 ```
 
-## Updating
-Launch spdmerlin and select option u
+## Screenshots
+
+![WebUI](https://puu.sh/GQ14y/117b9ad0d6.png)
+
+![CLI](https://puu.sh/GQ15t/7ebf037643.png)
 
 ## Help
 Please post about any issues and problems here: [spdMerlin on SNBForums](https://www.snbforums.com/threads/spdmerlin-automated-speedtests-with-graphs.55904/)
