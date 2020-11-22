@@ -51,9 +51,9 @@ If this does not work, you will need to use the full path:
 
 ## Screenshots
 
-![Graph example](https://puu.sh/FOwBz/bf40227c34.png)
+![WebUI](https://puu.sh/GQ14y/117b9ad0d6.png)
 
-![Menu UI](https://puu.sh/FOli0/6f1f708fca.png)
+![CLI](https://puu.sh/GQ15t/7ebf037643.png)
 
 ## Help
 Please post about any issues and problems here: [spdMerlin on SNBForums](https://www.snbforums.com/threads/spdmerlin-automated-speedtests-with-graphs.55904/)
