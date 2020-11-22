@@ -1614,7 +1614,8 @@ Process_Upgrade(){
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
 		{
 			echo 'function SetSPDStatsTitle(){';
-			echo 'document.getElementById("statstitle").innerHTML="Stats last updated: Not yet updated\r\n"';
+			echo 'document.getElementById("statstitle").innerHTML="Stats last updated: Not yet updated\r\n";';
+			echo "}";
 		} > "$SCRIPT_STORAGE_DIR/spdtitletext.js"
 	fi
 }
