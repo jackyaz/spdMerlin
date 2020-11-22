@@ -1376,7 +1376,8 @@ function BuildInterfaceTable(name){
 		charthtml+='No data to display';
 		charthtml+='</td>';
 		charthtml+='</tr>';
-	} else{
+	}
+	else{
 		charthtml+='<col style="width:120px;">';
 		charthtml+='<col style="width:75px;">';
 		charthtml+='<col style="width:65px;">';
