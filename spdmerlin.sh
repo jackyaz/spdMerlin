@@ -1610,6 +1610,7 @@ Process_Upgrade(){
 	done
 	rm -f /tmp/spd-stats.sql
 	
+	# shellcheck disable=SC2028
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
 		{
 			echo 'function SetSPDStatsTitle(){';
