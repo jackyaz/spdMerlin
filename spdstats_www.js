@@ -808,11 +808,11 @@ function update_status(){
 		dataType: 'script',
 		timeout: 3000,
 		error: function(xhr){
-			setTimeout('update_status();', 1000);
+			setTimeout(update_status, 1000);
 		},
 		success: function(){
 			if(updatestatus == "InProgress"){
-				setTimeout('update_status();', 1000);
+				setTimeout(update_status, 1000);
 			}
 			else{
 				document.getElementById("imgChkUpdate").style.display = "none";
@@ -837,7 +837,7 @@ function CheckUpdate(){
 	document.formScriptActions.action_script.value="start_spdmerlincheckupdate"
 	document.formScriptActions.submit();
 	document.getElementById("imgChkUpdate").style.display = "";
-	setTimeout("update_status();", 2000);
+	setTimeout(update_status, 2000);
 }
 
 function DoUpdate(){
@@ -865,7 +865,7 @@ function get_spdtestservers_file(ifacename){
 		dataType: 'text',
 		timeout: 2000,
 		error: function(xhr){
-			setTimeout("get_spdtestservers_file('"+ifacename+"');", 1000);
+			setTimeout(get_spdtestservers_file, 1000, ifacename);
 		},
 		success: function(data){
 			var servers = [];
@@ -898,7 +898,7 @@ function get_manualspdtestservers_file(){
 		dataType: 'text',
 		timeout: 2000,
 		error: function(xhr){
-			setTimeout("get_manualspdtestservers_file();", 2000);
+			setTimeout(get_manualspdtestservers_file, 2000);
 		},
 		success: function(data){
 			var servers = [];
@@ -968,7 +968,7 @@ function get_spdtestresult_file(){
 		dataType: 'text',
 		timeout: 1000,
 		error: function(xhr){
-			setTimeout("get_spdtestresult_file();", 500);
+			setTimeout(get_spdtestresult_file, 500);
 		},
 		success: function(data){
 			var lines = data.trim().split('\n');
@@ -1071,7 +1071,7 @@ function PostSpeedTest(){
 	reload_js('/ext/spdmerlin/spdtitletext.js');
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	SetSPDStatsTitle();
-	setTimeout('get_interfaces_file();', 3000);
+	setTimeout(get_interfaces_file, 3000);
 }
 
 function RunSpeedtest(){
@@ -1094,7 +1094,7 @@ function RunSpeedtest(){
 	document.formScriptActions.submit();
 	showhide("imgSpdTest", true);
 	showhide("spdtest_text", false);
-	setTimeout('StartSpeedTestInterval();', 1500);
+	setTimeout(StartSpeedTestInterval, 1500);
 }
 
 var myinterval;
@@ -1160,7 +1160,7 @@ function get_conf_file(){
 		url: '/ext/spdmerlin/config.htm',
 		dataType: 'text',
 		error: function(xhr){
-			setTimeout("get_conf_file();", 1000);
+			setTimeout(get_conf_file, 1000);
 		},
 		success: function(data){
 			var configdata=data.split("\n");
@@ -1198,7 +1198,7 @@ function get_interfaces_file(){
 		url: '/ext/spdmerlin/interfaces_user.htm',
 		dataType: 'text',
 		error: function(xhr){
-			setTimeout("get_interfaces_file();", 1000);
+			setTimeout(get_interfaces_file, 1000);
 		},
 		success: function(data){
 			showhide("spdtest_text", false);
@@ -1376,7 +1376,8 @@ function BuildInterfaceTable(name){
 		charthtml+='No data to display';
 		charthtml+='</td>';
 		charthtml+='</tr>';
-	} else{
+	}
+	else{
 		charthtml+='<col style="width:120px;">';
 		charthtml+='<col style="width:75px;">';
 		charthtml+='<col style="width:65px;">';
@@ -1546,7 +1547,7 @@ function Toggle_ChangePrefServer(forminput){
 		document.formScriptActions.action_script.value="start_spdmerlinserverlist_"+ifacename;
 		document.formScriptActions.submit();
 		showhide("imgServerList_"+ifacename, true);
-		setTimeout("get_spdtestservers_file('"+ifacename+"');", 2000);
+		setTimeout(get_spdtestservers_file, 2000, ifacename);
 	}
 	else{
 		$j("#spdmerlin_preferredserver_"+ifacename)[0].style.display = "none";
@@ -1605,7 +1606,7 @@ function Toggle_SpdTestServerPref(forminput){
 		else{
 			$j('select[name=spdtest_serverprefselect]').empty();
 		}
-		setTimeout("get_manualspdtestservers_file();", 2000);
+		setTimeout(get_manualspdtestservers_file, 2000);
 	}
 	else{
 		showhide("rowmanualserverprefselect", false);
