@@ -1510,6 +1510,7 @@ Run_Speedtest(){
 			Generate_CSVs
 			
 			echo "Stats last updated: $timenowfriendly" > /tmp/spdstatstitle.txt
+			rm -f "$SCRIPT_STORAGE_DIR/spdtitletext.js"
 			WriteStats_ToJS /tmp/spdstatstitle.txt "$SCRIPT_STORAGE_DIR/spdtitletext.js" SetSPDStatsTitle statstitle
 			
 			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
@@ -1608,6 +1609,13 @@ Process_Upgrade(){
 		fi
 	done
 	rm -f /tmp/spd-stats.sql
+	
+	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
+		{
+			echo 'function SetSPDStatsTitle(){';
+			echo 'document.getElementById("statstitle").innerHTML="Stats last updated: Not yet updated\r\n"';
+		} > "$SCRIPT_STORAGE_DIR/spdtitletext.js"
+	fi
 }
 
 Generate_CSVs(){
