@@ -1434,7 +1434,7 @@ Run_Speedtest(){
 					fi
 					
 					if [ "$datauploadunit" = "GB" ]; then
-						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)')"
+						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)}')"
 					fi
 					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
