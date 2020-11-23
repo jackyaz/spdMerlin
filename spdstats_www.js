@@ -1411,7 +1411,12 @@ function BuildInterfaceTable(name){
 			charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","")+'</td>';
 			charthtml+='<td>'+window["DataDataDownload_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataDataUpload_"+name][i]+'</td>';
-			charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
+			if(window["DataResultURL_"+name][i] != ""){
+				charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
+			}
+			else{
+				charthtml+='<td>No result URL</td>';
+			}
 			charthtml+='</tr>';
 		};
 	}

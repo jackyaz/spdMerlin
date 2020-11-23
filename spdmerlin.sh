@@ -1256,10 +1256,10 @@ Generate_LastXResults(){
 		echo ".mode csv"
 		echo ".output /tmp/spd-lastx.csv"
 	} > /tmp/spd-lastx.sql
-	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload] FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT 10;" >> /tmp/spd-lastx.sql
+	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL]FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	sed -i 's/,,/,null,/g;s/,/ /g;s/"//g;' /tmp/spd-lastx.csv
-	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataResultURL_$1" "DataDataDownload_$1" "DataDataUpload_$1"
+	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataDataDownload_$1" "DataDataUpload_$1" "DataResultURL_$1"
 	rm -f /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.csv
 }
@@ -1423,8 +1423,8 @@ Run_Speedtest(){
 					! Validate_Bandwidth "$latency" && latency=null;
 					! Validate_Bandwidth "$jitter" && jitter=null;
 					! Validate_Bandwidth "$pktloss" && pktloss=null;
-					! Validate_Bandwidth "$datadownload" && datadownload=0;
-					! Validate_Bandwidth "$dataupload" && dataupload=0;
+					! Validate_Bandwidth "$datadownload" && datadownload="0";
+					! Validate_Bandwidth "$dataupload" && dataupload="0";
 					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
