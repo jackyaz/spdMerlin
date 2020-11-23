@@ -2877,25 +2877,25 @@ case "$1" in
 		exit 0
 	;;
 	service_event)
-		if [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""spdtest"; then
+		if [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}spdtest"; then
 			Check_Lock webui
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
 			exit 0
-		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlistmanual"; then
+		elif [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}serverlistmanual"; then
 			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlistmanual_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
 			GenerateServerList_WebUI "$spdifacename" "spdmerlin_manual_serverlist"
-		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
+		elif [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}serverlist"; then
 			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
 			GenerateServerList_WebUI "$spdifacename" "spdmerlin_serverlist_$spdifacename"
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
+		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME_LOWER}config" ]; then
 			Interfaces_FromSettings
 			Conf_FromSettings
 			exit 0
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
+		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME_LOWER}checkupdate" ]; then
 			Update_Check
 			exit 0
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""doupdate" ]; then
+		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME_LOWER}doupdate" ]; then
 			Update_Version force unattended
 			exit 0
 		fi
