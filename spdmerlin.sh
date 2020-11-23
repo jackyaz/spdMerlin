@@ -1418,6 +1418,9 @@ Run_Speedtest(){
 					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
 					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
 					
+					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $7}')"
+					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $7}')"
+					
 					! Validate_Bandwidth "$download" && download="0";
 					! Validate_Bandwidth "$upload" && upload="0";
 					! Validate_Bandwidth "$latency" && latency=null;
@@ -1425,6 +1428,14 @@ Run_Speedtest(){
 					! Validate_Bandwidth "$pktloss" && pktloss=null;
 					! Validate_Bandwidth "$datadownload" && datadownload="0";
 					! Validate_Bandwidth "$dataupload" && dataupload="0";
+					
+					if [ "$datadownloadunit" = "GB" ]; then
+						datadownload="$(echo "$datadownload" | awk '{printf ($1*1024)')"
+					fi
+					
+					if [ "$datauploadunit" = "GB" ]; then
+						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)')"
+					fi
 					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
