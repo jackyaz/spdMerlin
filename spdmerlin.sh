@@ -1430,7 +1430,7 @@ Run_Speedtest(){
 					! Validate_Bandwidth "$dataupload" && dataupload="0";
 					
 					if [ "$datadownloadunit" = "GB" ]; then
-						datadownload="$(echo "$datadownload" | awk '{printf ($1*1024)')"
+						datadownload="$(echo "$datadownload" | awk '{printf ($1*1024)}')"
 					fi
 					
 					if [ "$datauploadunit" = "GB" ]; then
