@@ -395,7 +395,7 @@ Create_Dirs(){
 	if [ ! -d "$SCRIPT_WEBPAGE_DIR" ]; then
 		mkdir -p "$SCRIPT_WEBPAGE_DIR"
 	fi
-		
+	
 	if [ ! -d "$SCRIPT_WEB_DIR" ]; then
 		mkdir -p "$SCRIPT_WEB_DIR"
 	fi
@@ -493,7 +493,6 @@ Conf_FromSettings(){
 
 Interfaces_FromSettings(){
 	SETTINGSFILE="/jffs/addons/custom_settings.txt"
-	TMPFILE="/tmp/spdmerlin_interfaces.txt"
 	if [ -f "$SETTINGSFILE" ]; then
 		if grep -q "spdmerlin_ifaces_enabled" "$SETTINGSFILE"; then
 			Print_Output true "Updated interfaces from WebUI found, merging into $SCRIPT_INTERFACES_USER" "$PASS"
@@ -508,11 +507,7 @@ Interfaces_FromSettings(){
 				if [ ! -f "/sys/class/net/tun1$index/operstate" ] || [ "$(cat "/sys/class/net/tun1$index/operstate")" = "down" ]; then
 					comment=" #excluded - interface not up#"
 				fi
-				if [ "$index" -lt 5 ]; then
-					printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_INTERFACES"
-				else
-					printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_INTERFACES"
-				fi
+				printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_INTERFACES"
 			done
 			
 			echo "" > "$SCRIPT_INTERFACES_USER"
