@@ -577,13 +577,16 @@ Conf_Exists(){
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 28 ]; then
 			echo "EXCLUDEFROMQOS=true" >> "$SCRIPT_CONF"
 		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 29 ]; then
+			echo "AUTOBW_RESULT_THRESHOLD=10" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=0" ; echo "SCHEDULEEND=23"; echo "MINUTE=12"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; } >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_RESULT_THRESHOLD=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
