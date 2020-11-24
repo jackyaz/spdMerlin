@@ -2787,15 +2787,32 @@ Menu_AutoBW_Update(){
 	old_uspdkbps="$(nvram get qos_obw)"
 	old_dspdkbps="$(nvram get qos_ibw)"
 	
+	bw_changed="false"
 	
+	dbw_threshold="$(AutoBWConf check THRESHOLD DOWN | awk '{printf ($1/100)}')"
 	
-	#Set Upload/Download Limit
-	Print_Output true " Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$WARN"
-	Print_Output true " Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$WARN"
-	nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
-	nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
-	nvram commit
-	service restart_qos >/dev/null 2>&1
+	if [ "$dspdkbps" -gt "$(echo "$dspdkbps" "$dbw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$dspdkbps" -lt "$(echo "$dspdkbps" "$dbw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
+		bw_changed="true"
+		nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
+		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS"
+	else
+		Print_Output true "Calculated Download speed ($dspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD DOWN)%% threshold of existing value ($old_dspdkbps Kbps)" "$WARN"
+	fi
+	
+	ubw_threshold="$(AutoBWConf check THRESHOLD UP | awk '{printf ($1/100)}')"
+	
+	if [ "$uspdkbps" -gt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$uspdkbps" -lt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
+		bw_changed="true"
+		nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
+		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS"
+	else
+		Print_Output true "Calculated Download speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)%% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
+	fi
+	
+	if [ "$bw_changed" = "true" ]; then
+		nvram commit
+		service restart_qos >/dev/null 2>&1
+	fi
 	
 	Clear_Lock
 }
