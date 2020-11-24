@@ -22,7 +22,7 @@ readonly SCRIPT_NAME="spdMerlin"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
 readonly SCRIPT_VERSION="v4.0.1"
 readonly SCRIPT_BRANCH="develop"
-readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/""$SCRIPT_BRANCH"
+readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_WEBPAGE_DIR="$(readlink /www/user)"
 readonly SCRIPT_WEB_DIR="$SCRIPT_WEBPAGE_DIR/$SCRIPT_NAME_LOWER"
@@ -969,7 +969,7 @@ GenerateServerList_WebUI(){
 	if [ "$spdifacename" = "ALL" ]; then
 		while IFS='' read -r line || [ -n "$line" ]; do
 			if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-				IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+				IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 			fi
 		done < "$SCRIPT_INTERFACES_USER"
 		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
@@ -1004,7 +1004,7 @@ PreferredServer(){
 		update)
 			GenerateServerList "$2"
 			if [ "$serverno" != "exit" ]; then
-				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno""|""$servername"'/' "$SCRIPT_CONF"
+				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno|$servername"'/' "$SCRIPT_CONF"
 			else
 				return 1
 			fi
@@ -1205,7 +1205,7 @@ AutoBWConf(){
 			sed -i 's/^AUTOBW_'"$2"'_'"$3"'.*$/AUTOBW_'"$2"'_'"$3"'='"$4"'/' "$SCRIPT_CONF"
 		;;
 		check)
-			grep "AUTOBW_$2""_$3" "$SCRIPT_CONF" | cut -f2 -d"="
+			grep "AUTOBW_${2}_$3" "$SCRIPT_CONF" | cut -f2 -d"="
 		;;
 	esac
 }
@@ -1230,7 +1230,7 @@ WriteStats_ToJS(){
 	echo "function $3(){" >> "$2"
 	html='document.getElementById("'"$4"'").innerHTML="'
 	while IFS='' read -r line || [ -n "$line" ]; do
-		html="$html""$line""\\r\\n"
+		html="${html}${line}\\r\\n"
 	done < "$1"
 	html="$html"'"'
 	printf "%s\\r\\n}\\r\\n" "$html" >> "$2"
@@ -1244,7 +1244,7 @@ WriteSql_ToFile(){
 	{
 		echo ".mode csv"
 		echo ".headers off"
-		echo ".output $5$6""_$7.tmp"
+		echo ".output $5${6}_$7.tmp"
 	} >> "$8"
 	
 	echo "SELECT '$1' Metric, Min([Timestamp]) Time, IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
@@ -1308,14 +1308,14 @@ Run_Speedtest(){
 		if [ -z "$specificiface" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
 				if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
-					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+					IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
 			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		elif [ "$specificiface" = "All" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
 				if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+					IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
 			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
@@ -1545,7 +1545,7 @@ Run_Speedtest(){
 }
 
 Run_Speedtest_WebUI(){
-	spdteststring="$(echo "$1" | sed "s/$SCRIPT_NAME_LOWER""spdtest_//;s/%/ /g")";
+	spdteststring="$(echo "$1" | sed "s/${SCRIPT_NAME_LOWER}spdtest_//;s/%/ /g")";
 	spdtestmode="webui_$(echo "$spdteststring" | cut -f1 -d'_')";
 	spdifacename="$(echo "$spdteststring" | cut -f2 -d'_')";
 	
@@ -1556,7 +1556,7 @@ Run_Speedtest_WebUI(){
 		if [ "$spdifacename" = "All" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
 				if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+					IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
 			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
@@ -1579,7 +1579,7 @@ Run_Speedtest_WebUI(){
 
 Process_Upgrade(){
 	while IFS='' read -r line || [ -n "$line" ]; do
-		IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+		IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 	done < "$SCRIPT_INTERFACES_USER"
 	
 	for IFACE_NAME in $IFACELIST; do
@@ -1633,7 +1633,7 @@ Generate_CSVs(){
 	IFACELIST=""
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
-		IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+		IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 	done < "$SCRIPT_INTERFACES_USER"
 	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 	
@@ -2713,6 +2713,8 @@ Menu_AutoBW_Update(){
 	old_uspdkbps="$(nvram get qos_obw)"
 	old_dspdkbps="$(nvram get qos_ibw)"
 	
+	
+	
 	#Set Upload/Download Limit
 	Print_Output true " Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$WARN"
 	Print_Output true " Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$WARN"
@@ -2894,10 +2896,10 @@ case "$1" in
 			Clear_Lock
 			exit 0
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}serverlistmanual"; then
-			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlistmanual_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
+			spdifacename="$(echo "$3" | sed "s/${SCRIPT_NAME_LOWER}serverlistmanual_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
 			GenerateServerList_WebUI "$spdifacename" "spdmerlin_manual_serverlist"
 		elif [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}serverlist"; then
-			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
+			spdifacename="$(echo "$3" | sed "s/${SCRIPT_NAME_LOWER}serverlist_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
 			GenerateServerList_WebUI "$spdifacename" "spdmerlin_serverlist_$spdifacename"
 		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME_LOWER}config" ]; then
 			Interfaces_FromSettings
