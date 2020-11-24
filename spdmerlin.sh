@@ -1754,11 +1754,11 @@ Generate_CSVs(){
 			rm -f "$tmpoutputdir/"*.htm
 		fi
 		
-		if [ ! -f /opt/bin/7z ]; then
+		if [ ! -f /opt/bin/7za ]; then
 			opkg update
 			opkg install p7zip
 		fi
-		/opt/bin/7z a -y -bsp0 -bso0 -tzip "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$tmpoutputdir/*"
+		/opt/bin/7za a -y -bsp0 -bso0 -tzip "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$tmpoutputdir/*"
 		mv "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$CSV_OUTPUT_DIR"
 		rm -rf "$tmpoutputdir"
 	fi
