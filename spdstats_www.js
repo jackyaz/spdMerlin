@@ -1167,7 +1167,7 @@ function get_conf_file(){
 			configdata = configdata.filter(Boolean);
 			
 			for (var i = 0; i < configdata.length; i++){
-				if(configdata[i].indexOf("PREFERRED") == -1){
+				if(configdata[i].indexOf("PREFERRED") == -1 && configdata[i].indexOf("THRESHOLD") == -1){
 					eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).value = configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
 				else if(configdata[i].indexOf("USEPREFERRED") != -1){
