@@ -578,7 +578,11 @@ Conf_Exists(){
 			echo "EXCLUDEFROMQOS=true" >> "$SCRIPT_CONF"
 		fi
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 29 ]; then
-			echo "AUTOBW_RESULT_THRESHOLD=10" >> "$SCRIPT_CONF"
+			echo "AUTOBW_THRESHOLD_UP=10" >> "$SCRIPT_CONF"
+		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 30 ]; then
+			sed -i 's/AUTOBW_RESULT_THRESHOLD/AUTOBW_THRESHOLD_UP/g' "$SCRIPT_CONF"
+			echo "AUTOBW_THRESHOLD_DOWN=10" >> "$SCRIPT_CONF"
 		fi
 		return 0
 	else
