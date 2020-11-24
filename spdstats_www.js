@@ -1408,7 +1408,7 @@ function BuildInterfaceTable(name){
 			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","")+'</td>';
+			charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","N/A")+'</td>';
 			charthtml+='<td>'+window["DataDataDownload_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataDataUpload_"+name][i]+'</td>';
 			if(window["DataResultURL_"+name][i] != ""){
