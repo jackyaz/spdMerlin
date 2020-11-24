@@ -2487,7 +2487,8 @@ Menu_AutoBW(){
 		printf "1.    Update QoS bandwidth values now\\n\\n"
 		printf "2.    Configure scale factor\\n      Download: %s%%  -  Upload: %s%%\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
 		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: %s Mbps  -  Upload: %s Mbps\\n      Lower Limit    Download: %s Mbps  -  Upload: %s Mbps\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
-		printf "4.    Toggle AutoBW on/off\\n      Currently: %s\\n\\n" "$AUTOBW_MENU"
+		printf "4.    Configure threshold for updating QoS bandwidth values\\n      Download: %s%% - Upload: %s%%\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
+		printf "5.    Toggle AutoBW on/off\\n      Currently: %s\\n\\n" "$AUTOBW_MENU"
 		printf "e.    Go back\\n\\n"
 		printf "\\e[1m####################################################################\\e[0m\\n"
 		printf "\\n"
@@ -2499,7 +2500,6 @@ Menu_AutoBW(){
 				printf "\\n"
 				Menu_AutoBW_Update
 				PressEnter
-				break
 			;;
 			2)
 				while true; do
@@ -2656,6 +2656,73 @@ Menu_AutoBW(){
 				PressEnter
 			;;
 			4)
+			while true; do
+				ScriptHeader
+				exitmenu=""
+				updown=""
+				thvalue=""
+				printf "\\n"
+				printf "Select a threshold to set\\n"
+				printf "1.    Download\\n"
+				printf "2.    Upload\\n\\n"
+				while true; do
+					printf "Choose an option:    "
+					read -r autobwthchoice
+					if [ "$autobwthchoice" = "e" ]; then
+						exitmenu="exit"
+						break
+					elif ! Validate_Number "" "$autobwthchoice" silent; then
+						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
+					else
+						if [ "$autobwthchoice" -lt 1 ] || [ "$autobwthchoice" -gt 2 ]; then
+							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
+						else
+							if [ "$autobwthchoice" -eq 1 ]; then
+								updown="DOWN"
+								break
+							elif [ "$autobwthchoice" -eq 2 ]; then
+								updown="UP"
+								break
+							fi
+						fi
+					fi
+				done
+				
+				if [ "$exitmenu" != "exit" ]; then
+					while true; do
+						printf "\\n"
+						printf "Enter percentage to use for result threshold:    "
+						read -r autobwthvalue
+						if [ "$autobwthvalue" = "e" ]; then
+							exitmenu="exit"
+							break
+						elif ! Validate_Number "" "$autobwthvalue" "silent"; then
+							printf "\\n\\e[31mPlease enter a valid number (0-100)\\e[0m\\n"
+						else
+							if [ "$autobwthvalue" -lt 0 ] || [ "$autobwthvalue" -gt 100 ]; then
+								printf "\\n\\e[31mPlease enter a number between 0 and 100\\e[0m\\n"
+							else
+								thvalue="$autobwthvalue"
+								break
+							fi
+						fi
+					done
+				fi
+				
+				if [ "$exitmenu" != "exit" ]; then
+					AutoBWConf update THRESHOLD "$updown" "$thvalue"
+					break
+				fi
+				
+				if [ "$exitmenu" = "exit" ]; then
+					break
+				fi
+			done
+			
+			printf "\\n"
+			PressEnter
+			;;
+			5)
 				printf "\\n"
 				Menu_ToggleAutoBW
 			;;
