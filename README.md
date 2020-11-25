@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.com/jackyaz/spdMerlin.svg?branch=master)](https://travis-ci.com/jackyaz/spdMerlin)
 
 ## v4.1.0
-### Updated on 2020-11-24
+### Updated on 2020-11-25
 ## About
 spdMerlin is an internet speedtest and monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries. It tracks download/upload bandwidth as well as latency, jitter and packet loss.
 
