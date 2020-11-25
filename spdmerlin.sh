@@ -2791,7 +2791,7 @@ Menu_AutoBW_Update(){
 	
 	dbw_threshold="$(AutoBWConf check THRESHOLD DOWN | awk '{printf ($1/100)}')"
 	
-	if [ "$dspdkbps" -gt "$(echo "$dspdkbps" "$dbw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$dspdkbps" -lt "$(echo "$dspdkbps" "$dbw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
+	if [ "$dspdkbps" -gt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$dspdkbps" -lt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
 		bw_changed="true"
 		nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
 		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS"
