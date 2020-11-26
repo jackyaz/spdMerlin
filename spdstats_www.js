@@ -574,14 +574,16 @@ function ToggleLines(){
 	}
 	for (i = 0; i < interfacetextarray.length; i++){
 		for (i2 = 0; i2 < typelist.length; i2++){
+			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
+			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
 			var maxlines = 6;
 			if(typelist[i2] == "Quality"){
 				maxlines = 9;
 			}
 			for (i3 = 0; i3 < maxlines; i3++){
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].options.annotation.annotations[i3].type=ShowLines;
+				chartobj.options.annotation.annotations[i3].type=ShowLines;
 			}
-			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
+			chartobj.update();
 		}
 	}
 }
@@ -599,12 +601,14 @@ function ToggleFill(){
 	
 	for (i = 0; i < interfacetextarray.length; i++){
 		for (i2 = 0; i2 < typelist.length; i2++){
-			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[0].fill=ShowFill;
-			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[1].fill=ShowFill;
+			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
+			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
+			chartobj.data.datasets[0].fill=ShowFill;
+			chartobj.data.datasets[1].fill=ShowFill;
 			if(typelist[i2] == "Quality"){
-				window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].data.datasets[2].fill=ShowFill;
+				chartobj.data.datasets[2].fill=ShowFill;
 			}
-			window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]].update();
+			chartobj.update();
 		}
 	}
 }
@@ -1119,12 +1123,8 @@ function SaveConfig(){
 		}
 		$j('input[name=spdmerlin_testfrequency]').prop("disabled",false);
 		$j('input[name=spdmerlin_testfrequency]').removeClass("disabled");
-		$j('input[name^=spdmerlin_autobw_ulimit]').removeClass("disabled");
-		$j('input[name^=spdmerlin_autobw_ulimit]').prop("disabled",false);
-		$j('input[name^=spdmerlin_autobw_llimit]').removeClass("disabled");
-		$j('input[name^=spdmerlin_autobw_llimit]').prop("disabled",false);
-		$j('input[name^=spdmerlin_autobw_sf]').removeClass("disabled");
-		$j('input[name^=spdmerlin_autobw_sf]').prop("disabled",false);
+		$j('input[name^=spdmerlin_autobw]').removeClass("disabled");
+		$j('input[name^=spdmerlin_autobw]').prop("disabled",false);
 		document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject());
 		var action_script_tmp = "start_spdmerlinconfig";
 		document.form.action_script.value = action_script_tmp;
@@ -1167,7 +1167,7 @@ function get_conf_file(){
 			configdata = configdata.filter(Boolean);
 			
 			for (var i = 0; i < configdata.length; i++){
-				if(configdata[i].indexOf("PREFERRED") == -1 && configdata[i].indexOf("THRESHOLD") == -1){
+				if(configdata[i].indexOf("PREFERRED") == -1){
 					eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).value = configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
 				}
 				else if(configdata[i].indexOf("USEPREFERRED") != -1){
@@ -1531,6 +1531,8 @@ function AutoBWEnableDisable(forminput){
 		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",true);
 		$j('input[name^='+prefix+'_autobw_sf]').addClass("disabled");
 		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",true);
+		$j('input[name^='+prefix+'_autobw_threshold]').addClass("disabled");
+		$j('input[name^='+prefix+'_autobw_threshold]').prop("disabled",true);
 	}
 	else if(inputvalue == "true"){
 		$j('input[name^='+prefix+'_autobw_ulimit]').removeClass("disabled");
@@ -1539,6 +1541,8 @@ function AutoBWEnableDisable(forminput){
 		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",false);
 		$j('input[name^='+prefix+'_autobw_sf]').removeClass("disabled");
 		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",false);
+		$j('input[name^='+prefix+'_autobw_threshold]').removeClass("disabled");
+		$j('input[name^='+prefix+'_autobw_threshold]').prop("disabled",false);
 	}
 }
 
@@ -1657,11 +1661,30 @@ function Validate_All(){
 	if(! Validate_ScheduleRange(document.form.spdmerlin_scheduleend)) validationfailed=true;
 	if(! Validate_ScheduleMinute(document.form.spdmerlin_minute)) validationfailed=true;
 	
+	if(! Validate_PercentRange(document.form.spdmerlin_autobw_sf_down)) validationfailed=true;
+	if(! Validate_PercentRange(document.form.spdmerlin_autobw_sf_up)) validationfailed=true;
+	if(! Validate_PercentRange(document.form.spdmerlin_autobw_threshold_down)) validationfailed=true;
+	if(! Validate_PercentRange(document.form.spdmerlin_autobw_threshold_up)) validationfailed=true;
+	
 	if(validationfailed){
 		alert("Validation for some fields failed. Please correct invalid values and try again.");
 		return false;
 	}
 	else{
+		return true;
+	}
+}
+
+function Validate_PercentRange(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value*1;
+	
+	if(inputvalue > 100 || inputvalue < 0 || forminput.value.length < 1){
+		$j(forminput).addClass("invalid");
+		return false;
+	}
+	else{
+		$j(forminput).removeClass("invalid");
 		return true;
 	}
 }
