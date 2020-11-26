@@ -20,9 +20,9 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="spdMerlin"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v4.0.0"
+readonly SCRIPT_VERSION="v4.1.0"
 readonly SCRIPT_BRANCH="master"
-readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/""$SCRIPT_BRANCH"
+readonly SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_WEBPAGE_DIR="$(readlink /www/user)"
 readonly SCRIPT_WEB_DIR="$SCRIPT_WEBPAGE_DIR/$SCRIPT_NAME_LOWER"
@@ -395,7 +395,7 @@ Create_Dirs(){
 	if [ ! -d "$SCRIPT_WEBPAGE_DIR" ]; then
 		mkdir -p "$SCRIPT_WEBPAGE_DIR"
 	fi
-		
+	
 	if [ ! -d "$SCRIPT_WEB_DIR" ]; then
 		mkdir -p "$SCRIPT_WEB_DIR"
 	fi
@@ -493,7 +493,6 @@ Conf_FromSettings(){
 
 Interfaces_FromSettings(){
 	SETTINGSFILE="/jffs/addons/custom_settings.txt"
-	TMPFILE="/tmp/spdmerlin_interfaces.txt"
 	if [ -f "$SETTINGSFILE" ]; then
 		if grep -q "spdmerlin_ifaces_enabled" "$SETTINGSFILE"; then
 			Print_Output true "Updated interfaces from WebUI found, merging into $SCRIPT_INTERFACES_USER" "$PASS"
@@ -508,11 +507,7 @@ Interfaces_FromSettings(){
 				if [ ! -f "/sys/class/net/tun1$index/operstate" ] || [ "$(cat "/sys/class/net/tun1$index/operstate")" = "down" ]; then
 					comment=" #excluded - interface not up#"
 				fi
-				if [ "$index" -lt 5 ]; then
-					printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_INTERFACES"
-				else
-					printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_INTERFACES"
-				fi
+				printf "VPNC%s%s\\n" "$index" "$comment" >> "$SCRIPT_INTERFACES"
 			done
 			
 			echo "" > "$SCRIPT_INTERFACES_USER"
@@ -582,13 +577,20 @@ Conf_Exists(){
 		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 28 ]; then
 			echo "EXCLUDEFROMQOS=true" >> "$SCRIPT_CONF"
 		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 29 ]; then
+			echo "AUTOBW_THRESHOLD_UP=10" >> "$SCRIPT_CONF"
+		fi
+		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 30 ]; then
+			sed -i 's/AUTOBW_RESULT_THRESHOLD/AUTOBW_THRESHOLD_UP/g' "$SCRIPT_CONF"
+			echo "AUTOBW_THRESHOLD_DOWN=10" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=0" ; echo "SCHEDULEEND=23"; echo "MINUTE=12"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; } >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; } >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -974,7 +976,7 @@ GenerateServerList_WebUI(){
 	if [ "$spdifacename" = "ALL" ]; then
 		while IFS='' read -r line || [ -n "$line" ]; do
 			if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-				IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+				IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 			fi
 		done < "$SCRIPT_INTERFACES_USER"
 		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
@@ -1009,7 +1011,7 @@ PreferredServer(){
 		update)
 			GenerateServerList "$2"
 			if [ "$serverno" != "exit" ]; then
-				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno""|""$servername"'/' "$SCRIPT_CONF"
+				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno|$servername"'/' "$SCRIPT_CONF"
 			else
 				return 1
 			fi
@@ -1210,7 +1212,7 @@ AutoBWConf(){
 			sed -i 's/^AUTOBW_'"$2"'_'"$3"'.*$/AUTOBW_'"$2"'_'"$3"'='"$4"'/' "$SCRIPT_CONF"
 		;;
 		check)
-			grep "AUTOBW_$2""_$3" "$SCRIPT_CONF" | cut -f2 -d"="
+			grep "AUTOBW_${2}_$3" "$SCRIPT_CONF" | cut -f2 -d"="
 		;;
 	esac
 }
@@ -1235,7 +1237,7 @@ WriteStats_ToJS(){
 	echo "function $3(){" >> "$2"
 	html='document.getElementById("'"$4"'").innerHTML="'
 	while IFS='' read -r line || [ -n "$line" ]; do
-		html="$html""$line""\\r\\n"
+		html="${html}${line}\\r\\n"
 	done < "$1"
 	html="$html"'"'
 	printf "%s\\r\\n}\\r\\n" "$html" >> "$2"
@@ -1249,7 +1251,7 @@ WriteSql_ToFile(){
 	{
 		echo ".mode csv"
 		echo ".headers off"
-		echo ".output $5$6""_$7.tmp"
+		echo ".output $5${6}_$7.tmp"
 	} >> "$8"
 	
 	echo "SELECT '$1' Metric, Min([Timestamp]) Time, IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
@@ -1261,10 +1263,10 @@ Generate_LastXResults(){
 		echo ".mode csv"
 		echo ".output /tmp/spd-lastx.csv"
 	} > /tmp/spd-lastx.sql
-	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload] FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT 10;" >> /tmp/spd-lastx.sql
+	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL]FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	sed -i 's/,,/,null,/g;s/,/ /g;s/"//g;' /tmp/spd-lastx.csv
-	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataResultURL_$1" "DataDataDownload_$1" "DataDataUpload_$1"
+	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataDataDownload_$1" "DataDataUpload_$1" "DataResultURL_$1"
 	rm -f /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.csv
 }
@@ -1313,14 +1315,14 @@ Run_Speedtest(){
 		if [ -z "$specificiface" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
 				if [ "$(echo "$line" | grep -c "#")" -eq 0 ]; then
-					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+					IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
 			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		elif [ "$specificiface" = "All" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
 				if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+					IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
 			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
@@ -1423,13 +1425,24 @@ Run_Speedtest(){
 					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
 					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
 					
+					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print substr($7,1,length($7)-1)}')"
+					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print substr($7,1,length($7)-1)}')"
+					
 					! Validate_Bandwidth "$download" && download="0";
 					! Validate_Bandwidth "$upload" && upload="0";
 					! Validate_Bandwidth "$latency" && latency=null;
 					! Validate_Bandwidth "$jitter" && jitter=null;
 					! Validate_Bandwidth "$pktloss" && pktloss=null;
-					! Validate_Bandwidth "$datadownload" && datadownload=0;
-					! Validate_Bandwidth "$dataupload" && dataupload=0;
+					! Validate_Bandwidth "$datadownload" && datadownload="0";
+					! Validate_Bandwidth "$dataupload" && dataupload="0";
+					
+					if [ "$datadownloadunit" = "GB" ]; then
+						datadownload="$(echo "$datadownload" | awk '{printf ($1*1024)}')"
+					fi
+					
+					if [ "$datauploadunit" = "GB" ]; then
+						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)}')"
+					fi
 					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1539,7 +1552,7 @@ Run_Speedtest(){
 }
 
 Run_Speedtest_WebUI(){
-	spdteststring="$(echo "$1" | sed "s/$SCRIPT_NAME_LOWER""spdtest_//;s/%/ /g")";
+	spdteststring="$(echo "$1" | sed "s/${SCRIPT_NAME_LOWER}spdtest_//;s/%/ /g")";
 	spdtestmode="webui_$(echo "$spdteststring" | cut -f1 -d'_')";
 	spdifacename="$(echo "$spdteststring" | cut -f2 -d'_')";
 	
@@ -1550,7 +1563,7 @@ Run_Speedtest_WebUI(){
 		if [ "$spdifacename" = "All" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
 				if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-					IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+					IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 				fi
 			done < "$SCRIPT_INTERFACES_USER"
 			IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
@@ -1573,7 +1586,7 @@ Run_Speedtest_WebUI(){
 
 Process_Upgrade(){
 	while IFS='' read -r line || [ -n "$line" ]; do
-		IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+		IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 	done < "$SCRIPT_INTERFACES_USER"
 	
 	for IFACE_NAME in $IFACELIST; do
@@ -1627,7 +1640,7 @@ Generate_CSVs(){
 	IFACELIST=""
 	
 	while IFS='' read -r line || [ -n "$line" ]; do
-		IFACELIST="$IFACELIST"" ""$(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+		IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
 	done < "$SCRIPT_INTERFACES_USER"
 	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 	
@@ -1748,11 +1761,11 @@ Generate_CSVs(){
 			rm -f "$tmpoutputdir/"*.htm
 		fi
 		
-		if [ ! -f /opt/bin/7z ]; then
+		if [ ! -f /opt/bin/7za ]; then
 			opkg update
 			opkg install p7zip
 		fi
-		/opt/bin/7z a -y -bsp0 -bso0 -tzip "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$tmpoutputdir/*"
+		/opt/bin/7za a -y -bsp0 -bso0 -tzip "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$tmpoutputdir/*"
 		mv "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$CSV_OUTPUT_DIR"
 		rm -rf "$tmpoutputdir"
 	fi
@@ -2474,7 +2487,8 @@ Menu_AutoBW(){
 		printf "1.    Update QoS bandwidth values now\\n\\n"
 		printf "2.    Configure scale factor\\n      Download: %s%%  -  Upload: %s%%\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
 		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: %s Mbps  -  Upload: %s Mbps\\n      Lower Limit    Download: %s Mbps  -  Upload: %s Mbps\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
-		printf "4.    Toggle AutoBW on/off\\n      Currently: %s\\n\\n" "$AUTOBW_MENU"
+		printf "4.    Configure threshold for updating QoS bandwidth values\\n      Download: %s%% - Upload: %s%%\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
+		printf "5.    Toggle AutoBW on/off\\n      Currently: %s\\n\\n" "$AUTOBW_MENU"
 		printf "e.    Go back\\n\\n"
 		printf "\\e[1m####################################################################\\e[0m\\n"
 		printf "\\n"
@@ -2486,7 +2500,6 @@ Menu_AutoBW(){
 				printf "\\n"
 				Menu_AutoBW_Update
 				PressEnter
-				break
 			;;
 			2)
 				while true; do
@@ -2643,6 +2656,73 @@ Menu_AutoBW(){
 				PressEnter
 			;;
 			4)
+			while true; do
+				ScriptHeader
+				exitmenu=""
+				updown=""
+				thvalue=""
+				printf "\\n"
+				printf "Select a threshold to set\\n"
+				printf "1.    Download\\n"
+				printf "2.    Upload\\n\\n"
+				while true; do
+					printf "Choose an option:    "
+					read -r autobwthchoice
+					if [ "$autobwthchoice" = "e" ]; then
+						exitmenu="exit"
+						break
+					elif ! Validate_Number "" "$autobwthchoice" silent; then
+						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
+					else
+						if [ "$autobwthchoice" -lt 1 ] || [ "$autobwthchoice" -gt 2 ]; then
+							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
+						else
+							if [ "$autobwthchoice" -eq 1 ]; then
+								updown="DOWN"
+								break
+							elif [ "$autobwthchoice" -eq 2 ]; then
+								updown="UP"
+								break
+							fi
+						fi
+					fi
+				done
+				
+				if [ "$exitmenu" != "exit" ]; then
+					while true; do
+						printf "\\n"
+						printf "Enter percentage to use for result threshold:    "
+						read -r autobwthvalue
+						if [ "$autobwthvalue" = "e" ]; then
+							exitmenu="exit"
+							break
+						elif ! Validate_Number "" "$autobwthvalue" "silent"; then
+							printf "\\n\\e[31mPlease enter a valid number (0-100)\\e[0m\\n"
+						else
+							if [ "$autobwthvalue" -lt 0 ] || [ "$autobwthvalue" -gt 100 ]; then
+								printf "\\n\\e[31mPlease enter a number between 0 and 100\\e[0m\\n"
+							else
+								thvalue="$autobwthvalue"
+								break
+							fi
+						fi
+					done
+				fi
+				
+				if [ "$exitmenu" != "exit" ]; then
+					AutoBWConf update THRESHOLD "$updown" "$thvalue"
+					break
+				fi
+				
+				if [ "$exitmenu" = "exit" ]; then
+					break
+				fi
+			done
+			
+			printf "\\n"
+			PressEnter
+			;;
+			5)
 				printf "\\n"
 				Menu_ToggleAutoBW
 			;;
@@ -2707,13 +2787,32 @@ Menu_AutoBW_Update(){
 	old_uspdkbps="$(nvram get qos_obw)"
 	old_dspdkbps="$(nvram get qos_ibw)"
 	
-	#Set Upload/Download Limit
-	Print_Output true " Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$WARN"
-	Print_Output true " Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$WARN"
-	nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
-	nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
-	nvram commit
-	service restart_qos >/dev/null 2>&1
+	bw_changed="false"
+	
+	dbw_threshold="$(AutoBWConf check THRESHOLD DOWN | awk '{printf ($1/100)}')"
+	
+	if [ "$dspdkbps" -gt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$dspdkbps" -lt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
+		bw_changed="true"
+		nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
+		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS"
+	else
+		Print_Output true "Calculated Download speed ($dspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD DOWN)%% threshold of existing value ($old_dspdkbps Kbps)" "$WARN"
+	fi
+	
+	ubw_threshold="$(AutoBWConf check THRESHOLD UP | awk '{printf ($1/100)}')"
+	
+	if [ "$uspdkbps" -gt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$uspdkbps" -lt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
+		bw_changed="true"
+		nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
+		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS"
+	else
+		Print_Output true "Calculated Download speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)%% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
+	fi
+	
+	if [ "$bw_changed" = "true" ]; then
+		nvram commit
+		service restart_qos >/dev/null 2>&1
+	fi
 	
 	Clear_Lock
 }
@@ -2882,25 +2981,25 @@ case "$1" in
 		exit 0
 	;;
 	service_event)
-		if [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""spdtest"; then
+		if [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}spdtest"; then
 			Check_Lock webui
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
 			exit 0
-		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlistmanual"; then
-			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlistmanual_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
+		elif [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}serverlistmanual"; then
+			spdifacename="$(echo "$3" | sed "s/${SCRIPT_NAME_LOWER}serverlistmanual_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
 			GenerateServerList_WebUI "$spdifacename" "spdmerlin_manual_serverlist"
-		elif [ "$2" = "start" ] && echo "$3" | grep -q "$SCRIPT_NAME_LOWER""serverlist"; then
-			spdifacename="$(echo "$3" | sed "s/$SCRIPT_NAME_LOWER""serverlist_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
+		elif [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}serverlist"; then
+			spdifacename="$(echo "$3" | sed "s/${SCRIPT_NAME_LOWER}serverlist_//" | cut -f1 -d'_' | tr "a-z" "A-Z")";
 			GenerateServerList_WebUI "$spdifacename" "spdmerlin_serverlist_$spdifacename"
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""config" ]; then
+		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME_LOWER}config" ]; then
 			Interfaces_FromSettings
 			Conf_FromSettings
 			exit 0
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""checkupdate" ]; then
+		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME_LOWER}checkupdate" ]; then
 			Update_Check
 			exit 0
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER""doupdate" ]; then
+		elif [ "$2" = "start" ] && [ "$3" = "${SCRIPT_NAME_LOWER}doupdate" ]; then
 			Update_Version force unattended
 			exit 0
 		fi
