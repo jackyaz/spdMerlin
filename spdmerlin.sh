@@ -2888,6 +2888,8 @@ NTP_Ready(){
 			Print_Output true "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
 			Clear_Lock
 		fi
+	else
+		Print_Output true "NTP synced, $SCRIPT_NAME will now continue" "$PASS"
 	fi
 }
 
@@ -2915,6 +2917,8 @@ Entware_Ready(){
 			Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
 			Clear_Lock
 		fi
+	else
+		Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
 	fi
 }
 ### ###
