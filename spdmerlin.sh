@@ -2915,6 +2915,9 @@ Entware_Ready(){
 			Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
 			Clear_Lock
 		fi
+	else
+		Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
+		Clear_Lock
 	fi
 }
 ### ###
