@@ -2866,7 +2866,7 @@ Menu_Uninstall(){
 
 NTP_Ready(){
 	if [ "$1" = "service_event" ]; then
-		if [ -n "$2" ] && [ "$(echo "$3" | grep -c "$SCRIPT_NAME_LOWER")" -eq 0 ]; then
+		if ! echo "$@" | grep -iq "$SCRIPT_NAME"; then
 			exit 0
 		fi
 	fi
@@ -2896,7 +2896,7 @@ NTP_Ready(){
 ### function based on @Adamm00's Skynet USB wait function ###
 Entware_Ready(){
 	if [ "$1" = "service_event" ]; then
-		if [ -n "$2" ] && [ "$(echo "$3" | grep -c "$SCRIPT_NAME_LOWER")" -eq 0 ]; then
+		if ! echo "$@" | grep -iq "$SCRIPT_NAME"; then
 			exit 0
 		fi
 	fi
