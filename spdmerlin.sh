@@ -2082,6 +2082,18 @@ Menu_ProcessInterfaces(){
 }
 
 Menu_Startup(){
+	if [ "$1" != "force" ]; then
+		if ! /usr/bin/find "$1/entware/bin/opkg" 2> /dev/null; then
+			Print_Output true "$1 does not contain Entware, not starting $SCRIPT_NAME" "$WARN"
+			exit 1
+		else
+			Print_Output true "$1 contains Entware, starting $SCRIPT_NAME" "$WARN"
+		fi
+	fi
+	
+	Check_Lock
+	sleep 8
+	
 	Create_Dirs
 	Conf_Exists
 	Set_Version_Custom_Settings local
@@ -2093,6 +2105,7 @@ Menu_Startup(){
 	Shortcut_spdMerlin create
 	License_Acceptance load
 	Mount_WebUI
+	
 	Clear_Lock
 }
 
@@ -2985,9 +2998,7 @@ case "$1" in
 		exit 0
 	;;
 	startup)
-		Check_Lock
-		sleep 8
-		Menu_Startup
+		Menu_Startup "$2"
 		exit 0
 	;;
 	generate)
