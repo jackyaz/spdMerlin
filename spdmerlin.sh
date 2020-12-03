@@ -2095,7 +2095,10 @@ Menu_Startup(){
 	fi
 	
 	Check_Lock
-	sleep 8
+	
+	if [ "$1" != "force" ]; then
+		sleep 8
+	fi
 	
 	Create_Dirs
 	Conf_Exists
