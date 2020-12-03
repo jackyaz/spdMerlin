@@ -601,7 +601,7 @@ Auto_ServiceEvent(){
 			if [ -f /jffs/scripts/service-event ]; then
 				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				# shellcheck disable=SC2016
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$1" "$2" &'' # '"$SCRIPT_NAME" /jffs/scripts/service-event)
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" &'' # '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
@@ -609,13 +609,13 @@ Auto_ServiceEvent(){
 				
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
 					# shellcheck disable=SC2016
-					echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$1" "$2" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
+					echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event
 				echo "" >> /jffs/scripts/service-event
 				# shellcheck disable=SC2016
-				echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$1" "$2" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
+				echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				chmod 0755 /jffs/scripts/service-event
 			fi
 		;;
@@ -626,6 +626,104 @@ Auto_ServiceEvent(){
 				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
 				fi
+			fi
+		;;
+	esac
+}
+
+Auto_Startup(){
+	case $1 in
+		create)
+			if [ -f /jffs/scripts/services-start ]; then
+				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
+				
+				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
+				fi
+			fi
+			
+			if [ -f /jffs/scripts/post-mount ]; then
+				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/post-mount)
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" &'' # '"$SCRIPT_NAME" /jffs/scripts/post-mount)
+				
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/post-mount
+				fi
+				
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+					echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/post-mount
+				fi
+			else
+				echo "#!/bin/sh" > /jffs/scripts/post-mount
+				echo "" >> /jffs/scripts/post-mount
+				echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/post-mount
+				chmod 0755 /jffs/scripts/post-mount
+			fi
+		;;
+		delete)
+			if [ -f /jffs/scripts/services-start ]; then
+				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
+				
+				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
+				fi
+			fi
+			
+			if [ -f /jffs/scripts/post-mount ]; then
+				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/post-mount)
+				
+				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/post-mount
+				fi
+			fi
+		;;
+	esac
+}
+
+Auto_Cron(){
+	case $1 in
+		create)
+		STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
+		
+		if [ "$STARTUPLINECOUNT" -eq 0 ]; then
+				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
+				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
+				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
+				TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
+				if [ "$MINUTESTART" = "*" ]; then
+					MINUTESTART=12
+				fi
+				if [ "$TESTFREQUENCY" = "halfhourly" ]; then
+					MINUTEEND=$((MINUTESTART + 30))
+					[ "$MINUTEEND" -gt 59 ] && MINUTEEND=$((MINUTEEND - 60))
+					
+					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					else
+						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						else
+							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						fi
+					fi
+				elif [ "$TESTFREQUENCY" = "hourly" ]; then
+					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
+						cru a "$SCRIPT_NAME" "$MINUTESTART * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+					else
+						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
+							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						else
+							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
+						fi
+					fi
+				fi
+			fi
+		;;
+		delete)
+			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
+			
+			if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				cru d "$SCRIPT_NAME"
 			fi
 		;;
 	esac
@@ -733,88 +831,6 @@ Generate_Interface_List(){
 	if [ "$goback" != "true" ]; then
 		Generate_Interface_List
 	fi
-}
-
-Auto_Startup(){
-	case $1 in
-		create)
-			if [ -f /jffs/scripts/services-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER startup &"' # '"$SCRIPT_NAME" /jffs/scripts/services-start)
-				
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
-					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
-				fi
-				
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
-					echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup &"' # '"$SCRIPT_NAME" >> /jffs/scripts/services-start
-				fi
-			else
-				echo "#!/bin/sh" > /jffs/scripts/services-start
-				echo "" >> /jffs/scripts/services-start
-				echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup &"' # '"$SCRIPT_NAME" >> /jffs/scripts/services-start
-				chmod 0755 /jffs/scripts/services-start
-			fi
-		;;
-		delete)
-			if [ -f /jffs/scripts/services-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
-				
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
-					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
-				fi
-			fi
-		;;
-	esac
-}
-
-Auto_Cron(){
-	case $1 in
-		create)
-		STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
-		
-		if [ "$STARTUPLINECOUNT" -eq 0 ]; then
-				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
-				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
-				TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
-				if [ "$MINUTESTART" = "*" ]; then
-					MINUTESTART=12
-				fi
-				if [ "$TESTFREQUENCY" = "halfhourly" ]; then
-					MINUTEEND=$((MINUTESTART + 30))
-					[ "$MINUTEEND" -gt 59 ] && MINUTEEND=$((MINUTEEND - 60))
-					
-					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-					else
-						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						else
-							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						fi
-					fi
-				elif [ "$TESTFREQUENCY" = "hourly" ]; then
-					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-					else
-						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						else
-							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						fi
-					fi
-				fi
-			fi
-		;;
-		delete)
-			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
-			
-			if [ "$STARTUPLINECOUNT" -gt 0 ]; then
-				cru d "$SCRIPT_NAME"
-			fi
-		;;
-	esac
 }
 
 Download_File(){
