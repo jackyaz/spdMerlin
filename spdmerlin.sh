@@ -2086,7 +2086,7 @@ Menu_Startup(){
 		Print_Output true "Missing argument for startup, not starting $SCRIPT_NAME" "$WARN"
 		exit 1
 	elif [ "$1" != "force" ]; then
-		if ! /usr/bin/find "$1/entware/bin/opkg" 2> /dev/null; then
+		if [ ! -f "$1/entware/bin/opkg" ]; then
 			Print_Output true "$1 does not contain Entware, not starting $SCRIPT_NAME" "$WARN"
 			exit 1
 		else
