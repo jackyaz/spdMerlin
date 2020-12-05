@@ -2925,20 +2925,22 @@ NTP_Ready(){
 
 ### function based on @Adamm00's Skynet USB wait function ###
 Entware_Ready(){
-	Check_Lock
-	sleepcount=1
-	while [ ! -f "/opt/bin/opkg" ] && [ "$sleepcount" -le 10 ]; do
-		Print_Output true "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
-		sleepcount="$((sleepcount + 1))"
-		sleep 10
-	done
-	if [ ! -f /opt/bin/opkg ]; then
-		Print_Output true "Entware not found and is required for $SCRIPT_NAME to run, please resolve" "$CRIT"
-		Clear_Lock
-		exit 1
-	else
-		Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
-		Clear_Lock
+	if [ ! -f "/opt/bin/opkg" ]; then
+		Check_Lock
+		sleepcount=1
+		while [ ! -f "/opt/bin/opkg" ] && [ "$sleepcount" -le 10 ]; do
+			Print_Output true "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
+			sleepcount="$((sleepcount + 1))"
+			sleep 10
+		done
+		if [ ! -f /opt/bin/opkg ]; then
+			Print_Output true "Entware not found and is required for $SCRIPT_NAME to run, please resolve" "$CRIT"
+			Clear_Lock
+			exit 1
+		else
+			Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
+			Clear_Lock
+		fi
 	fi
 }
 ### ###
