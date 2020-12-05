@@ -2094,6 +2094,8 @@ Menu_Startup(){
 		fi
 	fi
 	
+	NTP_Ready
+	
 	Check_Lock
 	
 	if [ "$1" != "force" ]; then
@@ -2900,11 +2902,6 @@ Menu_Uninstall(){
 }
 
 NTP_Ready(){
-	if [ "$1" = "service_event" ]; then
-		if ! echo "$@" | grep -iq "$SCRIPT_NAME"; then
-			exit 0
-		fi
-	fi
 	if [ "$(nvram get ntp_ready)" -eq 0 ]; then
 		ntpwaitcount="0"
 		Check_Lock
@@ -2928,34 +2925,23 @@ NTP_Ready(){
 
 ### function based on @Adamm00's Skynet USB wait function ###
 Entware_Ready(){
-	if [ "$1" = "service_event" ]; then
-		if ! echo "$@" | grep -iq "$SCRIPT_NAME"; then
-			exit 0
-		fi
-	fi
-		
-	if [ ! -f /opt/bin/opkg ] && ! echo "$@" | grep -wqE "(install|uninstall|update|forceupdate)"; then
-		Check_Lock
-		sleepcount=1
-		while [ ! -f "/opt/bin/opkg" ] && [ "$sleepcount" -le 10 ]; do
-			Print_Output true "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
-			sleepcount="$((sleepcount + 1))"
-			sleep 10
-		done
-		if [ ! -f /opt/bin/opkg ]; then
-			Print_Output true "Entware not found and is required for $SCRIPT_NAME to run, please resolve" "$CRIT"
-			Clear_Lock
-			exit 1
-		else
-			Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
-			Clear_Lock
-		fi
+	Check_Lock
+	sleepcount=1
+	while [ ! -f "/opt/bin/opkg" ] && [ "$sleepcount" -le 10 ]; do
+		Print_Output true "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
+		sleepcount="$((sleepcount + 1))"
+		sleep 10
+	done
+	if [ ! -f /opt/bin/opkg ]; then
+		Print_Output true "Entware not found and is required for $SCRIPT_NAME to run, please resolve" "$CRIT"
+		Clear_Lock
+		exit 1
+	else
+		Print_Output true "Entware found, $SCRIPT_NAME will now continue" "$PASS"
+		Clear_Lock
 	fi
 }
 ### ###
-
-NTP_Ready "$@"
-Entware_Ready "$@"
 
 if [ -f "/opt/share/$SCRIPT_NAME_LOWER.d/config" ]; then
 	SCRIPT_CONF="/opt/share/$SCRIPT_NAME_LOWER.d/config"
@@ -2970,6 +2956,8 @@ SCRIPT_INTERFACES_USER="$SCRIPT_STORAGE_DIR/.interfaces_user"
 CSV_OUTPUT_DIR="$SCRIPT_STORAGE_DIR/csv"
 
 if [ -z "$1" ]; then
+	NTP_Ready
+	Entware_Ready
 	if [ ! -f /opt/bin/sqlite3 ]; then
 		Print_Output true "Installing required version of sqlite3 from Entware" "$PASS"
 		opkg update
@@ -3008,6 +2996,8 @@ case "$1" in
 		exit 0
 	;;
 	generate)
+		NTP_Ready
+		Entware_Ready
 		Check_Lock
 		Run_Speedtest schedule
 		Clear_Lock
@@ -3039,12 +3029,15 @@ case "$1" in
 		exit 0
 	;;
 	outputcsv)
+		NTP_Ready
+		Entware_Ready
 		Check_Lock
 		Generate_CSVs
 		Clear_Lock
 		exit 0
 	;;
 	automatic)
+		Entware_Ready
 		Check_Lock
 		Menu_ToggleAutomated
 		Clear_Lock
@@ -3059,6 +3052,7 @@ case "$1" in
 		exit 0
 	;;
 	setversion)
+		Entware_Ready
 		Set_Version_Custom_Settings local
 		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 		if [ -z "$2" ]; then
