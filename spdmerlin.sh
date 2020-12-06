@@ -2843,7 +2843,7 @@ Menu_AutoBW_Update(){
 		nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
 		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS"
 	else
-		Print_Output true "Calculated Download speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)%% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Upload speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)%% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
 	fi
 	
 	if [ "$bw_changed" = "true" ]; then
