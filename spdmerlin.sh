@@ -1294,7 +1294,7 @@ Run_Speedtest(){
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
-	Shortcut_spdMerlin create
+	Shortcut_Script create
 	ScriptStorageLocation load
 	Create_Symlinks
 	License_Acceptance load
@@ -1787,7 +1787,7 @@ Generate_CSVs(){
 	fi
 }
 
-Shortcut_spdMerlin(){
+Shortcut_Script(){
 	case $1 in
 		create)
 			if [ -d "/opt/bin" ] && [ ! -f "/opt/bin/$SCRIPT_NAME_LOWER" ] && [ -f "/jffs/scripts/$SCRIPT_NAME_LOWER" ]; then
@@ -2064,7 +2064,7 @@ Menu_Install(){
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
-	Shortcut_spdMerlin create
+	Shortcut_Script create
 	
 	License_Acceptance accept
 	
@@ -2110,7 +2110,7 @@ Menu_Startup(){
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
-	Shortcut_spdMerlin create
+	Shortcut_Script create
 	License_Acceptance load
 	Mount_WebUI
 	
@@ -2891,7 +2891,7 @@ Menu_Uninstall(){
 			:
 		;;
 	esac
-	Shortcut_spdMerlin delete
+	Shortcut_Script delete
 	
 	rm -rf "$SCRIPT_WEB_DIR" 2>/dev/null
 	rm -rf "$OOKLA_DIR" 2>/dev/null
@@ -2980,7 +2980,7 @@ if [ -z "$1" ]; then
 	Auto_Startup create 2>/dev/null
 	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
-	Shortcut_spdMerlin create
+	Shortcut_Script create
 	License_Acceptance load
 	ScriptHeader
 	MainMenu
