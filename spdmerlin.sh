@@ -3054,7 +3054,6 @@ case "$1" in
 		exit 0
 	;;
 	setversion)
-		Entware_Ready
 		Set_Version_Custom_Settings local
 		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 		if [ -z "$2" ]; then
