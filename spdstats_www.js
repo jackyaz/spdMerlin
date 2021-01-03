@@ -591,8 +591,8 @@ function ToggleLines(){
 function ToggleFill(){
 	var interfacetextarray = interfacelist.split(',');
 	if(ShowFill == "origin"){
-		ShowFill = false;
-		SetCookie("ShowFill",false);
+		ShowFill = "false";
+		SetCookie("ShowFill","false");
 	}
 	else{
 		ShowFill = "origin";
