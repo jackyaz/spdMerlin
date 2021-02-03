@@ -2850,7 +2850,7 @@ Menu_AutoBW_Update(){
 	
 	if [ "$bw_changed" = "true" ]; then
 		nvram commit
-		service restart_qos >/dev/null 2>&1
+		service "restart_qos;restart_firewall" >/dev/null 2>&1
 	fi
 	
 	Clear_Lock
