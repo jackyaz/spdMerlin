@@ -895,6 +895,10 @@ Mount_WebUI(){
 }
 
 GenerateServerList(){
+	if [ ! -f /opt/bin/jq ]; then
+		opkg update
+		opkg install jq
+	fi
 	promptforservername="$2"
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
 	serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$1")" --servers --format="json")" 2>/dev/null
@@ -983,6 +987,10 @@ GenerateServerList(){
 }
 
 GenerateServerList_WebUI(){
+	if [ ! -f /opt/bin/jq ]; then
+		opkg update
+		opkg install jq
+	fi
 	serverlistfile="$2"
 	rm -f "/tmp/$serverlistfile.txt"
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
