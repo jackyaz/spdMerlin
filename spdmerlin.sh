@@ -482,6 +482,13 @@ Conf_FromSettings(){
 			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 			
+			if [ "$(AutoBWEnable check)" = "true" ]; then
+				if [ "$(ExcludeFromQoS check)" = "false" ]; then
+					Print_Output true "Enabling Exclude from QoS (required for AutoBW)"
+					ExcludeFromQoS enable
+				fi
+			fi
+			
 			Generate_CSVs
 			
 			Print_Output true "Merge of updated settings from WebUI completed successfully" "$PASS"
@@ -1664,6 +1671,14 @@ Process_Upgrade(){
 			echo "}";
 		} > "$SCRIPT_STORAGE_DIR/spdtitletext.js"
 	fi
+	
+	if [ "$(AutoBWEnable check)" = "true" ]; then
+		if [ "$(ExcludeFromQoS check)" = "false" ]; then
+			Print_Output false "Enabling Exclude from QoS (required for AutoBW)"
+			ExcludeFromQoS enable
+			PressEnter
+		fi
+	fi
 }
 
 Generate_CSVs(){
@@ -1881,7 +1896,7 @@ MainMenu(){
 	
 	printf "1.    Run a speedtest now\\n\\n"
 	printf "2.    Choose a preferred server for an interface\\n\\n"
-	printf "3.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
+	printf "3.    Toggle automatic speedtests\\n      Currently \\e[1m%s\\e[0m\\n\\n" "$AUTOMATIC_ENABLED"
 	printf "4.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
 	printf "5.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode check)"
 	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
@@ -2406,7 +2421,12 @@ Menu_ToggleStorageLocation(){
 
 Menu_ToggleExcludeFromQoS(){
 	if [ "$(ExcludeFromQoS check)" = "true" ]; then
-		ExcludeFromQoS disable
+		if [ "$(AutoBWEnable check)" = "true" ]; then
+			Print_Output false "Cannot disable Exclude from QoS when AutoBW is enabled" "$WARN"
+			PressEnter
+		elif [ "$(AutoBWEnable check)" = "false" ]; then
+			ExcludeFromQoS disable
+		fi
 	elif [ "$(ExcludeFromQoS check)" = "false" ]; then
 		ExcludeFromQoS enable
 	fi
@@ -2417,6 +2437,11 @@ Menu_ToggleAutoBW(){
 		AutoBWEnable disable
 	elif [ "$(AutoBWEnable check)" = "false" ]; then
 		AutoBWEnable enable
+		if [ "$(ExcludeFromQoS check)" = "false" ]; then
+			Print_Output false "Enabling Exclude from QoS (required for AutoBW)"
+			ExcludeFromQoS enable
+			PressEnter
+		fi
 	fi
 }
 
