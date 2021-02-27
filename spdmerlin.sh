@@ -1360,9 +1360,12 @@ Run_Speedtest(){
 			if [ "$(ExcludeFromQoS check)" = "true" ]; then
 				for ACTION in -D -A ; do
 					for proto in tcp udp; do
-						iptables "$ACTION" OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle "$ACTION" OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables "$ACTION" OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables "$ACTION" OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle "$ACTION" OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle "$ACTION" OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 					done
 				done
 				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
@@ -1538,9 +1541,12 @@ Run_Speedtest(){
 			
 			if [ "$(ExcludeFromQoS check)" = "true" ]; then
 				for proto in tcp udp; do
-					iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -D POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -D OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -t mangle -D OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -t mangle -D POSTROUTING -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -t mangle -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					iptables -t mangle -D POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 				done
 				
 				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
