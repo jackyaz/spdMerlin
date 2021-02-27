@@ -1358,12 +1358,13 @@ Run_Speedtest(){
 		
 		if [ "$IFACELIST" != "" ]; then
 			if [ "$(ExcludeFromQoS check)" = "true" ]; then
-			for proto in tcp udp; do
-					iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -A POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+				for ACTION in -D -A ; do
+					for proto in tcp udp; do
+						iptables "$ACTION" OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle "$ACTION" OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+					done
 				done
-				
 				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
 					/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
 				fi
