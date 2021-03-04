@@ -1445,6 +1445,8 @@ Run_Speedtest(){
 						return 1
 					fi
 					
+					Print_Output true "DEBUG: speedtest process ended"
+					
 					ScriptStorageLocation load
 					
 					TZ=$(cat /etc/TZ)
@@ -1480,6 +1482,8 @@ Run_Speedtest(){
 					if [ "$datauploadunit" = "GB" ]; then
 						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)}')"
 					fi
+					
+					Print_Output true "DEBUG: database update startig"
 					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
@@ -1523,7 +1527,7 @@ Run_Speedtest(){
 					echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					rm -f /tmp/spd-stats.sql
-					
+					Print_Output true "DEBUG: database update ended"
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
 					spdtestresult2="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1' | sed 's/%/%%/')"
 					
@@ -1560,7 +1564,10 @@ Run_Speedtest(){
 					/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
 				fi
 			fi
+			Print_Output true "DEBUG: csv generation starting"
 			Generate_CSVs
+			Print_Output true "DEBUG: csv generation ended"
+			
 			
 			echo "Stats last updated: $timenowfriendly" > /tmp/spdstatstitle.txt
 			rm -f "$SCRIPT_STORAGE_DIR/spdtitletext.js"
