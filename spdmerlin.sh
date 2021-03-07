@@ -1444,9 +1444,7 @@ Run_Speedtest(){
 					
 					if [ ! -f "$tmpfile" ] || [ -z "$(cat "$tmpfile")" ] || [ "$(grep -c FAILED $tmpfile)" -gt 0 ]; then
 						Print_Output true "Error running speedtest for $IFACE_NAME" "$CRIT"
-						echo 'var spdteststatus = "Error";' > /tmp/detect_spdtest.js
-						Clear_Lock
-						exit 1
+						continue
 					fi
 					
 					Print_Output true "DEBUG: speedtest process ended"
