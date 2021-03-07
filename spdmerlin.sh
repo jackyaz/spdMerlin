@@ -1431,14 +1431,44 @@ Run_Speedtest(){
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
-						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
+						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+						speedtestcount=0
+						while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+							speedtestcount="$((speedtestcount + 1))"
+							sleep 1
+						done
+						if [ "$speedtestcount" -ge 120 ]; then
+							Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
+							killall speedtest
+							continue
+						fi
 					else
 						if [ "$speedtestserverno" != "0" ]; then
 							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							speedtestcount=0
+							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+								speedtestcount="$((speedtestcount + 1))"
+								sleep 1
+							done
+							if [ "$speedtestcount" -ge 120 ]; then
+								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
+								killall speedtest
+								continue
+							fi
 						else
 							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
+							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							speedtestcount=0
+							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+								speedtestcount="$((speedtestcount + 1))"
+								sleep 1
+							done
+							if [ "$speedtestcount" -ge 120 ]; then
+								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
+								killall speedtest
+								continue
+							fi
 						fi
 					fi
 					
