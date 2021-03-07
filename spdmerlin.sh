@@ -1327,6 +1327,10 @@ Run_Speedtest(){
 	resultfile=/tmp/spd-result.txt
 	printf "" > "$resultfile"
 	
+	if [ -n "$(pidof speedtest)" ]; then
+		killall speedtest
+	fi
+	
 	if Check_Swap ; then
 		if [ "$(echo "$mode" | grep -c "webui")" -eq 0 ]; then
 			if ! License_Acceptance check ; then
