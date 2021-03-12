@@ -479,8 +479,7 @@ Conf_FromSettings(){
 			ScriptStorageLocation "$(ScriptStorageLocation check)"
 			Create_Symlinks
 			
-			Auto_Cron delete 2>/dev/null
-			Auto_Cron create 2>/dev/null
+			if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 			
 			if [ "$(AutoBWEnable check)" = "true" ]; then
 				if [ "$(ExcludeFromQoS check)" = "false" ]; then
