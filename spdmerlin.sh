@@ -3121,9 +3121,7 @@ case "$1" in
 	;;
 	automatic)
 		Entware_Ready
-		Check_Lock
 		Menu_ToggleAutomated
-		Clear_Lock
 		exit 0
 	;;
 	update)
