@@ -1381,6 +1381,9 @@ Run_Speedtest(){
 				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
 					/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
 				fi
+				if [ -f /tmp/qos ]; then
+					/tmp/qos stop >/dev/null 2>&1
+				fi
 			fi
 			
 			applyautobw="false"
@@ -1590,9 +1593,11 @@ Run_Speedtest(){
 					iptables -t mangle -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 					iptables -t mangle -D POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
 				done
-				
 				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
 					/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
+				fi
+				if [ -f /tmp/qos ]; then
+					/tmp/qos start >/dev/null 2>&1
 				fi
 			fi
 			Print_Output true "DEBUG: csv generation starting"
