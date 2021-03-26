@@ -1368,21 +1368,25 @@ Run_Speedtest(){
 		
 		if [ "$IFACELIST" != "" ]; then
 			if [ "$(ExcludeFromQoS check)" = "true" ]; then
-				for ACTION in -D -A ; do
-					for proto in tcp udp; do
-						iptables "$ACTION" OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables "$ACTION" OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle "$ACTION" OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle "$ACTION" OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-						iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+				stoppedqos="false"
+				if [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -eq 1 ]; then
+					for ACTION in -D -A ; do
+						for proto in tcp udp; do
+							iptables "$ACTION" OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables "$ACTION" OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle "$ACTION" OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle "$ACTION" OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						done
+						stoppedqos="true"
 					done
-				done
-				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
-					/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
-				fi
-				if [ -f /tmp/qos ]; then
+				elif [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -ne 1 ] && [ -f /tmp/qos ]; then
 					/tmp/qos stop >/dev/null 2>&1
+					stoppedqos="true"
+				elif [ "$(nvram get qos_enable)" -eq 0 ] && [ -f /jffs/addons/cake-qos/cake-qos ]; then
+					/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
+					stoppedqos="true"
 				fi
 			fi
 			
@@ -1585,19 +1589,21 @@ Run_Speedtest(){
 			done
 			
 			if [ "$(ExcludeFromQoS check)" = "true" ]; then
-				for proto in tcp udp; do
-					iptables -D OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -D OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -D POSTROUTING -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -D POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-				done
-				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
-					/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
-				fi
-				if [ -f /tmp/qos ]; then
-					/tmp/qos start >/dev/null 2>&1
+				if [ "$stoppedqos" = "true" ]; then
+					if [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -eq 1 ]; then
+						for proto in tcp udp; do
+							iptables -D OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D POSTROUTING -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						done
+					elif [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -ne 1 ] && [ -f /tmp/qos ]; then
+						/tmp/qos start >/dev/null 2>&1
+					elif [ "$(nvram get qos_enable)" -eq 0 ] && [ -f /jffs/addons/cake-qos/cake-qos ]; then
+						/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
+					fi
 				fi
 			fi
 			Print_Output true "DEBUG: csv generation starting"
