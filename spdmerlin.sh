@@ -171,35 +171,46 @@ Update_Check(){
 }
 
 Update_Version(){
-	if [ -z "$1" ] || [ "$1" = "unattended" ]; then
+	if [ -z "$1" ]; then
 		updatecheckresult="$(Update_Check)"
 		isupdate="$(echo "$updatecheckresult" | cut -f1 -d',')"
 		localver="$(echo "$updatecheckresult" | cut -f2 -d',')"
 		serverver="$(echo "$updatecheckresult" | cut -f3 -d',')"
 		
 		if [ "$isupdate" = "version" ]; then
-			Print_Output true "New version of $SCRIPT_NAME available - updating to $serverver" "$PASS"
+			Print_Output true "New version of $SCRIPT_NAME available - $serverver" "$PASS"
 		elif [ "$isupdate" = "md5" ]; then
-			Print_Output true "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
+			Print_Output true "MD5 hash of $SCRIPT_NAME does not match - hotfix available - $serverver" "$PASS"
 		fi
 		
-		Update_File shared-jy.tar.gz
-		
 		if [ "$isupdate" != "false" ]; then
-			Update_File "$ARCH.tar.gz"
-			Update_File spdstats_www.asp
-			
-			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
-			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
-			Clear_Lock
-			if [ -z "$1" ]; then
-				exec "$0" setversion
-			elif [ "$1" = "unattended" ]; then
-				exec "$0" setversion unattended
-			fi
-			exit 0
+			printf "\\n\\e[1mDo you want to continue with the update? (y/n)\\e[0m  "
+			read -r confirm
+			case "$confirm" in
+				y|Y)
+					printf "\\n"
+					Update_File shared-jy.tar.gz
+					Update_File "$ARCH.tar.gz"
+					Update_File spdstats_www.asp
+					
+					/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
+					chmod 0755 "/jffs/scripts/$SCRIPT_NAME_LOWER"
+					Set_Version_Custom_Settings local "$serverver"
+					Set_Version_Custom_Settings server "$serverver"
+					Clear_Lock
+					PressEnter
+					exec "$0"
+					exit 0
+				;;
+				*)
+					printf "\\n"
+					Clear_Lock
+					return 1
+				;;
+			esac
+					
 		else
-			Print_Output true "No new version - latest is $localver" "$WARN"
+			Print_Output true "No updates available - latest is $localver" "$WARN"
 			Clear_Lock
 		fi
 	fi
@@ -207,16 +218,19 @@ Update_Version(){
 	if [ "$1" = "force" ]; then
 		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
+		Update_File shared-jy.tar.gz
 		Update_File "$ARCH.tar.gz"
 		Update_File spdstats_www.asp
-		Update_File shared-jy.tar.gz
 		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
-		chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
+		chmod 0755 "/jffs/scripts/$SCRIPT_NAME"
+		Set_Version_Custom_Settings local "$serverver"
+		Set_Version_Custom_Settings server "$serverver"
 		Clear_Lock
 		if [ -z "$2" ]; then
-			exec "$0" setversion
+			PressEnter
+			exec "$0"
 		elif [ "$2" = "unattended" ]; then
-			exec "$0" setversion unattended
+			exec "$0" postupdate
 		fi
 		exit 0
 	fi
@@ -3184,20 +3198,40 @@ case "$1" in
 		exit 0
 	;;
 	update)
-		Update_Version unattended
+		Update_Version
 		exit 0
 	;;
 	forceupdate)
-		Update_Version force unattended
+		Update_Version force
 		exit 0
 	;;
-	setversion)
-		Set_Version_Custom_Settings local
+	postupdate)
+		Create_Dirs
+		Conf_Exists
+		ScriptStorageLocation load
+		Create_Symlinks
+		Process_Upgrade
+		Auto_Startup create 2>/dev/null
+		if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
+		Auto_ServiceEvent create 2>/dev/null
+		Shortcut_Script create
+		License_Acceptance load
+		Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
-		if [ -z "$2" ]; then
-			exec "$0"
-		fi
-		exit 0
+	;;
+	setversion)
+		Create_Dirs
+		Conf_Exists
+		ScriptStorageLocation load
+		Create_Symlinks
+		Process_Upgrade
+		Auto_Startup create 2>/dev/null
+		if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
+		Auto_ServiceEvent create 2>/dev/null
+		Shortcut_Script create
+		License_Acceptance load
+		Set_Version_Custom_Settings local "$SCRIPT_VERSION"
+		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 	;;
 	checkupdate)
 		Update_Check
