@@ -3173,9 +3173,14 @@ case "$1" in
 		Clear_Lock
 		exit 0
 	;;
-	automatic)
+	enable)
 		Entware_Ready
-		Menu_ToggleAutomated
+		AutomaticMode enable
+		exit 0
+	;;
+	disable)
+		Entware_Ready
+		AutomaticMode disable
 		exit 0
 	;;
 	update)
