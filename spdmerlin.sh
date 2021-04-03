@@ -581,9 +581,11 @@ Conf_Exists(){
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
 		if grep -q "SCHEDULESTART" "$SCRIPT_CONF"; then
-			echo "SCHDAYS=*" >> "$SCRIPT_CONF"
-			echo "SCHHOURS=*" >> "$SCRIPT_CONF"
-			echo "SCHMINS=12,42" >> "$SCRIPT_CONF"
+			{
+				echo "SCHDAYS=*";
+				echo "SCHHOURS=*";
+				echo "SCHMINS=12,42";
+			} >> "$SCRIPT_CONF"
 			sed -i '/SCHEDULESTART/d;/SCHEDULEEND/d;/MINUTE/d;/TESTFREQUENCY/d' "$SCRIPT_CONF"
 			if AutomaticMode check; then
 				Auto_Cron delete 2>/dev/null
