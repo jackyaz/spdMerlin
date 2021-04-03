@@ -1855,7 +1855,7 @@ ScriptHeader(){
 	printf "\\e[1m##          | |                                                   ##\\e[0m\\n"
 	printf "\\e[1m##          |_|                                                   ##\\e[0m\\n"
 	printf "\\e[1m##                                                                ##\\e[0m\\n"
-	printf "\\e[1m##                       %s on %-9s                      ##\\e[0m\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
+	printf "\\e[1m##                       %s on %-11s                    ##\\e[0m\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
 	printf "\\e[1m##                                                                ##\\e[0m\\n"
 	printf "\\e[1m##              https://github.com/jackyaz/spdMerlin              ##\\e[0m\\n"
 	printf "\\e[1m##                                                                ##\\e[0m\\n"
@@ -1865,42 +1865,47 @@ ScriptHeader(){
 
 MainMenu(){
 	AUTOMATIC_ENABLED=""
-	TEST_SCHEDULE=""
 	EXCLUDEFROMQOS_MENU=""
-	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
-	if TestSchedule check; then
-		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
-		if [ "$frequencytest" = "halfhourly" ]; then
-			minuteend=$((minutestart + 30))
-			[ "$minuteend" -gt 60 ] && minuteend=$((minuteend - 60))
-			if [ "$minutestart" -lt "$minuteend" ]; then
-				TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
-			else
-				TEST_SCHEDULE2="Tests will run at $minuteend and $minutestart past the hour"
-			fi
-		elif [ "$frequencytest" = "hourly" ]; then
-			TEST_SCHEDULE2="Tests will run at $minutestart past the hour"
-		fi
+	if AutomaticMode check; then AUTOMATIC_ENABLED="${PASS}Enabled"; else AUTOMATIC_ENABLED="${ERR}Disabled"; fi
+	TEST_SCHEDULE="$(TestSchedule check)"
+	if [ "$(echo "$TEST_SCHEDULE" | cut -f2 -d'|' | grep -c "/")" -gt 0 ] && [ "$(echo "$TEST_SCHEDULE" | cut -f3 -d'|')" -eq 0 ]; then
+		TEST_SCHEDULE_MENU="Every $(echo "$TEST_SCHEDULE" | cut -f2 -d'|' | cut -f2 -d'/') hours"
+	elif [ "$(echo "$TEST_SCHEDULE" | cut -f3 -d'|' | grep -c "/")" -gt 0 ] && [ "$(echo "$TEST_SCHEDULE" | cut -f2 -d'|')" = "*" ]; then
+		TEST_SCHEDULE_MENU="Every $(echo "$TEST_SCHEDULE" | cut -f3 -d'|' | cut -f2 -d'/') minutes"
 	else
-		TEST_SCHEDULE="No defined schedule - tests run every hour"
-		TEST_SCHEDULE2="Tests will run at 12 and 42 past the hour"
+		TEST_SCHEDULE_MENU="Hours: $(echo "$TEST_SCHEDULE" | cut -f2 -d'|')    -    Minutes: $(echo "$TEST_SCHEDULE" | cut -f3 -d'|')"
 	fi
+
+	if [ "$(echo "$TEST_SCHEDULE" | cut -f1 -d'|')" = "*" ]; then
+		TEST_SCHEDULE_MENU2="Days of week: All"
+	else
+		TEST_SCHEDULE_MENU2="Days of week: $(echo "$TEST_SCHEDULE" | cut -f1 -d'|')"
+	fi
+	STORERESULTURL_MENU=""
+	if [ "$(StoreResultURL check)" = "true" ]; then
+		STORERESULTURL_MENU="Enabled"
+	else
+		STORERESULTURL_MENU="Disabled"
+	fi
+	
+	printf "WebUI for %s is available at:\\n${SETTING}%s\\e[0m\\n\\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
 	if [ "$(ExcludeFromQoS check)" = "true" ]; then EXCLUDEFROMQOS_MENU="excluded from"; else EXCLUDEFROMQOS_MENU="included in"; fi
 	
 	printf "1.    Run a speedtest now\\n\\n"
 	printf "2.    Choose a preferred server for an interface\\n\\n"
-	printf "3.    Toggle automatic speedtests\\n      Currently \\e[1m%s\\e[0m\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "4.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
-	printf "5.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode check)"
-	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
-	printf "7.    Toggle storage of speedtest result URLs\\n      Currently \\e[1m%s\\e[0m\\n\\n" "$(StoreResultURL check)"
+	printf "3.    Toggle automatic speedtests\\n      Currently: \\e[1m${AUTOMATIC_ENABLED}%s\\e[0m\\n\\n"
+	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s\\e[0m\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
+	printf "5.    Toggle data output mode\\n      Currently ${SETTING}%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode check)"
+	printf "6.    Toggle time output mode\\n      Currently ${SETTING}%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
+	printf "7.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$STORERESULTURL_MENU"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
-	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$(ScriptStorageLocation check)"
-	printf "q.    Toggle exclusion %s speedtests from QoS\\n      Currently %s speedtests are \\e[1m%s\\e[0m QoS\\n\\n" "$SCRIPT_NAME" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
+	printf "s.    Toggle storage location for stats and config\\n      Current location is ${SETTING}%s\\e[0m \\n\\n" "$(ScriptStorageLocation check)"
+	printf "q.    Toggle exclusion %s speedtests from QoS\\n      Currently %s speedtests are ${SETTING}%s\\e[0m QoS\\n\\n" "$SCRIPT_NAME" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
 	printf "a.    AutoBW\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
+	printf "rt.    Reset %s database / delete all data\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
 	printf "z.    Uninstall %s\\n" "$SCRIPT_NAME"
 	printf "\\n"
