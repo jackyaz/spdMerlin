@@ -53,10 +53,6 @@ readonly PASS="\\e[32m"
 ### Start of Speedtest Server Variables ###
 serverno=""
 servername=""
-schedulestart=""
-scheduleend=""
-minutestart=""
-frequencytest=""
 ### End of Speedtest Server Variables ###
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
@@ -583,37 +579,25 @@ Conf_Exists(){
 		dos2unix "$SCRIPT_CONF"
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 11 ]; then
-			sed -i 's/PREFERREDSERVER/PREFERREDSERVER_WAN/g' "$SCRIPT_CONF"
-			sed -i 's/USEPREFERRED/USEPREFERRED_WAN/g' "$SCRIPT_CONF"
-			sed -i '/USESINGLE/d' "$SCRIPT_CONF"
-			for index in 1 2 3 4 5; do
-				{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
-			done
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 20 ]; then
-			{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; } >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 27 ]; then
-			echo "STORERESULTURL=false" >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 28 ]; then
-			echo "EXCLUDEFROMQOS=true" >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 29 ]; then
-			echo "AUTOBW_THRESHOLD_UP=10" >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 30 ]; then
-			sed -i 's/AUTOBW_RESULT_THRESHOLD/AUTOBW_THRESHOLD_UP/g' "$SCRIPT_CONF"
-			echo "AUTOBW_THRESHOLD_DOWN=10" >> "$SCRIPT_CONF"
+		if grep -q "SCHEDULESTART" "$SCRIPT_CONF"; then
+			echo "SCHDAYS=*" >> "$SCRIPT_CONF"
+			echo "SCHHOURS=*" >> "$SCRIPT_CONF"
+			echo "SCHMINS=12,42" >> "$SCRIPT_CONF"
+			sed -i '/SCHEDULESTART/d;/SCHEDULEEND/d;/MINUTE/d;/TESTFREQUENCY/d' "$SCRIPT_CONF"
+			if AutomaticMode check; then
+				Auto_Cron delete 2>/dev/null
+				Auto_Cron create 2>/dev/null
+			else
+				Auto_Cron delete 2>/dev/null
+			fi
 		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=0" ; echo "SCHEDULEEND=23"; echo "MINUTE=12"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; } >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42";} >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -706,40 +690,13 @@ Auto_Startup(){
 Auto_Cron(){
 	case $1 in
 		create)
-		STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
+			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
 		
-		if [ "$STARTUPLINECOUNT" -eq 0 ]; then
-				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
-				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
-				TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
-				if [ "$MINUTESTART" = "*" ]; then
-					MINUTESTART=12
-				fi
-				if [ "$TESTFREQUENCY" = "halfhourly" ]; then
-					MINUTEEND=$((MINUTESTART + 30))
-					[ "$MINUTEEND" -gt 59 ] && MINUTEEND=$((MINUTEEND - 60))
-					
-					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-					else
-						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						else
-							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						fi
-					fi
-				elif [ "$TESTFREQUENCY" = "hourly" ]; then
-					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-					else
-						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						else
-							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						fi
-					fi
-				fi
+			if [ "$STARTUPLINECOUNT" -eq 0 ]; then
+				CRU_DAYNUMBERS="$(grep "SCHDAYS" "$SCRIPT_CONF" | cut -f2 -d"=" | sed 's/Sun/0/;s/Mon/1/;s/Tues/2/;s/Wed/3/;s/Thurs/4/;s/Fri/5/;s/Sat/6/;')"
+				CRU_HOURS="$(grep "SCHHOURS" "$SCRIPT_CONF" | cut -f2 -d"=")"
+				CRU_MINUTES="$(grep "SCHMINS" "$SCRIPT_CONF" | cut -f2 -d"=")"
+				cru a "$SCRIPT_NAME" "$CRU_MINUTES $CRU_HOURS * * $CRU_DAYNUMBERS /jffs/scripts/$SCRIPT_NAME generate"
 			fi
 		;;
 		delete)
@@ -939,27 +896,17 @@ AutomaticMode(){
 TestSchedule(){
 	case "$1" in
 		update)
-			sed -i 's/^'"SCHEDULESTART"'.*$/SCHEDULESTART='"$2"'/' "$SCRIPT_CONF"
-			sed -i 's/^'"SCHEDULEEND"'.*$/SCHEDULEEND='"$3"'/' "$SCRIPT_CONF"
-			sed -i 's/^'"MINUTE"'.*$/MINUTE='"$4"'/' "$SCRIPT_CONF"
-			sed -i 's/^'"TESTFREQUENCY"'.*$/TESTFREQUENCY='"$5"'/' "$SCRIPT_CONF"
+			sed -i 's/^SCHDAYS.*$/SCHDAYS='"$(echo "$2" | sed 's/0/Sun/;s/1/Mon/;s/2/Tues/;s/3/Wed/;s/4/Thurs/;s/5/Fri/;s/6/Sat/;')"'/' "$SCRIPT_CONF"
+			sed -i 's~^SCHHOURS.*$~SCHHOURS='"$3"'~' "$SCRIPT_CONF"
+			sed -i 's~^SCHMINS.*$~SCHMINS='"$4"'~' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
 		check)
-			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
-			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-			MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
-			TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ] && [ "$MINUTESTART" != "*" ]; then
-				schedulestart="$SCHEDULESTART"
-				scheduleend="$SCHEDULEEND"
-				minutestart="$MINUTESTART"
-				frequencytest="$TESTFREQUENCY"
-				return 0
-			else
-				return 1
-			fi
+			SCHDAYS=$(grep "SCHDAYS" "$SCRIPT_CONF" | cut -f2 -d"=")
+			SCHHOURS=$(grep "SCHHOURS" "$SCRIPT_CONF" | cut -f2 -d"=")
+			SCHMINS=$(grep "SCHMINS" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$SCHDAYS|$SCHHOURS|$SCHMINS"
 		;;
 	esac
 }
@@ -2411,27 +2358,44 @@ Menu_ConfigurePreferred(){
 }
 
 Menu_EditSchedule(){
-	exitmenu="false"
-	starthour=""
-	endhour=""
-	startminute=""
-	testfrequency=""
-	ScriptHeader
+	exitmenu=""
+	formattype=""
+	crudays=""
+	crudaysvalidated=""
+	cruhours=""
+	crumins=""
 	
 	while true; do
-		printf "\\n\\e[1mPlease enter a start hour (0-23):\\e[0m\\n"
-		read -r hour
+		printf "\\n\\e[1mPlease choose which day(s) to run speedtest (0-6 - 0 = Sunday, * for every day, or comma separated days):\\e[0m  "
+		read -r day_choice
 		
-		if [ "$hour" = "e" ]; then
+		if [ "$day_choice" = "e" ]; then
 			exitmenu="exit"
 			break
-		elif ! Validate_Number "" "$hour" "silent"; then
-			printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+		elif [ "$day_choice" = "*" ]; then
+			crudays="$day_choice"
+			printf "\\n"
+			break
+		elif [ -z "$day_choice" ]; then
+			printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values\\e[0m\\n"
 		else
-			if [ "$hour" -lt 0 ] || [ "$hour" -gt 23 ]; then
-				printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
-			else
-				starthour="$hour"
+			crudaystmp="$(echo "$day_choice" | sed "s/,/ /g")"
+			crudaysvalidated="true"
+			for i in $crudaystmp; do
+				if ! Validate_Number "$i"; then
+					printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values\\e[0m\\n"
+					crudaysvalidated="false"
+					break
+				else
+					if [ "$i" -lt 0 ] || [ "$i" -gt 6 ]; then
+						printf "\\n\\e[31mPlease enter a number between 0 and 6 or comma separated values\\e[0m\\n"
+						crudaysvalidated="false"
+						break
+					fi
+				fi
+			done
+			if [ "$crudaysvalidated" = "true" ]; then
+				crudays="$day_choice"
 				printf "\\n"
 				break
 			fi
@@ -2440,63 +2404,20 @@ Menu_EditSchedule(){
 	
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
-			printf "\\n\\e[1mPlease enter an end hour (0-23):\\e[0m\\n"
-			read -r hour
+			printf "\\n\\e[1mPlease choose the format to specify the hour/minute(s) to run speedtest:\\e[0m\\n"
+			printf "    1. Every X hours/minutes\\n"
+			printf "    2. Custom\\n\\n"
+			printf "Choose an option:  "
+			read -r formatmenu
 			
-			if [ "$hour" = "e" ]; then
-				exitmenu="exit"
-				break
-			elif ! Validate_Number "" "$hour" "silent"; then
-				printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
-			else
-				if [ "$hour" -lt 0 ] || [ "$hour" -gt 23 ]; then
-					printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
-				else
-					endhour="$hour"
-					printf "\\n"
-					break
-				fi
-			fi
-		done
-	fi
-	
-	if [ "$exitmenu" != "exit" ]; then
-		while true; do
-			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m\\n"
-			read -r minute
-			
-			if [ "$minute" = "e" ]; then
-				exitmenu="exit"
-				break
-			elif ! Validate_Number "" "$minute" "silent"; then
-				printf "\\n\\e[31mPlease enter a valid number (0-59)\\e[0m\\n"
-			else
-				if [ "$minute" -lt 0 ] || [ "$minute" -gt 59 ]; then
-					printf "\\n\\e[31mPlease enter a number between 0 and 59\\e[0m\\n"
-				else
-					startminute="$minute"
-					printf "\\n"
-					break
-				fi
-			fi
-		done
-	fi
-	
-	if [ "$exitmenu" != "exit" ]; then
-		while true; do
-			printf "\\n\\e[1mPlease select the frequency for speedtests:\\e[0m\\n"
-			printf "1.    Every 30 minutes (twice an hour)\\n"
-			printf "2.    Every 60 minutes (once an hour)\\n\\n"
-			printf "Choose an option:    "
-			read -r frequency
-			case "$frequency" in
+			case "$formatmenu" in
 				1)
-					testfrequency="halfhourly"
+					formattype="everyx"
 					printf "\\n"
 					break
 				;;
 				2)
-					testfrequency="hourly"
+					formattype="custom"
 					printf "\\n"
 					break
 				;;
@@ -2505,14 +2426,249 @@ Menu_EditSchedule(){
 					break
 				;;
 				*)
-					printf "\\nPlease choose a valid option\\n\\n"
+					printf "\\n\\e[31mPlease enter a valid choice (1-2)\\e[0m\\n"
 				;;
 			esac
 		done
 	fi
 	
 	if [ "$exitmenu" != "exit" ]; then
-		TestSchedule update "$starthour" "$endhour" "$startminute" "$testfrequency"
+		if [ "$formattype" = "everyx" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose whether to specify every X hours or every X minutes to run speedtest:\\e[0m\\n"
+				printf "    1. Hours\\n"
+				printf "    2. Minutes\\n\\n"
+				printf "Choose an option:  "
+				read -r formatmenu
+				
+				case "$formatmenu" in
+					1)
+						formattype="hours"
+						printf "\\n"
+						break
+					;;
+					2)
+						formattype="mins"
+						printf "\\n"
+						break
+					;;
+					e)
+						exitmenu="exit"
+						break
+					;;
+					*)
+						printf "\\n\\e[31mPlease enter a valid choice (1-2)\\e[0m\\n"
+					;;
+				esac
+			done
+		fi
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		if [ "$formattype" = "hours" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose how often to run speedtest (every X hours, where X is 1-24):\\e[0m  "
+				read -r hour_choice
+				
+				if [ "$hour_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif ! Validate_Number "$hour_choice"; then
+						printf "\\n\\e[31mPlease enter a valid number (1-24)\\e[0m\\n"
+				elif [ "$hour_choice" -lt 1 ] || [ "$hour_choice" -gt 24 ]; then
+					printf "\\n\\e[31mPlease enter a number between 1 and 24\\e[0m\\n"
+				elif [ "$hour_choice" -eq 24 ]; then
+					cruhours=0
+					crumins=0
+					printf "\\n"
+					break
+				else
+					cruhours="*/$hour_choice"
+					crumins=0
+					printf "\\n"
+					break
+				fi
+			done
+		elif [ "$formattype" = "mins" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose how often to run speedtest (every X minutes, where X is 1-30):\\e[0m  "
+				read -r min_choice
+				
+				if [ "$min_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif ! Validate_Number "$min_choice"; then
+						printf "\\n\\e[31mPlease enter a valid number (1-30)\\e[0m\\n"
+				elif [ "$min_choice" -lt 1 ] || [ "$min_choice" -gt 30 ]; then
+					printf "\\n\\e[31mPlease enter a number between 1 and 30\\e[0m\\n"
+				else
+					crumins="*/$min_choice"
+					cruhours="*"
+					printf "\\n"
+					break
+				fi
+			done
+		fi
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		if [ "$formattype" = "custom" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose which hour(s) to run speedtest (0-23, * for every hour, or comma separated hours):\\e[0m  "
+				read -r hour_choice
+				
+				if [ "$hour_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif [ "$hour_choice" = "*" ]; then
+					cruhours="$hour_choice"
+					printf "\\n"
+					break
+				else
+					cruhourstmp="$(echo "$hour_choice" | sed "s/,/ /g")"
+					cruhoursvalidated="true"
+					for i in $cruhourstmp; do
+						if echo "$i" | grep -q "-"; then
+							if [ "$i" = "-" ]; then
+								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								cruhoursvalidated="false"
+								break
+							fi
+							cruhourstmp2="$(echo "$i" | sed "s/-/ /")"
+							for i2 in $cruhourstmp2; do
+								if ! Validate_Number "$i2"; then
+									printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+									cruhoursvalidated="false"
+									break
+								elif [ "$i2" -lt 0 ] || [ "$i2" -gt 23 ]; then
+									printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
+									cruhoursvalidated="false"
+									break
+								fi
+							done
+						elif echo "$i" | grep -q "/"; then
+							cruhourstmp3="$(echo "$i" | sed "s/\*\///")"
+							if ! Validate_Number "$cruhourstmp3"; then
+								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								cruhoursvalidated="false"
+								break
+							elif [ "$cruhourstmp3" -lt 0 ] || [ "$cruhourstmp3" -gt 23 ]; then
+								printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
+								cruhoursvalidated="false"
+								break
+							fi
+						elif ! Validate_Number "$i"; then
+							printf "\\n\\e[31mPlease enter a valid number (0-23) or comma separated values\\e[0m\\n"
+							cruhoursvalidated="false"
+							break
+						elif [ "$i" -lt 0 ] || [ "$i" -gt 23 ]; then
+							printf "\\n\\e[31mPlease enter a number between 0 and 23 or comma separated values\\e[0m\\n"
+							cruhoursvalidated="false"
+							break
+						fi
+					done
+					if [ "$cruhoursvalidated" = "true" ]; then
+						if echo "$hour_choice" | grep -q "-"; then
+							cruhours1="$(echo "$hour_choice" | cut -f1 -d'-')"
+							cruhours2="$(echo "$hour_choice" | cut -f2 -d'-')"
+							if [ "$cruhours1" -lt "$cruhours2" ]; then
+								cruhours="$hour_choice"
+							elif [ "$cruhours2" -lt "$cruhours1" ]; then
+								cruhours="$cruhours1-23,0-$cruhours2"
+							fi
+						else
+							cruhours="$hour_choice"
+						fi
+						printf "\\n"
+						break
+					fi
+				fi
+			done
+		fi
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		if [ "$formattype" = "custom" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose which minutes(s) to run speedtest (0-59, * for every minute, or comma separated minutes):\\e[0m  "
+				read -r min_choice
+				
+				if [ "$min_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif [ "$min_choice" = "*" ]; then
+					crumins="$min_choice"
+					printf "\\n"
+					break
+				else
+					cruminstmp="$(echo "$min_choice" | sed "s/,/ /g")"
+					cruminsvalidated="true"
+					for i in $cruminstmp; do
+						if echo "$i" | grep -q "-"; then
+							if [ "$i" = "-" ]; then
+								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								cruminsvalidated="false"
+								break
+							fi
+							cruminstmp2="$(echo "$i" | sed "s/-/ /")"
+							for i2 in $cruminstmp2; do
+								if ! Validate_Number "$i2"; then
+									printf "\\n\\e[31mPlease enter a valid number (0-59)\\e[0m\\n"
+									cruminsvalidated="false"
+									break
+								elif [ "$i2" -lt 0 ] || [ "$i2" -gt 59 ]; then
+									printf "\\n\\e[31mPlease enter a number between 0 and 59\\e[0m\\n"
+									cruminsvalidated="false"
+									break
+								fi
+							done
+						elif echo "$i" | grep -q "/"; then
+							cruminstmp3="$(echo "$i" | sed "s/\*\///")"
+							if ! Validate_Number "$cruminstmp3"; then
+								printf "\\n\\e[31mPlease enter a valid number (0-30)\\e[0m\\n"
+								cruminsvalidated="false"
+								break
+							elif [ "$cruminstmp3" -lt 0 ] || [ "$cruminstmp3" -gt 30 ]; then
+								printf "\\n\\e[31mPlease enter a number between 0 and 30\\e[0m\\n"
+								cruminsvalidated="false"
+								break
+							fi
+						elif ! Validate_Number "$i"; then
+							printf "\\n\\e[31mPlease enter a valid number (0-59) or comma separated values\\e[0m\\n"
+							cruminsvalidated="false"
+							break
+						elif [ "$i" -lt 0 ] || [ "$i" -gt 59 ]; then
+							printf "\\n\\e[31mPlease enter a number between 0 and 59 or comma separated values\\e[0m\\n"
+							cruminsvalidated="false"
+							break
+						fi
+					done
+					
+					if [ "$cruminsvalidated" = "true" ]; then
+						if echo "$min_choice" | grep -q "-"; then
+							crumins1="$(echo "$min_choice" | cut -f1 -d'-')"
+							crumins2="$(echo "$min_choice" | cut -f2 -d'-')"
+							if [ "$crumins1" -lt "$crumins2" ]; then
+								crumins="$min_choice"
+							elif [ "$crumins2" -lt "$crumins1" ]; then
+								crumins="$crumins1-59,0-$crumins2"
+							fi
+						else
+							crumins="$min_choice"
+						fi
+						printf "\\n"
+						break
+					fi
+				fi
+			done
+		fi
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		TestSchedule update "$crudays" "$cruhours" "$crumins"
+		return 0
+	else
+		return 1
 	fi
 }
 
