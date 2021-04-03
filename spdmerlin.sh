@@ -1514,9 +1514,9 @@ Run_Speedtest(){
 					
 					! Validate_Bandwidth "$download" && download=0;
 					! Validate_Bandwidth "$upload" && upload=0;
-					! Validate_Bandwidth "$latency" && latency=0;
-					! Validate_Bandwidth "$jitter" && jitter=0;
-					! Validate_Bandwidth "$pktloss" && pktloss=0;
+					! Validate_Bandwidth "$latency" && latency="null";
+					! Validate_Bandwidth "$jitter" && jitter="null";
+					! Validate_Bandwidth "$pktloss" && pktloss="null";
 					! Validate_Bandwidth "$datadownload" && datadownload=0;
 					! Validate_Bandwidth "$dataupload" && dataupload=0;
 					
@@ -1528,7 +1528,7 @@ Run_Speedtest(){
 						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)}')"
 					fi
 					
-					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL NOT NULL, [Jitter] REAL NOT NULL, [PktLoss] REAL NOT NULL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
+					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					STORERESULTURL="$(StoreResultURL check)"
