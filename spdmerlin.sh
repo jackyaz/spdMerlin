@@ -48,6 +48,7 @@ readonly CRIT="\\e[41m"
 readonly ERR="\\e[31m"
 readonly WARN="\\e[33m"
 readonly PASS="\\e[32m"
+readonly SETTING="\\e[1m\\e[36m"
 ### End of output format variables ###
 
 ### Start of Speedtest Server Variables ###
@@ -830,12 +831,19 @@ Get_WebUI_Page(){
 	done
 }
 
+
+### locking mechanism code credit to Martineau (@MartineauUK) ###
 Mount_WebUI(){
+	Print_Output true "Mounting WebUI tab for $SCRIPT_NAME" "$PASS"
+	LOCKFILE=/tmp/addonwebui.lock
+	FD=386
+	eval exec "$FD>$LOCKFILE"
+	flock -x "$FD"
 	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
 	if [ "$MyPage" = "none" ]; then
 		Print_Output true "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
-		Clear_Lock
-		exit 1
+		flock -u "$FD"
+		return 1
 	fi
 	cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
 	echo "$SCRIPT_NAME" > "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.').title"
@@ -874,6 +882,8 @@ Mount_WebUI(){
 		umount /www/require/modules/menuTree.js 2>/dev/null
 		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 	fi
+	flock -u "$FD"
+	Print_Output true "Mounted $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
 }
 
 AutomaticMode(){
@@ -2685,10 +2695,10 @@ Menu_AutoBW(){
 		fi
 		
 		printf "1.    Update QoS bandwidth values now\\n\\n"
-		printf "2.    Configure scale factor\\n      Download: %s%%  -  Upload: %s%%\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
-		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: %s Mbps  -  Upload: %s Mbps\\n      Lower Limit    Download: %s Mbps  -  Upload: %s Mbps\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
-		printf "4.    Configure threshold for updating QoS bandwidth values\\n      Download: %s%% - Upload: %s%%\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
-		printf "5.    Toggle AutoBW on/off\\n      Currently: %s\\n\\n" "$AUTOBW_MENU"
+		printf "2.    Configure scale factor\\n      Download: ${SETTING}%s%%\\e[0m  -  Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
+		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n      Lower Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
+		printf "4.    Configure threshold for updating QoS bandwidth values\\n      Download: ${SETTING}%s%%\\e[0m - Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
+		printf "5.    Toggle AutoBW on/off\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$AUTOBW_MENU"
 		printf "e.    Go back\\n\\n"
 		printf "\\e[1m####################################################################\\e[0m\\n"
 		printf "\\n"
