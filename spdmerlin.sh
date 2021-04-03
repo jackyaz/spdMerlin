@@ -1802,6 +1802,31 @@ Generate_CSVs(){
 	fi
 }
 
+# shellcheck disable=SC2012
+Reset_DB(){
+	SIZEAVAIL="$(df -P -k "$SCRIPT_STORAGE_DIR" | awk '{print $4}' | tail -n 1)"
+	SIZEDB="$(ls -l "$SCRIPT_STORAGE_DIR/spdstats.db" | awk '{print $5}')"
+	if [ "$SIZEDB" -gt "$SIZEAVAIL" ]; then
+		Print_Output true "Database size exceeds available space. $(ls -lh "$SCRIPT_STORAGE_DIR/spdstats.db" | awk '{print $5}')B is required to create backup." "$ERR"
+		return 1
+	else
+		Print_Output true "Sufficient free space to back up database, proceeding..." "$PASS"
+		if ! cp -a "$SCRIPT_STORAGE_DIR/spdstats.db" "$SCRIPT_STORAGE_DIR/spdstats.db.bak"; then
+			Print_Output true "Database backup failed, please check storage device" "$WARN"
+		fi
+		
+		tablelist="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+		for dbtable in $tablelist; do
+			echo "DELETE FROM [spdstats_$dbtable];" > /tmp/spdstats-stats.sql
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+			rm -f /tmp/spd-stats.sql
+		done
+		
+		Print_Output true "Database reset complete" "$WARN"
+	fi
+}
+
+
 Shortcut_Script(){
 	case $1 in
 		create)
@@ -2713,6 +2738,22 @@ Menu_EditSchedule(){
 	else
 		return 1
 	fi
+}
+
+Menu_ResetDB(){
+	printf "\\e[1m\\e[33mWARNING: This will reset the %s database by deleting all database records.\\n" "$SCRIPT_NAME"
+	printf "A backup of the database will be created if you change your mind.\\e[0m\\n"
+	printf "\\n\\e[1mDo you want to continue? (y/n)\\e[0m  "
+	read -r confirm
+	case "$confirm" in
+		y|Y)
+			printf "\\n"
+			Reset_DB
+		;;
+		*)
+			printf "\\n\\e[1m\\e[33mDatabase reset cancelled\\e[0m\\n\\n"
+		;;
+	esac
 }
 
 Menu_AutoBW(){
