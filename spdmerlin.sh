@@ -2450,7 +2450,25 @@ Menu_EditSchedule(){
 			crudaystmp="$(echo "$day_choice" | sed "s/,/ /g")"
 			crudaysvalidated="true"
 			for i in $crudaystmp; do
-				if ! Validate_Number "$i"; then
+				if echo "$i" | grep -q "-"; then
+					if [ "$i" = "-" ]; then
+						printf "\\n\\e[31mPlease enter a valid number (0-6)\\e[0m\\n"
+						crudaysvalidated="false"
+						break
+					fi
+					crudaystmp2="$(echo "$i" | sed "s/-/ /")"
+					for i2 in $crudaystmp2; do
+						if ! Validate_Number "$i2"; then
+							printf "\\n\\e[31mPlease enter a valid number (0-6)\\e[0m\\n"
+							crudaysvalidated="false"
+							break
+						elif [ "$i2" -lt 0 ] || [ "$i2" -gt 6 ]; then
+							printf "\\n\\e[31mPlease enter a number between 0 and 6\\e[0m\\n"
+							crudaysvalidated="false"
+							break
+						fi
+					done
+				elif ! Validate_Number "$i"; then
 					printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values\\e[0m\\n"
 					crudaysvalidated="false"
 					break
