@@ -1956,25 +1956,26 @@ function AutoBWEnableDisable(forminput){
 	var inputvalue = forminput.value;
 	var prefix = inputname.substring(0,inputname.indexOf('_'));
 	
+	var fieldnames = ["autobw_ulimit","autobw_llimit","autobw_sf","autobw_threshold"];
+	
 	if(inputvalue == "false"){
-		$j('input[name^='+prefix+'_autobw_ulimit]').addClass("disabled");
-		$j('input[name^='+prefix+'_autobw_ulimit]').prop("disabled",true);
-		$j('input[name^='+prefix+'_autobw_llimit]').addClass("disabled");
-		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",true);
-		$j('input[name^='+prefix+'_autobw_sf]').addClass("disabled");
-		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",true);
-		$j('input[name^='+prefix+'_autobw_threshold]').addClass("disabled");
-		$j('input[name^='+prefix+'_autobw_threshold]').prop("disabled",true);
+		for (var i = 0; i < fieldnames.length; i++){
+			$j('input[name^='+prefix+'_'+fieldnames[i]+']').addClass("disabled");
+			$j('input[name^='+prefix+'_'+fieldnames[i]+']').prop("disabled",true);
+		}
+		
+		$j('input[name^='+prefix+'_excludefromqos]').removeClass("disabled");
+		$j('input[name^='+prefix+'_excludefromqos]').prop("disabled",false);
 	}
 	else if(inputvalue == "true"){
-		$j('input[name^='+prefix+'_autobw_ulimit]').removeClass("disabled");
-		$j('input[name^='+prefix+'_autobw_ulimit]').prop("disabled",false);
-		$j('input[name^='+prefix+'_autobw_llimit]').removeClass("disabled");
-		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",false);
-		$j('input[name^='+prefix+'_autobw_sf]').removeClass("disabled");
-		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",false);
-		$j('input[name^='+prefix+'_autobw_threshold]').removeClass("disabled");
-		$j('input[name^='+prefix+'_autobw_threshold]').prop("disabled",false);
+		for (var i = 0; i < fieldnames.length; i++){
+			$j('input[name^='+prefix+'_'+fieldnames[i]+']').removeClass("disabled");
+			$j('input[name^='+prefix+'_'+fieldnames[i]+']').prop("disabled",false);
+		}
+		
+		document.form.spdmerlin_excludefromqos.value = true;
+		$j('input[name^='+prefix+'_excludefromqos]').addClass("disabled");
+		$j('input[name^='+prefix+'_excludefromqos]').prop("disabled",true);
 	}
 }
 
