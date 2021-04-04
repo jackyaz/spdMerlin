@@ -325,7 +325,6 @@ function Draw_Chart(txtchartname,txtcharttype){
 		metric2 = "PktLoss";
 		showyaxis2 = true;
 	}
-	
 	var chartperiod = getChartPeriod($j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val());
 	var txtunitx = timeunitlist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
 	var numunitx = intervallist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
@@ -452,29 +451,35 @@ function Draw_Chart(txtchartname,txtcharttype){
 				}
 			}],
 			yAxes: [{
+				type: getChartScale($j("#" + txtchartname + "_Scale_" + txtcharttype + " option:selected").val()),
 				gridLines: { display: false, color: "#282828" },
-				scaleLabel: { display: false, labelString: "" },
+				scaleLabel: { display: false, labelString: txtunity },
 				id: 'left-y-axis',
 				position: 'left',
 				ticks: {
 					display: true,
 					beginAtZero: true,
-					callback: function (value, index, values){
-						return round(value,2).toFixed(2) + ' ' + txtunity;
-					}
+					labels: {
+						index:  ['min', 'max'],
+						removeEmptyLines: true,
+					},
+					userCallback: LogarithmicFormatter
 				},
 			},
 			{
+				type: getChartScale($j("#" + txtchartname + "_Scale_" + txtcharttype + " option:selected").val()),
 				gridLines: { display: false, color: "#282828" },
-				scaleLabel: { display: false, labelString: "" },
+				scaleLabel: { display: false, labelString: txtunity2 },
 				id: 'right-y-axis',
 				position: 'right',
 				ticks: {
 					display: showyaxis2,
 					beginAtZero: true,
-					callback: function (value, index, values){
-						return round(value,2).toFixed(2) + ' ' + txtunity2;
-					}
+					labels: {
+						index:  ['min', 'max'],
+						removeEmptyLines: true,
+					},
+					userCallback: LogarithmicFormatter
 				},
 			}]
 		},
@@ -749,6 +754,47 @@ function Draw_Chart(txtchartname,txtcharttype){
 	window["LineChart_"+txtchartname+"_"+txtcharttype]=objchartname;
 }
 
+function LogarithmicFormatter(tickValue, index, ticks){
+	var unit = this.options.scaleLabel.labelString;
+	if(this.type != "logarithmic"){
+		if(! isNaN(tickValue)){
+			return round(tickValue,2).toFixed(2) + ' ' + unit;
+		}
+		else{
+			return tickValue + ' ' + unit;
+		}
+	}
+	else{
+		var labelOpts =  this.options.ticks.labels || {};
+		var labelIndex = labelOpts.index || ['min', 'max'];
+		var labelSignificand = labelOpts.significand || [1,2,5];
+		var significand = tickValue / (Math.pow(10, Math.floor(Chart.helpers.log10(tickValue))));
+		var emptyTick = labelOpts.removeEmptyLines === true ? undefined : '';
+		var namedIndex = '';
+		if(index === 0){
+			namedIndex = 'min';
+		}
+		else if(index === ticks.length - 1){
+			namedIndex = 'max';
+		}
+		if(labelOpts === 'all' || labelSignificand.indexOf(significand) !== -1 || labelIndex.indexOf(index) !== -1 || labelIndex.indexOf(namedIndex) !== -1){
+			if(tickValue === 0){
+				return '0' + ' ' + unit;
+			}
+			else{
+				if(! isNaN(tickValue)){
+					return round(tickValue,2).toFixed(2) + ' ' + unit;
+				}
+				else{
+					return tickValue + ' ' + unit;
+				}
+			}
+		}
+		return emptyTick;
+	}
+};
+
+
 function getDataSets(charttype, objdata, objTrafficTypes){
 	var datasets = [];
 	colourname="#fc8500";
@@ -861,6 +907,8 @@ function RedrawAllCharts(){
 		for(var i3 = 0; i3 < interfacetextarray.length; i3++){
 			$j("#"+interfacetextarray[i3]+"_Period_Combined").val(GetCookie(interfacetextarray[i3]+"_Period_Combined","number"));
 			$j("#"+interfacetextarray[i3]+"_Period_Quality").val(GetCookie(interfacetextarray[i3]+"_Period_Quality","number"));
+			$j("#"+interfacetextarray[i3]+"_Scale_Combined").val(GetCookie(interfacetextarray[i3]+"_Scale_Combined","number"));
+			$j("#"+interfacetextarray[i3]+"_Scale_Quality").val(GetCookie(interfacetextarray[i3]+"_Scale_Quality","number"));
 			d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
 			d3.csv('/ext/spdmerlin/csv/Quality'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Quality"));
 		}
@@ -999,12 +1047,29 @@ function reload(){
 	location.reload(true);
 }
 
+function getYAxisMax(chartname){
+	if(chartname.indexOf("Quality") != -1){
+		return 100;
+	}
+}
+
 function getChartPeriod(period){
 	var chartperiod = "daily";
 	if(period == 0) chartperiod = "daily";
 	else if(period == 1) chartperiod = "weekly";
 	else if(period == 2) chartperiod = "monthly";
 	return chartperiod;
+}
+
+function getChartScale(scale){
+	var chartscale = "";
+	if(scale == 0){
+		chartscale = "linear";
+	}
+	else if(scale == 1){
+		chartscale = "logarithmic";
+	}
+	return chartscale;
 }
 
 function ResetZoom(){
@@ -1731,10 +1796,19 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr class="even">';
 	charthtml+='<th width="40%">Period to display</th>';
 	charthtml+='<td>';
-	charthtml+='<select style="width:125px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Combined">';
+	charthtml+='<select style="width:150px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Combined">';
 	charthtml+='<option value=0>Last 24 hours</option>';
 	charthtml+='<option value=1>Last 7 days</option>';
 	charthtml+='<option value=2>Last 30 days</option>';
+	charthtml+='</select>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='<tr class="even">';
+	charthtml+='<th width="40%">Scale type</th>';
+	charthtml+='<td>';
+	charthtml+='<select style="width:150px" class="input_option" onchange="changeChart(this)" id="' + name + '_Scale_Combined">';
+	charthtml+='<option value="0">Linear</option>';
+	charthtml+='<option value="1">Logarithmic</option>';
 	charthtml+='</select>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
@@ -1754,10 +1828,19 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr class="even">';
 	charthtml+='<th width="40%">Period to display</th>';
 	charthtml+='<td>';
-	charthtml+='<select style="width:125px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Quality">';
+	charthtml+='<select style="width:150px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Quality">';
 	charthtml+='<option value=0>Last 24 hours</option>';
 	charthtml+='<option value=1>Last 7 days</option>';
 	charthtml+='<option value=2>Last 30 days</option>';
+	charthtml+='</select>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='<tr class="even">';
+	charthtml+='<th width="40%">Scale type</th>';
+	charthtml+='<td>';
+	charthtml+='<select style="width:150px" class="input_option" onchange="changeChart(this)" id="' + name + '_Scale_Quality">';
+	charthtml+='<option value="0">Linear</option>';
+	charthtml+='<option value="1">Logarithmic</option>';
 	charthtml+='</select>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
