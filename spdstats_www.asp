@@ -81,6 +81,14 @@ td.nodata {
   border-right: none !important;
 }
 
+.StatsTable tr.statsRow:nth-child(even) td {
+  background-color: #2F3A3E !important;
+}
+
+.StatsTable tr.statsRow:nth-child(odd) td {
+  background-color: #475A5F !important;
+}
+
 .SettingsTable {
   text-align: left;
 }
@@ -1684,7 +1692,7 @@ function BuildInterfaceTable(name){
 		charthtml+='</thead>';
 		
 		for(var i = 0; i < objdataname.length; i++){
-			charthtml+='<tr>';
+			charthtml+='<tr class="statsRow">';
 			charthtml+='<td>'+moment.unix(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
 			charthtml+='<td>'+window["DataDownload_"+name][i]+'</td>';
 			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
