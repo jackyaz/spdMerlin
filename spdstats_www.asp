@@ -225,7 +225,6 @@ div.schedulesettings {
 <script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdjs.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdtitletext.js"></script>
 <script>
 var custom_settings;
@@ -1383,7 +1382,6 @@ function PostSpeedTest(){
 	$j("#rowautospdprefserverselect").remove();
 	$j("#rowmanualspdtest").remove();
 	currentNoCharts = 0;
-	reload_js('/ext/spdmerlin/spdjs.js');
 	reload_js('/ext/spdmerlin/spdtitletext.js');
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	SetSPDStatsTitle();
@@ -1664,11 +1662,86 @@ function get_interfaces_file(){
 			RedrawAllCharts();
 			
 			AddEventHandlers();
+			get_lastx_file();
 			get_conf_file();
 		}
 	});
 }
 
+function get_lastx_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spdjs.js',
+		dataType: 'script',
+		timeout: 3000,
+		error: function(xhr){
+			setTimeout(get_lastx_file, 1000);
+		},
+		success: function(){
+			for(var index = 0; index < interfacescomplete.length; index++){
+				var name = interfacescomplete[index];
+				var nodata="";
+				var objdataname = window["DataTimestamp_"+name];
+				if(typeof objdataname === 'undefined' || objdataname === null){nodata="true"}
+				else if(objdataname.length == 0){nodata="true"}
+				else if(objdataname.length == 1 && objdataname[0] == ""){nodata="true"}
+				var charthtml = '<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">';
+				if(nodata == "true"){
+					charthtml+='<tr>';
+					charthtml+='<td colspan="6" class="nodata">';
+					charthtml+='No data to display';
+					charthtml+='</td>';
+					charthtml+='</tr>';
+				}
+				else{
+					charthtml+='<col style="width:120px;">';
+					charthtml+='<col style="width:75px;">';
+					charthtml+='<col style="width:65px;">';
+					charthtml+='<col style="width:65px;">';
+					charthtml+='<col style="width:65px;">';
+					charthtml+='<col style="width:65px;">';
+					charthtml+='<col style="width:80px;">';
+					charthtml+='<col style="width:80px;">';
+					charthtml+='<col style="width:135px;">';
+					charthtml+='<thead>';
+					charthtml+='<tr>';
+					charthtml+='<th class="keystatsnumber">Time</th>';
+					charthtml+='<th class="keystatsnumber">Download<br />(Mbps)</th>';
+					charthtml+='<th class="keystatsnumber">Upload<br />(Mbps)</th>';
+					charthtml+='<th class="keystatsnumber">Latency<br />(ms)</th>';
+					charthtml+='<th class="keystatsnumber">Jitter<br />(ms)</th>';
+					charthtml+='<th class="keystatsnumber">Packet<br />Loss (%)</th>';
+					charthtml+='<th class="keystatsnumber">Download<br />Data (MB)</th>';
+					charthtml+='<th class="keystatsnumber">Upload<br />Data (MB)</th>';
+					charthtml+='<th class="keystatsnumber">Result URL</th>';
+					charthtml+='</tr>';
+					charthtml+='</thead>';
+					
+					for(var i = 0; i < objdataname.length; i++){
+						charthtml+='<tr class="statsRow">';
+						charthtml+='<td>'+moment.unix(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
+						charthtml+='<td>'+window["DataDownload_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","N/A")+'</td>';
+						charthtml+='<td>'+window["DataDataDownload_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataDataUpload_"+name][i]+'</td>';
+						if(window["DataResultURL_"+name][i] != ""){
+							charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
+						}
+						else{
+							charthtml+='<td>No result URL</td>';
+						}
+						charthtml+='</tr>';
+					}
+				}
+				charthtml+='</table>';
+				$j("#"+name+"_tablelastxresults").empty();
+				$j("#"+name+"_tablelastxresults").append(charthtml);
+			}
+		}
+	});
+}
 function changeAllCharts(e){
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
@@ -1720,65 +1793,7 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr><td colspan="2">Last 10 speedtest results (click to expand/collapse)</td></tr>';
 	charthtml+='</thead>';
 	charthtml+='<tr>';
-	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">';
-	var nodata="";
-	var objdataname = window["DataTimestamp_"+name];
-	if(typeof objdataname === 'undefined' || objdataname === null){nodata="true"}
-	else if(objdataname.length == 0){nodata="true"}
-	else if(objdataname.length == 1 && objdataname[0] == ""){nodata="true"}
-	
-	if(nodata == "true"){
-		charthtml+='<tr>';
-		charthtml+='<td colspan="6" class="nodata">';
-		charthtml+='No data to display';
-		charthtml+='</td>';
-		charthtml+='</tr>';
-	}
-	else{
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:75px;">';
-		charthtml+='<col style="width:65px;">';
-		charthtml+='<col style="width:65px;">';
-		charthtml+='<col style="width:65px;">';
-		charthtml+='<col style="width:65px;">';
-		charthtml+='<col style="width:80px;">';
-		charthtml+='<col style="width:80px;">';
-		charthtml+='<col style="width:135px;">';
-		charthtml+='<thead>';
-		charthtml+='<tr>';
-		charthtml+='<th class="keystatsnumber">Time</th>';
-		charthtml+='<th class="keystatsnumber">Download<br />(Mbps)</th>';
-		charthtml+='<th class="keystatsnumber">Upload<br />(Mbps)</th>';
-		charthtml+='<th class="keystatsnumber">Latency<br />(ms)</th>';
-		charthtml+='<th class="keystatsnumber">Jitter<br />(ms)</th>';
-		charthtml+='<th class="keystatsnumber">Packet<br />Loss (%)</th>';
-		charthtml+='<th class="keystatsnumber">Download<br />Data (MB)</th>';
-		charthtml+='<th class="keystatsnumber">Upload<br />Data (MB)</th>';
-		charthtml+='<th class="keystatsnumber">Result URL</th>';
-		charthtml+='</tr>';
-		charthtml+='</thead>';
-		
-		for(var i = 0; i < objdataname.length; i++){
-			charthtml+='<tr class="statsRow">';
-			charthtml+='<td>'+moment.unix(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
-			charthtml+='<td>'+window["DataDownload_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","N/A")+'</td>';
-			charthtml+='<td>'+window["DataDataDownload_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataDataUpload_"+name][i]+'</td>';
-			if(window["DataResultURL_"+name][i] != ""){
-				charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
-			}
-			else{
-				charthtml+='<td>No result URL</td>';
-			}
-			charthtml+='</tr>';
-		};
-	}
-	charthtml+='</table>';
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;" id="'+name+'_tablelastxresults">';
 	charthtml+='</td>';
 	charthtml+='</tr>';
 	charthtml+='</table>';
