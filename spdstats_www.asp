@@ -208,6 +208,10 @@ td.nodata {
 div.schedulesettings {
   margin-bottom: 5px;
 }
+
+.spdtest_output {
+  border: solid 1px black;
+}
 </style>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/jquery.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/moment.js"></script>
@@ -2378,7 +2382,7 @@ function AddEventHandlers(){
 <span id="spdtest_text" style="display:none;"></span>
 </td>
 </tr>
-<tr style="display:none;"><td colspan="2" style="padding: 0px;">
+<tr style="display:none;" class="spdtest_output"><td colspan="2" style="padding: 0px;">
 <textarea cols="63" rows="8" wrap="off" readonly="readonly" id="spdtest_output" class="textarea_log_table" style="border:0px;font-family:Courier New, Courier, mono; font-size:11px;overflow-y:auto;overflow-x:hidden;">Speedtest output</textarea>
 </td></tr>
 </table>
