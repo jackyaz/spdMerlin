@@ -1511,6 +1511,9 @@ function get_conf_file(){
 					if(settingvalue == "true"){
 						eval("document.form.spdmerlin_"+settingname).checked = true;
 					}
+					else if(settingvalue == "false"){
+						eval("document.form.spdmerlin_"+settingname).checked = false;
+					}
 				}
 				else if(configdata[i].indexOf("PREFERREDSERVER") != -1){
 					$j("#span_spdmerlin_"+settingname).html(configdata[i].split("=")[0].split("_")[1]+" - "+settingvalue);
