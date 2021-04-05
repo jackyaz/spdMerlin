@@ -1956,7 +1956,7 @@ function AutoBWEnableDisable(forminput){
 	var inputvalue = forminput.value;
 	var prefix = inputname.substring(0,inputname.indexOf('_'));
 	
-	var fieldnames = ["autobw_ulimit","autobw_llimit","autobw_sf","autobw_threshold"];
+	var fieldnames = ["autobw_ulimit","autobw_llimit","autobw_sf","autobw_threshold","autobw_average"];
 	
 	if(inputvalue == "false"){
 		for (var i = 0; i < fieldnames.length; i++){
@@ -2226,6 +2226,20 @@ function Validate_PercentRange(forminput){
 	}
 }
 
+function Validate_AverageCalc(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value*1;
+	
+	if(inputvalue > 30 || inputvalue < 1 || forminput.value.length < 1){
+		$j(forminput).addClass("invalid");
+		return false;
+	}
+	else{
+		$j(forminput).removeClass("invalid");
+		return true;
+	}
+}
+
 function FixCron(hoursmins){
 	if(hoursmins == "hours"){
 		var origvalue = document.form.spdmerlin_schhours.value;
@@ -2422,6 +2436,12 @@ function AddEventHandlers(){
 <label for="spdmerlin_autobw_true">Yes</label>
 <input type="radio" name="spdmerlin_autobw_enabled" id="spdmerlin_autobw_false" onchange="AutoBWEnableDisable(this)" class="input" value="false" checked>
 <label for="spdmerlin_autobw_false">No</label>
+</td>
+</tr>
+<tr class="even" id="rowautobwavgcalc">
+<td class="settingname">Number of speedtests to use to calculate average bandwidth</td>
+<td class="settingvalue">
+<input autocomplete="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_autobw_average_calc" value="10" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_AverageCalc(this)" onblur="Validate_AverageCalc(this)" /><span style="color:#FFFFFF;">&nbsp;&nbsp;speedtest(s)&nbsp;&nbsp;</span><span style="color:#FFCC00;">(between 1 and 30, default: 10)</span>
 </td>
 </tr>
 <tr class="even" id="rowautobwsf">

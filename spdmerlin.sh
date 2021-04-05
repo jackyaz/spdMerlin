@@ -60,7 +60,7 @@ servername=""
 # shellcheck disable=SC2059
 Print_Output(){
 	if [ "$1" = "true" ]; then
-		logger -t "$SCRIPT_NAME" "$(echo "$2" | sed 's/%%/%/g')"
+		logger -t "$SCRIPT_NAME" "$2"
 	fi
 	printf "\\e[1m${3}%s\\e[0m\\n\\n" "$2"
 }
@@ -594,13 +594,16 @@ Conf_Exists(){
 				Auto_Cron delete 2>/dev/null
 			fi
 		fi
+		if ! grep -q "AUTOBW_AVERAGE_CALC" "$SCRIPT_CONF"; then
+			echo "AUTOBW_AVERAGE_CALC=10" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42";} >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "AUTOBW_AVERAGE_CALC=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42";} >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -694,7 +697,7 @@ Auto_Cron(){
 	case $1 in
 		create)
 			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
-		
+			
 			if [ "$STARTUPLINECOUNT" -eq 0 ]; then
 				CRU_DAYNUMBERS="$(grep "SCHDAYS" "$SCRIPT_CONF" | cut -f2 -d"=" | sed 's/Sun/0/;s/Mon/1/;s/Tues/2/;s/Wed/3/;s/Thurs/4/;s/Fri/5/;s/Sat/6/;')"
 				CRU_HOURS="$(grep "SCHHOURS" "$SCRIPT_CONF" | cut -f2 -d"=")"
@@ -1545,7 +1548,7 @@ Run_Speedtest(){
 					rm -f /tmp/spd-stats.sql
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
-					spdtestresult2="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1' | sed 's/%/%%/')"
+					spdtestresult2="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1')"
 					
 					printf "\\n"
 					Print_Output true "Speedtest results - $spdtestresult" "$PASS"
@@ -1554,7 +1557,7 @@ Run_Speedtest(){
 					{
 						printf "Speedtest result for %s\\n" "$IFACE_NAME"
 						printf "\\nBandwidth - %s\\n" "$spdtestresult"
-						printf "Quality - %s\\n\\n" "$(echo "$spdtestresult2" | sed 's/%%/%/')"
+						printf "Quality - %s\\n\\n" "$(echo "$spdtestresult2")"
 						grep "Result URL" "$tmpfile" | awk '{$1=$1};1'
 						printf "\\n\\n\\n"
 					} >> "$resultfile"
@@ -2787,10 +2790,11 @@ Menu_AutoBW(){
 		fi
 		
 		printf "1.    Update QoS bandwidth values now\\n\\n"
-		printf "2.    Configure scale factor\\n      Download: ${SETTING}%s%%\\e[0m  -  Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
-		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n      Lower Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
-		printf "4.    Configure threshold for updating QoS bandwidth values\\n      Download: ${SETTING}%s%%\\e[0m - Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
-		printf "5.    Toggle AutoBW on/off\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$AUTOBW_MENU"
+		printf "2.    Configure number of speedtests used to calculate average bandwidth\\n      Currently bandwidth is calculated using the avergae of the last ${SETTING}%s\\e[0m speedtest(s)\\n\\n" "$(AutoBWConf check AVERAGE CALC)"
+		printf "3.    Configure scale factor\\n      Download: ${SETTING}%s%%\\e[0m  -  Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
+		printf "4.    Configure bandwidth limits\\n      Upper Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n      Lower Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
+		printf "5.    Configure threshold for updating QoS bandwidth values\\n      Download: ${SETTING}%s%%\\e[0m - Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
+		printf "6.    Toggle AutoBW on/off\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$AUTOBW_MENU"
 		printf "e.    Go back\\n\\n"
 		printf "\\e[1m####################################################################\\e[0m\\n"
 		printf "\\n"
@@ -2804,6 +2808,40 @@ Menu_AutoBW(){
 				PressEnter
 			;;
 			2)
+				while true; do
+					ScriptHeader
+					exitmenu=""
+					avgnum=""
+					while true; do
+						printf "\\n"
+						printf "Enter number of speedtests to use to calculate avg bandwidth (1-30):  "
+						read -r avgnumvalue
+							if [ "$avgnumvalue" = "e" ]; then
+								exitmenu="exit"
+								break
+							elif ! Validate_Number "$avgnumvalue"; then
+								printf "\\n\\e[31mPlease enter a valid number (1-30)\\e[0m\\n"
+							else
+								if [ "$avgnumvalue" -lt 1 ] || [ "$avgnumvalue" -gt 30 ]; then
+									printf "\\n\\e[31mPlease enter a number between 1 and 30\\e[0m\\n"
+								else
+									avgnum="$avgnumvalue"
+									break
+								fi
+							fi
+					done
+					if [ "$exitmenu" != "exit" ]; then
+						AutoBWConf update AVERAGE CALC "$avgnum"
+						break
+					fi
+					if [ "$exitmenu" = "exit" ]; then
+						break
+					fi
+				done
+				printf "\\n"
+				PressEnter
+			;;
+			3)
 				while true; do
 					ScriptHeader
 					exitmenu=""
@@ -2868,7 +2906,7 @@ Menu_AutoBW(){
 				printf "\\n"
 				PressEnter
 			;;
-			3)
+			4)
 				while true; do
 					ScriptHeader
 					exitmenu=""
@@ -2957,74 +2995,74 @@ Menu_AutoBW(){
 				printf "\\n"
 				PressEnter
 			;;
-			4)
-			while true; do
-				ScriptHeader
-				exitmenu=""
-				updown=""
-				thvalue=""
-				printf "\\n"
-				printf "Select a threshold to set\\n"
-				printf "1.    Download\\n"
-				printf "2.    Upload\\n\\n"
+			5)
 				while true; do
-					printf "Choose an option:  "
-					read -r autobwthchoice
-					if [ "$autobwthchoice" = "e" ]; then
-						exitmenu="exit"
-						break
-					elif ! Validate_Number "$autobwthchoice"; then
-						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
-					else
-						if [ "$autobwthchoice" -lt 1 ] || [ "$autobwthchoice" -gt 2 ]; then
-							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
-						else
-							if [ "$autobwthchoice" -eq 1 ]; then
-								updown="DOWN"
-								break
-							elif [ "$autobwthchoice" -eq 2 ]; then
-								updown="UP"
-								break
-							fi
-						fi
-					fi
-				done
-				
-				if [ "$exitmenu" != "exit" ]; then
+					ScriptHeader
+					exitmenu=""
+					updown=""
+					thvalue=""
+					printf "\\n"
+					printf "Select a threshold to set\\n"
+					printf "1.    Download\\n"
+					printf "2.    Upload\\n\\n"
 					while true; do
-						printf "\\n"
-						printf "Enter percentage to use for result threshold:  "
-						read -r autobwthvalue
-						if [ "$autobwthvalue" = "e" ]; then
+						printf "Choose an option:  "
+						read -r autobwthchoice
+						if [ "$autobwthchoice" = "e" ]; then
 							exitmenu="exit"
 							break
-						elif ! Validate_Number "$autobwthvalue"; then
-							printf "\\n\\e[31mPlease enter a valid number (0-100)\\e[0m\\n"
+						elif ! Validate_Number "$autobwthchoice"; then
+							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
 						else
-							if [ "$autobwthvalue" -lt 0 ] || [ "$autobwthvalue" -gt 100 ]; then
-								printf "\\n\\e[31mPlease enter a number between 0 and 100\\e[0m\\n"
+							if [ "$autobwthchoice" -lt 1 ] || [ "$autobwthchoice" -gt 2 ]; then
+								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
 							else
-								thvalue="$autobwthvalue"
-								break
+								if [ "$autobwthchoice" -eq 1 ]; then
+									updown="DOWN"
+									break
+								elif [ "$autobwthchoice" -eq 2 ]; then
+									updown="UP"
+									break
+								fi
 							fi
 						fi
 					done
-				fi
+					
+					if [ "$exitmenu" != "exit" ]; then
+						while true; do
+							printf "\\n"
+							printf "Enter percentage to use for result threshold:  "
+							read -r autobwthvalue
+							if [ "$autobwthvalue" = "e" ]; then
+								exitmenu="exit"
+								break
+							elif ! Validate_Number "$autobwthvalue"; then
+								printf "\\n\\e[31mPlease enter a valid number (0-100)\\e[0m\\n"
+							else
+								if [ "$autobwthvalue" -lt 0 ] || [ "$autobwthvalue" -gt 100 ]; then
+									printf "\\n\\e[31mPlease enter a number between 0 and 100\\e[0m\\n"
+								else
+									thvalue="$autobwthvalue"
+									break
+								fi
+							fi
+						done
+					fi
+					
+					if [ "$exitmenu" != "exit" ]; then
+						AutoBWConf update THRESHOLD "$updown" "$thvalue"
+						break
+					fi
+					
+					if [ "$exitmenu" = "exit" ]; then
+						break
+					fi
+				done
 				
-				if [ "$exitmenu" != "exit" ]; then
-					AutoBWConf update THRESHOLD "$updown" "$thvalue"
-					break
-				fi
-				
-				if [ "$exitmenu" = "exit" ]; then
-					break
-				fi
-			done
-			
-			printf "\\n"
-			PressEnter
+				printf "\\n"
+				PressEnter
 			;;
-			5)
+			6)
 				printf "\\n"
 				if [ "$(AutoBWEnable check)" = "true" ]; then
 					AutoBWEnable disable
@@ -3057,6 +3095,7 @@ Menu_AutoBW_Update(){
 	dlimithigh="$(($(AutoBWConf check ULIMIT DOWN)*1024))"
 	ulimitlow="$(($(AutoBWConf check LLIMIT UP)*1024))"
 	ulimithigh="$(($(AutoBWConf check ULIMIT UP)*1024))"
+	avgcalc="$(AutoBWConf check AVERAGE CALC)"
 	
 	metriclist="Download Upload"
 	
@@ -3066,7 +3105,7 @@ Menu_AutoBW_Update(){
 			echo ".mode list"
 			echo ".headers off"
 			echo ".output /tmp/spdbw$metric"
-			echo "SELECT avg($metric) FROM (SELECT $metric FROM spdstats_WAN ORDER BY [Timestamp] DESC LIMIT 10);"
+			echo "SELECT avg($metric) FROM (SELECT $metric FROM spdstats_WAN ORDER BY [Timestamp] DESC LIMIT $avgcalc);"
 		} > /tmp/spd-autobw.sql
 		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-autobw.sql
 		rm -f /tmp/spd-autobw.sql
@@ -3107,7 +3146,7 @@ Menu_AutoBW_Update(){
 		nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
 		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS"
 	else
-		Print_Output true "Calculated Download speed ($dspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD DOWN)%% threshold of existing value ($old_dspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Download speed ($dspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD DOWN)% threshold of existing value ($old_dspdkbps Kbps)" "$WARN"
 	fi
 	
 	ubw_threshold="$(AutoBWConf check THRESHOLD UP | awk '{printf ($1/100)}')"
@@ -3117,7 +3156,7 @@ Menu_AutoBW_Update(){
 		nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
 		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS"
 	else
-		Print_Output true "Calculated Upload speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)%% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Upload speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
 	fi
 	
 	if [ "$bw_changed" = "true" ]; then
