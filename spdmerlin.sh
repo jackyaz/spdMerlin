@@ -1557,7 +1557,7 @@ Run_Speedtest(){
 					{
 						printf "Speedtest result for %s\\n" "$IFACE_NAME"
 						printf "\\nBandwidth - %s\\n" "$spdtestresult"
-						printf "Quality - %s\\n\\n" "$(echo "$spdtestresult2")"
+						printf "Quality - %s\\n\\n" "$spdtestresult2"
 						grep "Result URL" "$tmpfile" | awk '{$1=$1};1'
 						printf "\\n\\n\\n"
 					} >> "$resultfile"
