@@ -1317,6 +1317,17 @@ PreferredServer(){
 }
 
 Run_Speedtest(){
+	#shellcheck disable=SC2009
+	if [ ! -f /opt/bin/xargs ]; then
+		Print_Output true "Installing findutils from Entware"
+		opkg update
+		opkg install findutils
+	fi
+	if [ -n "$PPID" ]; then
+		ps | grep -v grep | grep -v $$ | grep -v "$PPID" | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+	else
+		ps | grep -v grep | grep -v $$ | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+	fi
 	Create_Dirs
 	Conf_Exists
 	Auto_Startup create 2>/dev/null
