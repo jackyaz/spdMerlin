@@ -229,7 +229,6 @@ div.schedulesettings {
 <script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
-<script language="JavaScript" type="text/javascript" src="/ext/spdmerlin/spdtitletext.js"></script>
 <script>
 var custom_settings;
 function LoadCustomSettings(){
@@ -1017,7 +1016,7 @@ function initial(){
 	show_menu();
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	ScriptUpdateLayout();
-	SetSPDStatsTitle();
+	get_statstitle_file();
 	get_interfaces_file();
 }
 
@@ -1386,9 +1385,8 @@ function PostSpeedTest(){
 	$j("#rowautospdprefserverselect").remove();
 	$j("#rowmanualspdtest").remove();
 	currentNoCharts = 0;
-	reload_js('/ext/spdmerlin/spdtitletext.js');
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
-	SetSPDStatsTitle();
+	get_statstitle_file();
 	setTimeout(get_interfaces_file, 3000);
 }
 
@@ -1418,11 +1416,6 @@ function RunSpeedtest(){
 var myinterval;
 function StartSpeedTestInterval(){
 	myinterval = setInterval("update_spdtest();", 500);
-}
-
-function reload_js(src){
-	$j('script[src="' + src + '"]').remove();
-	$j('<script>').attr('src', src+'?cachebuster='+ new Date().getTime()).appendTo('head');
 }
 
 function SaveConfig(){
@@ -1672,6 +1665,20 @@ function get_interfaces_file(){
 	});
 }
 
+function get_statstitle_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spdtitletext.js',
+		dataType: 'script',
+		timeout: 3000,
+		error: function(xhr){
+			setTimeout(get_statstitle_file, 1000);
+		},
+		success: function(){
+			SetSPDStatsTitle();
+		}
+	});
+}
+
 function get_lastx_file(){
 	$j.ajax({
 		url: '/ext/spdmerlin/spdjs.js',
@@ -1746,6 +1753,7 @@ function get_lastx_file(){
 		}
 	});
 }
+
 function changeAllCharts(e){
 	value = e.value * 1;
 	name = e.id.substring(0, e.id.indexOf("_"));
