@@ -1,5 +1,5 @@
 var $j = jQuery.noConflict(); //avoid conflicts on John's fork (state.js)
-
+var daysofweek = ["Mon","Tues","Wed","Thurs","Fri","Sat","Sun"];
 var maxNoCharts = 0;
 var currentNoCharts = 0;
 
@@ -84,7 +84,6 @@ function Draw_Chart(txtchartname,txtcharttype){
 		metric2 = "PktLoss";
 		showyaxis2 = true;
 	}
-	
 	var chartperiod = getChartPeriod($j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val());
 	var txtunitx = timeunitlist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
 	var numunitx = intervallist[$j("#" + txtchartname + "_Period_" + txtcharttype + " option:selected").val()];
@@ -155,17 +154,17 @@ function Draw_Chart(txtchartname,txtcharttype){
 					}
 					
 					if(ci.data.datasets[index].label == "Latency" || ci.data.datasets[index].label == "Download"){
-						for (aindex = 0; aindex < 3; aindex++){
+						for(aindex = 0; aindex < 3; aindex++){
 							ci.options.annotation.annotations[aindex].type=annotationline;
 						}
 					}
 					else if(ci.data.datasets[index].label == "Jitter" || ci.data.datasets[index].label == "Upload"){
-						for (aindex = 3; aindex < 6; aindex++){
+						for(aindex = 3; aindex < 6; aindex++){
 							ci.options.annotation.annotations[aindex].type=annotationline;
 						}
 					}
 					else if(ci.data.datasets[index].label == "Packet Loss"){
-						for (aindex = 6; aindex < 9; aindex++){
+						for(aindex = 6; aindex < 9; aindex++){
 							ci.options.annotation.annotations[aindex].type=annotationline;
 						}
 					}
@@ -211,29 +210,35 @@ function Draw_Chart(txtchartname,txtcharttype){
 				}
 			}],
 			yAxes: [{
+				type: getChartScale($j("#" + txtchartname + "_Scale_" + txtcharttype + " option:selected").val()),
 				gridLines: { display: false, color: "#282828" },
-				scaleLabel: { display: false, labelString: "" },
+				scaleLabel: { display: false, labelString: txtunity },
 				id: 'left-y-axis',
 				position: 'left',
 				ticks: {
 					display: true,
 					beginAtZero: true,
-					callback: function (value, index, values){
-						return round(value,2).toFixed(2) + ' ' + txtunity;
-					}
+					labels: {
+						index:  ['min', 'max'],
+						removeEmptyLines: true,
+					},
+					userCallback: LogarithmicFormatter
 				},
 			},
 			{
+				type: getChartScale($j("#" + txtchartname + "_Scale_" + txtcharttype + " option:selected").val()),
 				gridLines: { display: false, color: "#282828" },
-				scaleLabel: { display: false, labelString: "" },
+				scaleLabel: { display: false, labelString: txtunity2 },
 				id: 'right-y-axis',
 				position: 'right',
 				ticks: {
 					display: showyaxis2,
 					beginAtZero: true,
-					callback: function (value, index, values){
-						return round(value,2).toFixed(2) + ' ' + txtunity2;
-					}
+					labels: {
+						index:  ['min', 'max'],
+						removeEmptyLines: true,
+					},
+					userCallback: LogarithmicFormatter
 				},
 			}]
 		},
@@ -508,6 +513,47 @@ function Draw_Chart(txtchartname,txtcharttype){
 	window["LineChart_"+txtchartname+"_"+txtcharttype]=objchartname;
 }
 
+function LogarithmicFormatter(tickValue, index, ticks){
+	var unit = this.options.scaleLabel.labelString;
+	if(this.type != "logarithmic"){
+		if(! isNaN(tickValue)){
+			return round(tickValue,2).toFixed(2) + ' ' + unit;
+		}
+		else{
+			return tickValue + ' ' + unit;
+		}
+	}
+	else{
+		var labelOpts =  this.options.ticks.labels || {};
+		var labelIndex = labelOpts.index || ['min', 'max'];
+		var labelSignificand = labelOpts.significand || [1,2,5];
+		var significand = tickValue / (Math.pow(10, Math.floor(Chart.helpers.log10(tickValue))));
+		var emptyTick = labelOpts.removeEmptyLines === true ? undefined : '';
+		var namedIndex = '';
+		if(index === 0){
+			namedIndex = 'min';
+		}
+		else if(index === ticks.length - 1){
+			namedIndex = 'max';
+		}
+		if(labelOpts === 'all' || labelSignificand.indexOf(significand) !== -1 || labelIndex.indexOf(index) !== -1 || labelIndex.indexOf(namedIndex) !== -1){
+			if(tickValue === 0){
+				return '0' + ' ' + unit;
+			}
+			else{
+				if(! isNaN(tickValue)){
+					return round(tickValue,2).toFixed(2) + ' ' + unit;
+				}
+				else{
+					return tickValue + ' ' + unit;
+				}
+			}
+		}
+		return emptyTick;
+	}
+};
+
+
 function getDataSets(charttype, objdata, objTrafficTypes){
 	var datasets = [];
 	colourname="#fc8500";
@@ -572,15 +618,15 @@ function ToggleLines(){
 		ShowLines = "";
 		SetCookie("ShowLines","");
 	}
-	for (i = 0; i < interfacetextarray.length; i++){
-		for (i2 = 0; i2 < typelist.length; i2++){
+	for(var i = 0; i < interfacetextarray.length; i++){
+		for(var i2 = 0; i2 < typelist.length; i2++){
 			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
 			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
 			var maxlines = 6;
 			if(typelist[i2] == "Quality"){
 				maxlines = 9;
 			}
-			for (i3 = 0; i3 < maxlines; i3++){
+			for(var i3 = 0; i3 < maxlines; i3++){
 				chartobj.options.annotation.annotations[i3].type=ShowLines;
 			}
 			chartobj.update();
@@ -599,8 +645,8 @@ function ToggleFill(){
 		SetCookie("ShowFill","origin");
 	}
 	
-	for (i = 0; i < interfacetextarray.length; i++){
-		for (i2 = 0; i2 < typelist.length; i2++){
+	for(var i = 0; i < interfacetextarray.length; i++){
+		for(var i2 = 0; i2 < typelist.length; i2++){
 			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
 			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
 			chartobj.data.datasets[0].fill=ShowFill;
@@ -616,10 +662,12 @@ function ToggleFill(){
 function RedrawAllCharts(){
 	var interfacetextarray = interfacelist.split(',');
 	var i;
-	for (i2 = 0; i2 < chartlist.length; i2++){
-		for (i3 = 0; i3 < interfacetextarray.length; i3++){
+	for(var i2 = 0; i2 < chartlist.length; i2++){
+		for(var i3 = 0; i3 < interfacetextarray.length; i3++){
 			$j("#"+interfacetextarray[i3]+"_Period_Combined").val(GetCookie(interfacetextarray[i3]+"_Period_Combined","number"));
 			$j("#"+interfacetextarray[i3]+"_Period_Quality").val(GetCookie(interfacetextarray[i3]+"_Period_Quality","number"));
+			$j("#"+interfacetextarray[i3]+"_Scale_Combined").val(GetCookie(interfacetextarray[i3]+"_Scale_Combined","number"));
+			$j("#"+interfacetextarray[i3]+"_Scale_Quality").val(GetCookie(interfacetextarray[i3]+"_Scale_Quality","number"));
 			d3.csv('/ext/spdmerlin/csv/Combined'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Combined"));
 			d3.csv('/ext/spdmerlin/csv/Quality'+chartlist[i2]+"_"+interfacetextarray[i3]+'.htm').then(SetGlobalDataset.bind(null,chartlist[i2]+"_"+interfacetextarray[i3]+"_Quality"));
 		}
@@ -675,22 +723,31 @@ function GetCookie(cookiename,returntype){
 }
 
 function SetCookie(cookiename,cookievalue){
-	cookie.set("spd_"+cookiename, cookievalue, 31);
+	cookie.set("spd_"+cookiename, cookievalue, 10 * 365);
 }
 
 $j.fn.serializeObject = function(){
 	var o = custom_settings;
 	var a = this.serializeArray();
 	$j.each(a, function(){
-		if(o[this.name] !== undefined && this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1){
+		if(o[this.name] !== undefined && this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1 && this.name.indexOf("schdays") == -1){
 			if(!o[this.name].push){
 				o[this.name] = [o[this.name]];
 			}
 			o[this.name].push(this.value || '');
-		} else if(this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1){
+		} else if(this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1 && this.name.indexOf("schdays") == -1){
 			o[this.name] = this.value || '';
 		}
 	});
+	var schdays = [];
+	$j.each($j("input[name='spdmerlin_schdays']:checked"), function(){
+		schdays.push($j(this).val());
+	});
+	var schdaysstring = schdays.join(",");
+	if(schdaysstring == "Mon,Tues,Wed,Thurs,Fri,Sat,Sun"){
+		schdaysstring = "*";
+	}
+	o["spdmerlin_schdays"] = schdaysstring;
 	
 	$j.each($j("input[name^='spdmerlin_usepreferred']"), function(){
 		o[this.id] = this.checked.toString();
@@ -716,7 +773,7 @@ function initial(){
 	show_menu();
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
 	ScriptUpdateLayout();
-	SetSPDStatsTitle();
+	get_statstitle_file();
 	get_interfaces_file();
 }
 
@@ -725,7 +782,7 @@ function SetGlobalDataset(txtchartname,dataobject){
 	currentNoCharts++;
 	if(currentNoCharts == maxNoCharts){
 		var interfacetextarray = interfacelist.split(',');
-		for (i = 0; i < interfacetextarray.length; i++){
+		for(var i = 0; i < interfacetextarray.length; i++){
 			Draw_Chart(interfacetextarray[i],"Combined");
 			Draw_Chart(interfacetextarray[i],"Quality");
 		}
@@ -735,7 +792,6 @@ function SetGlobalDataset(txtchartname,dataobject){
 function ScriptUpdateLayout(){
 	var localver = GetVersionNumber("local");
 	var serverver = GetVersionNumber("server");
-	$j("#scripttitle").text($j("#scripttitle").text()+" - "+localver);
 	$j("#spdmerlin_version_local").text(localver);
 	
 	if(localver != serverver && serverver != "N/A"){
@@ -750,6 +806,12 @@ function reload(){
 	location.reload(true);
 }
 
+function getYAxisMax(chartname){
+	if(chartname.indexOf("Quality") != -1){
+		return 100;
+	}
+}
+
 function getChartPeriod(period){
 	var chartperiod = "daily";
 	if(period == 0) chartperiod = "daily";
@@ -758,10 +820,21 @@ function getChartPeriod(period){
 	return chartperiod;
 }
 
+function getChartScale(scale){
+	var chartscale = "";
+	if(scale == 0){
+		chartscale = "linear";
+	}
+	else if(scale == 1){
+		chartscale = "logarithmic";
+	}
+	return chartscale;
+}
+
 function ResetZoom(){
 	var interfacetextarray = interfacelist.split(',');
-	for (i = 0; i < interfacetextarray.length; i++){
-		for (i2 = 0; i2 < typelist.length; i2++){
+	for(var i = 0; i < interfacetextarray.length; i++){
+		for(var i2 = 0; i2 < typelist.length; i2++){
 			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
 			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
 			chartobj.resetZoom();
@@ -789,8 +862,8 @@ function ToggleDragZoom(button){
 	}
 	
 	var interfacetextarray = interfacelist.split(',');
-	for (i = 0; i < interfacetextarray.length; i++){
-		for (i2 = 0; i2 < typelist.length; i2++){
+	for(var i = 0; i < interfacetextarray.length; i++){
+		for(var i2 = 0; i2 < typelist.length; i2++){
 			var chartobj = window["LineChart_"+interfacetextarray[i]+"_"+typelist[i2]];
 			if(typeof chartobj === 'undefined' || chartobj === null){ continue; }
 			chartobj.options.plugins.zoom.zoom.drag = drag;
@@ -845,10 +918,8 @@ function CheckUpdate(){
 }
 
 function DoUpdate(){
-	var action_script_tmp = "start_spdmerlindoupdate";
-	document.form.action_script.value = action_script_tmp;
-	var restart_time = 10;
-	document.form.action_wait.value = restart_time;
+	document.form.action_script.value = "start_spdmerlindoupdate";
+	document.form.action_wait.value = 10;
 	showLoading();
 	document.form.submit();
 }
@@ -856,7 +927,7 @@ function DoUpdate(){
 function getAllIndexes(arr, val){
 	var indexes = [];
 	for(var i = 0; i < arr.length; i++){
-		if (arr[i].id == val){
+		if(arr[i].id == val){
 			indexes.push(i);
 		}
 	}
@@ -952,7 +1023,7 @@ function get_manualspdtestservers_file(){
 				showhide("spdtest_serverprefselect",true);
 				showhide("imgManualServerList",false);
 			}
-			for (var i = 0; i < interfacescomplete.length; i++){
+			for(var i = 0; i < interfacescomplete.length; i++){
 				if(interfacesdisabled.includes(interfacescomplete[i]) == false){
 					$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 					$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
@@ -1071,10 +1142,8 @@ function PostSpeedTest(){
 	$j("#rowautospdprefserverselect").remove();
 	$j("#rowmanualspdtest").remove();
 	currentNoCharts = 0;
-	reload_js('/ext/spdmerlin/spdjs.js');
-	reload_js('/ext/spdmerlin/spdtitletext.js');
 	$j("#Time_Format").val(GetCookie("Time_Format","number"));
-	SetSPDStatsTitle();
+	get_statstitle_file();
 	setTimeout(get_interfaces_file, 3000);
 }
 
@@ -1106,14 +1175,10 @@ function StartSpeedTestInterval(){
 	myinterval = setInterval("update_spdtest();", 500);
 }
 
-function reload_js(src){
-	$j('script[src="' + src + '"]').remove();
-	$j('<script>').attr('src', src+'?cachebuster='+ new Date().getTime()).appendTo('head');
-}
-
 function SaveConfig(){
 	if(Validate_All()){
-		for (var i = 0; i < interfacescomplete.length; i++){
+		$j('[name*=spdmerlin_]').prop("disabled",false);
+		for(var i = 0; i < interfacescomplete.length; i++){
 			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 			$j('#spdmerlin_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
 			$j('#spdmerlin_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
@@ -1121,17 +1186,28 @@ function SaveConfig(){
 			$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 			$j('#changepref_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
 		}
-		$j('input[name=spdmerlin_testfrequency]').prop("disabled",false);
-		$j('input[name=spdmerlin_testfrequency]').removeClass("disabled");
-		$j('input[name^=spdmerlin_autobw]').removeClass("disabled");
-		$j('input[name^=spdmerlin_autobw]').prop("disabled",false);
+		if(document.form.schedulemode.value == "EveryX"){
+			if(document.form.everyxselect.value == "hours"){
+				var everyxvalue = document.form.everyxvalue.value*1;
+				document.form.spdmerlin_schmins.value = 0;
+				if(everyxvalue == 24){
+					document.form.spdmerlin_schhours.value = 0;
+				}
+				else{
+					document.form.spdmerlin_schhours.value = "*/"+everyxvalue;
+				}
+			}
+			else if(document.form.everyxselect.value == "minutes"){
+				document.form.spdmerlin_schhours.value = "*";
+				var everyxvalue = document.form.everyxvalue.value*1;
+				document.form.spdmerlin_schmins.value = "*/"+everyxvalue;
+			}
+		}
 		document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject());
-		var action_script_tmp = "start_spdmerlinconfig";
-		document.form.action_script.value = action_script_tmp;
-		var restart_time = 5;
-		document.form.action_wait.value = restart_time;
+		document.form.action_script.value = "start_spdmerlinconfig";
 		showLoading();
 		document.form.submit();
+		document.form.action_wait.value = 10;
 	}
 	else{
 		return false;
@@ -1166,29 +1242,60 @@ function get_conf_file(){
 			var configdata=data.split("\n");
 			configdata = configdata.filter(Boolean);
 			
-			for (var i = 0; i < configdata.length; i++){
-				if(configdata[i].indexOf("PREFERRED") == -1){
-					eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).value = configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+			for(var i = 0; i < configdata.length; i++){
+				let settingname = configdata[i].split("=")[0].toLowerCase();
+				let settingvalue = configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"");
+				
+				if(configdata[i].indexOf("SCHDAYS") != -1){
+					if(settingvalue == "*"){
+						for(var i2 = 0; i2 < daysofweek.length; i2++){
+							$j("#spdmerlin_"+daysofweek[i2].toLowerCase()).prop("checked",true);
+						}
+					}
+					else{
+						var schdayarray = settingvalue.split(',');
+						for(var i2 = 0; i2 < schdayarray.length; i2++){
+							$j("#spdmerlin_"+schdayarray[i2].toLowerCase()).prop("checked",true);
+						}
+					}
 				}
 				else if(configdata[i].indexOf("USEPREFERRED") != -1){
-					if(configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,"") == "true"){
-						eval("document.form.spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).checked = true;
+					if(settingvalue == "true"){
+						eval("document.form.spdmerlin_"+settingname).checked = true;
+					}
+					else if(settingvalue == "false"){
+						eval("document.form.spdmerlin_"+settingname).checked = false;
 					}
 				}
 				else if(configdata[i].indexOf("PREFERREDSERVER") != -1){
-					$j("#span_spdmerlin_"+configdata[i].split("=")[0].toLowerCase()).html(configdata[i].split("=")[0].split("_")[1]+" - "+configdata[i].split("=")[1].replace(/(\r\n|\n|\r)/gm,""));
+					$j("#span_spdmerlin_"+settingname).html(configdata[i].split("=")[0].split("_")[1]+" - "+settingvalue);
+				}
+				else if(configdata[i].indexOf("PREFERRED") == -1){
+					eval("document.form.spdmerlin_"+settingname).value = settingvalue;
 				}
 				
 				if(configdata[i].indexOf("AUTOMATED") != -1){
 					AutomaticInterfaceEnableDisable($j("#spdmerlin_auto_"+document.form.spdmerlin_automated.value)[0]);
 				}
-				else if(configdata[i].indexOf("TESTFREQUENCY") != -1){
-					Toggle_ScheduleFrequency($j("#spdmerlin_freq_"+document.form.spdmerlin_testfrequency.value)[0]);
-				}
-				else if(configdata[i].indexOf("AUTOBW") != -1){
+				
+				if(configdata[i].indexOf("AUTOBW") != -1){
 					AutoBWEnableDisable($j("#spdmerlin_autobw_"+document.form.spdmerlin_autobw_enabled.value)[0]);
 				}
 			}
+			if($j('[name=spdmerlin_schhours]').val().indexOf('/') != -1 && $j('[name=spdmerlin_schmins]').val() == 0){
+				document.form.schedulemode.value = "EveryX";
+				document.form.everyxselect.value = "hours";
+				document.form.everyxvalue.value = $j('[name=spdmerlin_schhours]').val().split('/')[1];
+			}
+			else if($j('[name=spdmerlin_schmins]').val().indexOf('/') != -1 && $j('[name=spdmerlin_schhours]').val() == "*"){
+				document.form.schedulemode.value = "EveryX";
+				document.form.everyxselect.value = "minutes";
+				document.form.everyxvalue.value = $j('[name=spdmerlin_schmins]').val().split('/')[1];
+			}
+			else{
+				document.form.schedulemode.value = "Custom";
+			}
+			ScheduleModeToggle($j('#schmode_'+$j('[name=schedulemode]:checked').val().toLowerCase())[0]);
 		}
 	});
 }
@@ -1217,18 +1324,18 @@ function get_interfaces_file(){
 			interfacecharttablehtml+='</thead>';
 			interfacecharttablehtml+='<tr><td align="center" style="padding: 0px;">';
 			
-			var interfaceconfigtablehtml='<tr id="rowautomaticspdtest"><th width="40%">Interfaces to use for automatic speedtests</th><td class="settingvalue">';
+			var interfaceconfigtablehtml='<tr id="rowautomaticspdtest"><td class="settingname">Interfaces to use for automatic speedtests</th><td class="settingvalue">';
 			
-			var prefserverconfigtablehtml='<tr id="rowautospdprefserver"><th width="40%">Interfaces that use a preferred server</th><td class="settingvalue">';
+			var prefserverconfigtablehtml='<tr id="rowautospdprefserver"><td class="settingname">Interfaces that use a preferred server</th><td class="settingvalue">';
 			
-			var prefserverselecttablehtml='<tr id="rowautospdprefserverselect"><th width="40%">Preferred servers for interfaces</th><td class="settingvalue">';
+			var prefserverselecttablehtml='<tr id="rowautospdprefserverselect"><td class="settingname">Preferred servers for interfaces</th><td class="settingvalue">';
 			
-			var speedtestifaceconfigtablehtml='<tr id="rowmanualspdtest"><th width="40%">Interfaces to use for manual speedtest</th><td class="settingvalue">';
+			var speedtestifaceconfigtablehtml='<tr id="rowmanualspdtest"><td class="settingname">Interfaces to use for manual speedtest</th><td class="settingvalue">';
 			speedtestifaceconfigtablehtml+='<input type="radio" name="spdtest_enabled" id="spdtest_enabled_all" onchange="Change_SpdTestInterface(this)" class="input" settingvalueradio" value="All" checked>';
-			speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_all" class="settingvalue">All</label>';
+			speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_all">All</label>';
 			
 			var interfacecount=interfaces.length;
-			for (var i = 0; i < interfacecount; i++){
+			for(var i = 0; i < interfacecount; i++){
 				var interfacename = "";
 				if(interfaces[i].indexOf("#") != -1){
 					interfacename = interfaces[i].substring(0,interfaces[i].indexOf("#")).trim();
@@ -1243,38 +1350,38 @@ function get_interfaces_file(){
 						changelabel = '<a class="hintstyle" href="javascript:void(0);" onclick="SettingHint(1);">Change?</a>';
 					}
 					interfaceconfigtablehtml+='<input type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
-					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'">'+ifacelabel+'</label>';
 					
 					prefserverconfigtablehtml+='<input type="checkbox" name="spdmerlin_usepreferred_' + interfacename.toLowerCase() + '" id="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="input ' + interfacedisabled + ' settingvalue" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
-					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
+					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'">'+ifacelabel+'</label>';
 					
 					prefserverselecttablehtml+='<span style="margin-left:4px;vertical-align:top;max-width:465px;display:inline-block;" id="span_spdmerlin_preferredserver_'+interfacename.toLowerCase()+'">'+interfacename.toUpperCase()+':</span><br />';
 					prefserverselecttablehtml+='<input type="checkbox" name="changepref_' + interfacename.toLowerCase() + '" id="changepref_'+ interfacename.toLowerCase() +'" class="input settingvalue ' + interfacedisabled + '" ' + interfacedisabled + ' onchange="Toggle_ChangePrefServer(this)">';
-					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'" class="settingvalue">'+changelabel+'</label>';
+					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'">'+changelabel+'</label>';
 					prefserverselecttablehtml+='<img id="imgServerList_'+ interfacename.toLowerCase() +'" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
 					prefserverselecttablehtml+='<select class="disabled" name="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" id="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" style="min-width:100px;max-width:400px;display:none;vertical-align:top;" disabled></select><br />';
 					
 					speedtestifaceconfigtablehtml+='<input autocomplete="off" autocapitalize="off" type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input ' + interfacedisabled + ' settingvalueradio" value="'+interfacename.toUpperCase()+'" ' + interfacedisabled + '>';
-					speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+ifacelabel+'</label>';
+					speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_'+ interfacename.toLowerCase() +'">'+ifacelabel+'</label>';
 				}
 				else{
 					interfacename = interfaces[i].trim();
 					interfacescomplete.push(interfacename);
 					
 					interfaceconfigtablehtml+='<input type="checkbox" name="spdmerlin_iface_enabled" id="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
-					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
+					interfaceconfigtablehtml+='<label for="spdmerlin_iface_enabled_'+ interfacename.toLowerCase() +'">'+interfacename.toUpperCase()+'</label>';
 					
 					prefserverconfigtablehtml+='<input type="checkbox" name="spdmerlin_usepreferred_' + interfacename.toLowerCase() + '" id="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="input settingvalue" value="'+interfacename.toUpperCase()+'" checked>';
-					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
+					prefserverconfigtablehtml+='<label for="spdmerlin_usepreferred_'+ interfacename.toLowerCase() +'">'+interfacename.toUpperCase()+'</label>';
 					
 					prefserverselecttablehtml+='<span style="margin-left:4px;vertical-align:top;max-width:465px;display:inline-block;" id="span_spdmerlin_preferredserver_'+interfacename.toLowerCase()+'">'+interfacename.toUpperCase()+':</span><br />';
 					prefserverselecttablehtml+='<input type="checkbox" name="changepref_' + interfacename.toLowerCase() + '" id="changepref_'+ interfacename.toLowerCase() +'" class="input settingvalue" onchange="Toggle_ChangePrefServer(this)">';
-					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'" class="settingvalue">Change?</label>';
+					prefserverselecttablehtml+='<label for="changepref_'+ interfacename.toLowerCase() +'">Change?</label>';
 					prefserverselecttablehtml+='<img id="imgServerList_'+ interfacename.toLowerCase() +'" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
 					prefserverselecttablehtml+='<select class="disabled" name="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" id="spdmerlin_preferredserver_'+interfacename.toLowerCase()+'" style="min-width:100px;max-width:400px;display:none;vertical-align:top;" disabled></select><br />';
 					
 					speedtestifaceconfigtablehtml+='<input type="radio" name="spdtest_enabled" id="spdtest_enabled_'+ interfacename.toLowerCase() +'" onchange="Change_SpdTestInterface(this)" class="input settingvalueradio" value="'+interfacename.toUpperCase()+'">';
-					speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_'+ interfacename.toLowerCase() +'" class="settingvalue">'+interfacename.toUpperCase()+'</label>';
+					speedtestifaceconfigtablehtml+='<label for="spdtest_enabled_'+ interfacename.toLowerCase() +'">'+interfacename.toUpperCase()+'</label>';
 				}
 				
 				interfacecharttablehtml += BuildInterfaceTable(interfacename);
@@ -1309,7 +1416,97 @@ function get_interfaces_file(){
 			RedrawAllCharts();
 			
 			AddEventHandlers();
+			get_lastx_file();
 			get_conf_file();
+		}
+	});
+}
+
+function get_statstitle_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spdtitletext.js',
+		dataType: 'script',
+		timeout: 3000,
+		error: function(xhr){
+			setTimeout(get_statstitle_file, 1000);
+		},
+		success: function(){
+			SetSPDStatsTitle();
+		}
+	});
+}
+
+function get_lastx_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spdjs.js',
+		dataType: 'script',
+		timeout: 3000,
+		error: function(xhr){
+			setTimeout(get_lastx_file, 1000);
+		},
+		success: function(){
+			for(var index = 0; index < interfacescomplete.length; index++){
+				var name = interfacescomplete[index];
+				var nodata="";
+				var objdataname = window["DataTimestamp_"+name];
+				if(typeof objdataname === 'undefined' || objdataname === null){nodata="true"}
+				else if(objdataname.length == 0){nodata="true"}
+				else if(objdataname.length == 1 && objdataname[0] == ""){nodata="true"}
+				var charthtml = '<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">';
+				if(nodata == "true"){
+					charthtml+='<tr>';
+					charthtml+='<td colspan="6" class="nodata">';
+					charthtml+='No data to display';
+					charthtml+='</td>';
+					charthtml+='</tr>';
+				}
+				else{
+					charthtml+='<col style="width:120px;">';
+					charthtml+='<col style="width:75px;">';
+					charthtml+='<col style="width:65px;">';
+					charthtml+='<col style="width:65px;">';
+					charthtml+='<col style="width:65px;">';
+					charthtml+='<col style="width:65px;">';
+					charthtml+='<col style="width:80px;">';
+					charthtml+='<col style="width:80px;">';
+					charthtml+='<col style="width:135px;">';
+					charthtml+='<thead>';
+					charthtml+='<tr>';
+					charthtml+='<th class="keystatsnumber">Time</th>';
+					charthtml+='<th class="keystatsnumber">Download<br />(Mbps)</th>';
+					charthtml+='<th class="keystatsnumber">Upload<br />(Mbps)</th>';
+					charthtml+='<th class="keystatsnumber">Latency<br />(ms)</th>';
+					charthtml+='<th class="keystatsnumber">Jitter<br />(ms)</th>';
+					charthtml+='<th class="keystatsnumber">Packet<br />Loss (%)</th>';
+					charthtml+='<th class="keystatsnumber">Download<br />Data (MB)</th>';
+					charthtml+='<th class="keystatsnumber">Upload<br />Data (MB)</th>';
+					charthtml+='<th class="keystatsnumber">Result URL</th>';
+					charthtml+='</tr>';
+					charthtml+='</thead>';
+					
+					for(var i = 0; i < objdataname.length; i++){
+						charthtml+='<tr class="statsRow">';
+						charthtml+='<td>'+moment.unix(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
+						charthtml+='<td>'+window["DataDownload_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","N/A")+'</td>';
+						charthtml+='<td>'+window["DataDataDownload_"+name][i]+'</td>';
+						charthtml+='<td>'+window["DataDataUpload_"+name][i]+'</td>';
+						if(window["DataResultURL_"+name][i] != ""){
+							charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
+						}
+						else{
+							charthtml+='<td>No result URL</td>';
+						}
+						charthtml+='</tr>';
+					}
+				}
+				charthtml+='</table>';
+				$j("#"+name+"_tablelastxresults").empty();
+				$j("#"+name+"_tablelastxresults").append(charthtml);
+			}
 		}
 	});
 }
@@ -1319,7 +1516,7 @@ function changeAllCharts(e){
 	name = e.id.substring(0, e.id.indexOf("_"));
 	SetCookie(e.id,value);
 	var interfacetextarray = interfacelist.split(',');
-	for (i = 0; i < interfacetextarray.length; i++){
+	for(var i = 0; i < interfacetextarray.length; i++){
 		Draw_Chart(interfacetextarray[i],"Combined");
 		Draw_Chart(interfacetextarray[i],"Quality");
 	}
@@ -1339,12 +1536,15 @@ function changeChart(e){
 
 function SettingHint(hintid){
 	var tag_name = document.getElementsByTagName('a');
-	for (var i=0;i<tag_name.length;i++){
+	for(var i=0;i<tag_name.length;i++){
 		tag_name[i].onmouseout=nd;
 	}
 	hinttext="My text goes here";
 	if(hintid == 1) hinttext="Interface not enabled";
-	return overlib(hinttext, CENTER);
+	if(hintid == 2) hinttext="Hour(s) of day to run speedtest<br />* for all<br />Valid numbers between 0 and 23<br />comma (,) separate for multiple<br />dash (-) separate for a range";
+	if(hintid == 3) hinttext="Minute(s) of day to run speedtest<br />(* for all<br />Valid numbers between 0 and 59<br />comma (,) separate for multiple<br />dash (-) separate for a range";
+	
+	return overlib(hinttext, 0, 0);
 }
 
 function BuildInterfaceTable(name){
@@ -1362,65 +1562,7 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr><td colspan="2">Last 10 speedtest results (click to expand/collapse)</td></tr>';
 	charthtml+='</thead>';
 	charthtml+='<tr>';
-	charthtml+='<td colspan="2" align="center" style="padding: 0px;">';
-	charthtml+='<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable StatsTable">';
-	var nodata="";
-	var objdataname = window["DataTimestamp_"+name];
-	if(typeof objdataname === 'undefined' || objdataname === null){nodata="true"}
-	else if(objdataname.length == 0){nodata="true"}
-	else if(objdataname.length == 1 && objdataname[0] == ""){nodata="true"}
-	
-	if(nodata == "true"){
-		charthtml+='<tr>';
-		charthtml+='<td colspan="6" class="nodata">';
-		charthtml+='No data to display';
-		charthtml+='</td>';
-		charthtml+='</tr>';
-	}
-	else{
-		charthtml+='<col style="width:120px;">';
-		charthtml+='<col style="width:75px;">';
-		charthtml+='<col style="width:65px;">';
-		charthtml+='<col style="width:65px;">';
-		charthtml+='<col style="width:65px;">';
-		charthtml+='<col style="width:65px;">';
-		charthtml+='<col style="width:80px;">';
-		charthtml+='<col style="width:80px;">';
-		charthtml+='<col style="width:135px;">';
-		charthtml+='<thead>';
-		charthtml+='<tr>';
-		charthtml+='<th class="keystatsnumber">Time</th>';
-		charthtml+='<th class="keystatsnumber">Download<br />(Mbps)</th>';
-		charthtml+='<th class="keystatsnumber">Upload<br />(Mbps)</th>';
-		charthtml+='<th class="keystatsnumber">Latency<br />(ms)</th>';
-		charthtml+='<th class="keystatsnumber">Jitter<br />(ms)</th>';
-		charthtml+='<th class="keystatsnumber">Packet<br />Loss (%)</th>';
-		charthtml+='<th class="keystatsnumber">Download<br />Data (MB)</th>';
-		charthtml+='<th class="keystatsnumber">Upload<br />Data (MB)</th>';
-		charthtml+='<th class="keystatsnumber">Result URL</th>';
-		charthtml+='</tr>';
-		charthtml+='</thead>';
-		
-		for(i = 0; i < objdataname.length; i++){
-			charthtml+='<tr>';
-			charthtml+='<td>'+moment.unix(window["DataTimestamp_"+name][i]).format('YYYY-MM-DD HH:mm:ss')+'</td>';
-			charthtml+='<td>'+window["DataDownload_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataUpload_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataLatency_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataJitter_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataPktLoss_"+name][i].replace("null","N/A")+'</td>';
-			charthtml+='<td>'+window["DataDataDownload_"+name][i]+'</td>';
-			charthtml+='<td>'+window["DataDataUpload_"+name][i]+'</td>';
-			if(window["DataResultURL_"+name][i] != ""){
-				charthtml+='<td><a href="'+window["DataResultURL_"+name][i]+'" target="_blank">Speedtest result URL</a></td>';
-			}
-			else{
-				charthtml+='<td>No result URL</td>';
-			}
-			charthtml+='</tr>';
-		};
-	}
-	charthtml+='</table>';
+	charthtml+='<td colspan="2" align="center" style="padding: 0px;" id="'+name+'_tablelastxresults">';
 	charthtml+='</td>';
 	charthtml+='</tr>';
 	charthtml+='</table>';
@@ -1441,10 +1583,19 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr class="even">';
 	charthtml+='<th width="40%">Period to display</th>';
 	charthtml+='<td>';
-	charthtml+='<select style="width:125px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Combined">';
+	charthtml+='<select style="width:150px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Combined">';
 	charthtml+='<option value=0>Last 24 hours</option>';
 	charthtml+='<option value=1>Last 7 days</option>';
 	charthtml+='<option value=2>Last 30 days</option>';
+	charthtml+='</select>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='<tr class="even">';
+	charthtml+='<th width="40%">Scale type</th>';
+	charthtml+='<td>';
+	charthtml+='<select style="width:150px" class="input_option" onchange="changeChart(this)" id="' + name + '_Scale_Combined">';
+	charthtml+='<option value="0">Linear</option>';
+	charthtml+='<option value="1">Logarithmic</option>';
 	charthtml+='</select>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
@@ -1464,10 +1615,19 @@ function BuildInterfaceTable(name){
 	charthtml+='<tr class="even">';
 	charthtml+='<th width="40%">Period to display</th>';
 	charthtml+='<td>';
-	charthtml+='<select style="width:125px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Quality">';
+	charthtml+='<select style="width:150px" class="input_option" onchange="changeChart(this)" id="' + name + '_Period_Quality">';
 	charthtml+='<option value=0>Last 24 hours</option>';
 	charthtml+='<option value=1>Last 7 days</option>';
 	charthtml+='<option value=2>Last 30 days</option>';
+	charthtml+='</select>';
+	charthtml+='</td>';
+	charthtml+='</tr>';
+	charthtml+='<tr class="even">';
+	charthtml+='<th width="40%">Scale type</th>';
+	charthtml+='<td>';
+	charthtml+='<select style="width:150px" class="input_option" onchange="changeChart(this)" id="' + name + '_Scale_Quality">';
+	charthtml+='<option value="0">Linear</option>';
+	charthtml+='<option value="1">Logarithmic</option>';
 	charthtml+='</select>';
 	charthtml+='</td>';
 	charthtml+='</tr>';
@@ -1491,8 +1651,11 @@ function AutomaticInterfaceEnableDisable(forminput){
 	var inputvalue = forminput.value;
 	var prefix = inputname.substring(0,inputname.lastIndexOf('_'));
 	
+	var fieldnames = ["schhours","schmins"];
+	var fieldnames2 = ["schedulemode","everyxselect","everyxvalue"];
+	
 	if(inputvalue == "false"){
-		for (var i = 0; i < interfacescomplete.length; i++){
+		for(var i = 0; i < interfacescomplete.length; i++){
 			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
 			$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
 			$j('#'+prefix+'_usepreferred_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
@@ -1500,11 +1663,20 @@ function AutomaticInterfaceEnableDisable(forminput){
 			$j('#changepref_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
 			$j('#changepref_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
 		}
-		$j('input[name='+prefix+'_testfrequency]').prop("disabled",true);
-		$j('input[name='+prefix+'_testfrequency]').addClass("disabled");
+		for (var i = 0; i < fieldnames.length; i++){
+			$j('input[name='+prefix+'_'+fieldnames[i]+']').addClass("disabled");
+			$j('input[name='+prefix+'_'+fieldnames[i]+']').prop("disabled",true);
+		}
+		for (var i = 0; i < daysofweek.length; i++){
+			$j('#'+prefix+'_'+daysofweek[i].toLowerCase()).prop("disabled",true);
+		}
+		for (var i = 0; i < fieldnames2.length; i++){
+			$j('[name='+fieldnames2[i]+']').addClass("disabled");
+			$j('[name='+fieldnames2[i]+']').prop("disabled",true);
+		}
 	}
 	else if(inputvalue == "true"){
-		for (var i = 0; i < interfacescomplete.length; i++){
+		for(var i = 0; i < interfacescomplete.length; i++){
 			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
 				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",false);
 				$j('#'+prefix+'_iface_enabled_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
@@ -1514,9 +1686,56 @@ function AutomaticInterfaceEnableDisable(forminput){
 				$j('#changepref_'+interfacescomplete[i].toLowerCase()).removeClass("disabled");
 			}
 		}
-		$j('input[name='+prefix+'_testfrequency]').prop("disabled",false);
-		$j('input[name='+prefix+'_testfrequency]').removeClass("disabled");
+		for (var i = 0; i < fieldnames.length; i++){
+			$j('input[name='+prefix+'_'+fieldnames[i]+']').removeClass("disabled");
+			$j('input[name='+prefix+'_'+fieldnames[i]+']').prop("disabled",false);
+		}
+		for (var i = 0; i < daysofweek.length; i++){
+			$j('#'+prefix+'_'+daysofweek[i].toLowerCase()).prop("disabled",false);
+		}
+		for (var i = 0; i < fieldnames2.length; i++){
+			$j('[name='+fieldnames2[i]+']').removeClass("disabled");
+			$j('[name='+fieldnames2[i]+']').prop("disabled",false);
+		}
 	}
+}
+
+function ScheduleModeToggle(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	if(inputvalue == "EveryX"){
+		showhide("schfrequency",true);
+		showhide("schcustom",false);
+		if($j("#everyxselect").val() == "hours"){
+			showhide("spanxhours",true);
+			showhide("spanxminutes",false);
+		}
+		else if($j("#everyxselect").val() == "minutes"){
+			showhide("spanxhours",false);
+			showhide("spanxminutes",true);
+		}
+	}
+	else if(inputvalue == "Custom"){
+		showhide("schfrequency",false);
+		showhide("schcustom",true);
+	}
+}
+
+function EveryXToggle(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	if(inputvalue == "hours"){
+		showhide("spanxhours",true);
+		showhide("spanxminutes",false);
+	}
+	else if(inputvalue == "minutes"){
+		showhide("spanxhours",false);
+		showhide("spanxminutes",true);
+	}
+	
+	Validate_ScheduleValue($j("[name=everyxvalue]")[0]);
 }
 
 function AutoBWEnableDisable(forminput){
@@ -1524,25 +1743,26 @@ function AutoBWEnableDisable(forminput){
 	var inputvalue = forminput.value;
 	var prefix = inputname.substring(0,inputname.indexOf('_'));
 	
+	var fieldnames = ["autobw_ulimit","autobw_llimit","autobw_sf","autobw_threshold","autobw_average"];
+	
 	if(inputvalue == "false"){
-		$j('input[name^='+prefix+'_autobw_ulimit]').addClass("disabled");
-		$j('input[name^='+prefix+'_autobw_ulimit]').prop("disabled",true);
-		$j('input[name^='+prefix+'_autobw_llimit]').addClass("disabled");
-		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",true);
-		$j('input[name^='+prefix+'_autobw_sf]').addClass("disabled");
-		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",true);
-		$j('input[name^='+prefix+'_autobw_threshold]').addClass("disabled");
-		$j('input[name^='+prefix+'_autobw_threshold]').prop("disabled",true);
+		for (var i = 0; i < fieldnames.length; i++){
+			$j('input[name^='+prefix+'_'+fieldnames[i]+']').addClass("disabled");
+			$j('input[name^='+prefix+'_'+fieldnames[i]+']').prop("disabled",true);
+		}
+		
+		$j('input[name^='+prefix+'_excludefromqos]').removeClass("disabled");
+		$j('input[name^='+prefix+'_excludefromqos]').prop("disabled",false);
 	}
 	else if(inputvalue == "true"){
-		$j('input[name^='+prefix+'_autobw_ulimit]').removeClass("disabled");
-		$j('input[name^='+prefix+'_autobw_ulimit]').prop("disabled",false);
-		$j('input[name^='+prefix+'_autobw_llimit]').removeClass("disabled");
-		$j('input[name^='+prefix+'_autobw_llimit]').prop("disabled",false);
-		$j('input[name^='+prefix+'_autobw_sf]').removeClass("disabled");
-		$j('input[name^='+prefix+'_autobw_sf]').prop("disabled",false);
-		$j('input[name^='+prefix+'_autobw_threshold]').removeClass("disabled");
-		$j('input[name^='+prefix+'_autobw_threshold]').prop("disabled",false);
+		for (var i = 0; i < fieldnames.length; i++){
+			$j('input[name^='+prefix+'_'+fieldnames[i]+']').removeClass("disabled");
+			$j('input[name^='+prefix+'_'+fieldnames[i]+']').prop("disabled",false);
+		}
+		
+		document.form.spdmerlin_excludefromqos.value = true;
+		$j('input[name^='+prefix+'_excludefromqos]').addClass("disabled");
+		$j('input[name^='+prefix+'_excludefromqos]').prop("disabled",true);
 	}
 }
 
@@ -1565,22 +1785,6 @@ function Toggle_ChangePrefServer(forminput){
 	}
 }
 
-function Toggle_ScheduleFrequency(forminput){
-	var inputname = forminput.name;
-	var inputvalue = forminput.value;
-	
-	Calculate_SecondMinute();
-	
-	if(inputvalue == "halfhourly"){
-		document.form.second_minute.style.display = "";
-		$j("#span_second_minute")[0].style.display = "";
-	}
-	else{
-		document.form.second_minute.style.display = "none";
-		$j("#span_second_minute")[0].style.display = "none";
-	}
-}
-
 function Change_SpdTestInterface(forminput){
 	var inputname = forminput.name;
 	var inputvalue = forminput.value;
@@ -1596,7 +1800,7 @@ function Toggle_SpdTestServerPref(forminput){
 	if(inputvalue == "onetime"){
 		document.formScriptActions.action_script.value="start_spdmerlinserverlistmanual_" + document.form.spdtest_enabled.value;
 		document.formScriptActions.submit();
-		for (var i = 0; i < interfacescomplete.length; i++){
+		for(var i = 0; i < interfacescomplete.length; i++){
 			$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).prop("disabled",true);
 			$j('#spdtest_enabled_'+interfacescomplete[i].toLowerCase()).addClass("disabled");
 		}
@@ -1637,10 +1841,10 @@ function Toggle_SpdTestServerPref(forminput){
 function GenerateManualSpdTestServerPrefSelect(){
 	$j("#rowmanualserverprefselect").remove();
 	var serverprefhtml = '<tr class="even" id="rowmanualserverprefselect" style="display:none;">';
-	serverprefhtml += '<th width="40%">Choose a server</th><td class="settingvalue"><img id="imgManualServerList" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
+	serverprefhtml += '<td class="settingname">Choose a server</th><td class="settingvalue"><img id="imgManualServerList" style="display:none;vertical-align:middle;" src="images/InternetScan.gif"/>';
 	
 	if(document.form.spdtest_enabled.value == "All"){
-		for (var i = 0; i < interfacescomplete.length; i++){
+		for(var i = 0; i < interfacescomplete.length; i++){
 			if(interfacesdisabled.includes(interfacescomplete[i]) == false){
 				var interfacename = interfacescomplete[i].toLowerCase();
 				serverprefhtml += '<span style="width:50px;display:none;" id="spdtest_serverprefselectspan_'+interfacename+'">'+interfacescomplete[i]+':</span><select name="spdtest_serverprefselect_'+interfacename+'" id="spdtest_serverprefselect_'+interfacename+'" style="display:none;max-width:415px;"></select><br />';
@@ -1657,20 +1861,140 @@ function GenerateManualSpdTestServerPrefSelect(){
 
 function Validate_All(){
 	var validationfailed = false;
-	if(! Validate_ScheduleRange(document.form.spdmerlin_schedulestart)) validationfailed=true;
-	if(! Validate_ScheduleRange(document.form.spdmerlin_scheduleend)) validationfailed=true;
-	if(! Validate_ScheduleMinute(document.form.spdmerlin_minute)) validationfailed=true;
 	
 	if(! Validate_PercentRange(document.form.spdmerlin_autobw_sf_down)) validationfailed=true;
 	if(! Validate_PercentRange(document.form.spdmerlin_autobw_sf_up)) validationfailed=true;
 	if(! Validate_PercentRange(document.form.spdmerlin_autobw_threshold_down)) validationfailed=true;
 	if(! Validate_PercentRange(document.form.spdmerlin_autobw_threshold_up)) validationfailed=true;
 	
+	if(document.form.schedulemode.value == "EveryX"){
+		if(! Validate_ScheduleValue(document.form.everyxvalue)) validationfailed=true;
+	}
+	else if(document.form.schedulemode.value == "Custom"){
+		if(! Validate_Schedule(document.form.spdmerlin_schhours,"hours")) validationfailed=true;
+		if(! Validate_Schedule(document.form.spdmerlin_schmins,"mins")) validationfailed=true;
+	}
+	
 	if(validationfailed){
 		alert("Validation for some fields failed. Please correct invalid values and try again.");
 		return false;
 	}
 	else{
+		return true;
+	}
+}
+
+function Validate_Schedule(forminput,hoursmins){
+	var inputname = forminput.name;
+	var inputvalues = forminput.value.split(',');
+	var upperlimit = 0;
+	
+	if(hoursmins == "hours"){
+		upperlimit = 23;
+	}
+	else if (hoursmins == "mins"){
+		upperlimit = 59;
+	}
+	
+	showhide("btnfixhours",false);
+	showhide("btnfixmins",false);
+	
+	var validationfailed = "false";
+	for(var i=0; i < inputvalues.length; i++){
+		if(inputvalues[i] == "*" && i == 0){
+			validationfailed = "false";
+		}
+		else if(inputvalues[i] == "*" && i != 0){
+			validationfailed = "true";
+		}
+		else if(inputvalues[0] == "*" && i > 0){
+			validationfailed = "true";
+		}
+		else if(inputvalues[i] == ""){
+			validationfailed = "true";
+		}
+		else if(inputvalues[i].startsWith("*/")){
+			if(! isNaN(inputvalues[i].replace("*/","")*1)){
+				if((inputvalues[i].replace("*/","")*1) > upperlimit || (inputvalues[i].replace("*/","")*1) < 0){
+					validationfailed = "true";
+				}
+			}
+			else{
+				validationfailed = "true";
+			}
+		}
+		else if(inputvalues[i].indexOf("-") != -1){
+			if(inputvalues[i].startsWith("-")){
+				validationfailed = "true";
+			}
+			else{
+				var inputvalues2 = inputvalues[i].split('-');
+				for(var i2=0; i2 < inputvalues2.length; i2++){
+					if(inputvalues2[i2] == ""){
+						validationfailed = "true";
+					}
+					else if(! isNaN(inputvalues2[i2]*1)){
+						if((inputvalues2[i2]*1) > upperlimit || (inputvalues2[i2]*1) < 0){
+							validationfailed = "true";
+						}
+						else if((inputvalues2[i2+1]*1) < (inputvalues2[i2]*1)){
+							validationfailed = "true";
+							if(hoursmins == "hours"){
+								showhide("btnfixhours",true)
+							}
+							else if (hoursmins == "mins"){
+								showhide("btnfixmins",true)
+							}
+						}
+					}
+					else{
+						validationfailed = "true";
+					}
+				}
+			}
+		}
+		else if(! isNaN(inputvalues[i]*1)){
+			if((inputvalues[i]*1) > upperlimit || (inputvalues[i]*1) < 0){
+				validationfailed = "true";
+			}
+		}
+		else{
+			validationfailed = "true";
+		}
+	}
+	
+	if(validationfailed == "true"){
+		$j(forminput).addClass("invalid");
+		return false;
+	}
+	else{
+		$j(forminput).removeClass("invalid");
+		return true;
+	}
+}
+
+function Validate_ScheduleValue(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value*1;
+	
+	var upperlimit = 0;
+	var lowerlimit = 1;
+	
+	var unittype = $j("#everyxselect").val();
+	
+	if(unittype == "hours"){
+		upperlimit = 24;
+	}
+	else if(unittype == "minutes"){
+		upperlimit = 30;
+	}
+	
+	if(inputvalue > upperlimit || inputvalue < lowerlimit || forminput.value.length < 1){
+		$j(forminput).addClass("invalid");
+		return false;
+	}
+	else{
+		$j(forminput).removeClass("invalid");
 		return true;
 	}
 }
@@ -1689,11 +2013,11 @@ function Validate_PercentRange(forminput){
 	}
 }
 
-function Validate_ScheduleRange(forminput){
+function Validate_AverageCalc(forminput){
 	var inputname = forminput.name;
 	var inputvalue = forminput.value*1;
 	
-	if(inputvalue > 23 || inputvalue < 0 || forminput.value.length < 1){
+	if(inputvalue > 30 || inputvalue < 1 || forminput.value.length < 1){
 		$j(forminput).addClass("invalid");
 		return false;
 	}
@@ -1703,33 +2027,21 @@ function Validate_ScheduleRange(forminput){
 	}
 }
 
-function Validate_ScheduleMinute(forminput){
-	var inputname = forminput.name;
-	var inputvalue = forminput.value*1;
-	
-	if(inputvalue > 59 || inputvalue < 0 || forminput.value.length < 1){
-		document.form.second_minute.value = "";
-		$j(forminput).addClass("invalid");
-		return false;
+function FixCron(hoursmins){
+	if(hoursmins == "hours"){
+		var origvalue = document.form.spdmerlin_schhours.value;
+		document.form.spdmerlin_schhours.value = origvalue.split("-")[0]+"-23,0-"+origvalue.split("-")[1];
+		Validate_Schedule(document.form.spdmerlin_schhours,"hours");
 	}
-	else{
-		Calculate_SecondMinute();
-		$j(forminput).removeClass("invalid");
-		return true;
-	}
-}
-
-function Calculate_SecondMinute(){
-	if (document.form.spdmerlin_testfrequency.value == "halfhourly"){
-		document.form.second_minute.value= document.form.spdmerlin_minute.value*1 + 30;
-		if(document.form.second_minute.value > 59){
-			document.form.second_minute.value = document.form.second_minute.value*1 - 60;
-		}
+	else if(hoursmins == "mins"){
+		var origvalue = document.form.spdmerlin_schmins.value;
+		document.form.spdmerlin_schmins.value = origvalue.split("-")[0]+"-59,0-"+origvalue.split("-")[1];
+		Validate_Schedule(document.form.spdmerlin_schmins,"mins");
 	}
 }
 
 function AddEventHandlers(){
-	$j(".collapsible-jquery").click(function(){
+	$j(".collapsible-jquery").off('click').on('click', function(){
 		$j(this).siblings().toggle("fast",function(){
 			if($j(this).css("display") == "none"){
 				SetCookie($j(this).siblings()[0].id,"collapsed");

@@ -14,13 +14,16 @@
 ##                                                        ##
 ############################################################
 
-#shellcheck disable=SC2019
-#shellcheck disable=SC2018
+#############        Shellcheck directives      ############
+# shellcheck disable=SC2018
+# shellcheck disable=SC2019
+# shellcheck disable=SC2059
+############################################################
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="spdMerlin"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v4.1.1"
+readonly SCRIPT_VERSION="v4.2.0"
 SCRIPT_BRANCH="master"
 SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -45,25 +48,21 @@ readonly CRIT="\\e[41m"
 readonly ERR="\\e[31m"
 readonly WARN="\\e[33m"
 readonly PASS="\\e[32m"
+readonly SETTING="\\e[1m\\e[36m"
 ### End of output format variables ###
 
 ### Start of Speedtest Server Variables ###
 serverno=""
 servername=""
-schedulestart=""
-scheduleend=""
-minutestart=""
-frequencytest=""
 ### End of Speedtest Server Variables ###
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
+# shellcheck disable=SC2059
 Print_Output(){
 	if [ "$1" = "true" ]; then
-		logger -t "$SCRIPT_NAME" "$(echo "$2" | sed 's/%%/%/g')"
-		printf "\\e[1m$3%s: $2\\e[0m\\n\\n" "$SCRIPT_NAME"
-	else
-		printf "\\e[1m$3%s: $2\\e[0m\\n\\n" "$SCRIPT_NAME"
+		logger -t "$SCRIPT_NAME" "$2"
 	fi
+	printf "\\e[1m${3}%s\\e[0m\\n\\n" "$2"
 }
 
 Firmware_Version_Check(){
@@ -108,25 +107,25 @@ Clear_Lock(){
 }
 
 Check_Swap(){
-	if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then return 0; else return 1; fi
+	if [ "$(wc -l < /proc/swaps)" -ge 2 ]; then return 0; else return 1; fi
 }
 
 ############################################################################
 
 Set_Version_Custom_Settings(){
-	SETTINGSFILE=/jffs/addons/custom_settings.txt
+	SETTINGSFILE="/jffs/addons/custom_settings.txt"
 	case "$1" in
 		local)
 			if [ -f "$SETTINGSFILE" ]; then
 				if [ "$(grep -c "spdmerlin_version_local" $SETTINGSFILE)" -gt 0 ]; then
-					if [ "$SCRIPT_VERSION" != "$(grep "spdmerlin_version_local" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]; then
-						sed -i "s/spdmerlin_version_local.*/spdmerlin_version_local $SCRIPT_VERSION/" "$SETTINGSFILE"
+					if [ "$2" != "$(grep "spdmerlin_version_local" /jffs/addons/custom_settings.txt | cut -f2 -d' ')" ]; then
+						sed -i "s/spdmerlin_version_local.*/spdmerlin_version_local $2/" "$SETTINGSFILE"
 					fi
 				else
-					echo "spdmerlin_version_local $SCRIPT_VERSION" >> "$SETTINGSFILE"
+					echo "spdmerlin_version_local $2" >> "$SETTINGSFILE"
 				fi
 			else
-				echo "spdmerlin_version_local $SCRIPT_VERSION" >> "$SETTINGSFILE"
+				echo "spdmerlin_version_local $2" >> "$SETTINGSFILE"
 			fi
 		;;
 		server)
@@ -148,7 +147,7 @@ Set_Version_Custom_Settings(){
 Update_Check(){
 	echo 'var updatestatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_update.js"
 	doupdate="false"
-	localver=$(grep "SCRIPT_VERSION=" /jffs/scripts/"$SCRIPT_NAME_LOWER" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
+	localver=$(grep "SCRIPT_VERSION=" "/jffs/scripts/$SCRIPT_NAME_LOWER" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 	/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep -qF "jackyaz" || { Print_Output true "404 error detected - stopping update" "$ERR"; return 1; }
 	serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 	if [ "$localver" != "$serverver" ]; then
@@ -171,35 +170,46 @@ Update_Check(){
 }
 
 Update_Version(){
-	if [ -z "$1" ] || [ "$1" = "unattended" ]; then
+	if [ -z "$1" ]; then
 		updatecheckresult="$(Update_Check)"
 		isupdate="$(echo "$updatecheckresult" | cut -f1 -d',')"
 		localver="$(echo "$updatecheckresult" | cut -f2 -d',')"
 		serverver="$(echo "$updatecheckresult" | cut -f3 -d',')"
 		
 		if [ "$isupdate" = "version" ]; then
-			Print_Output true "New version of $SCRIPT_NAME available - updating to $serverver" "$PASS"
+			Print_Output true "New version of $SCRIPT_NAME available - $serverver" "$PASS"
 		elif [ "$isupdate" = "md5" ]; then
-			Print_Output true "MD5 hash of $SCRIPT_NAME does not match - downloading updated $serverver" "$PASS"
+			Print_Output true "MD5 hash of $SCRIPT_NAME does not match - hotfix available - $serverver" "$PASS"
 		fi
 		
-		Update_File shared-jy.tar.gz
-		
 		if [ "$isupdate" != "false" ]; then
-			Update_File "$ARCH.tar.gz"
-			Update_File spdstats_www.asp
-			
-			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
-			chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
-			Clear_Lock
-			if [ -z "$1" ]; then
-				exec "$0" setversion
-			elif [ "$1" = "unattended" ]; then
-				exec "$0" setversion unattended
-			fi
-			exit 0
+			printf "\\n\\e[1mDo you want to continue with the update? (y/n)\\e[0m  "
+			read -r confirm
+			case "$confirm" in
+				y|Y)
+					printf "\\n"
+					Update_File shared-jy.tar.gz
+					Update_File "$ARCH.tar.gz"
+					Update_File spdstats_www.asp
+					
+					/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
+					chmod 0755 "/jffs/scripts/$SCRIPT_NAME_LOWER"
+					Set_Version_Custom_Settings local "$serverver"
+					Set_Version_Custom_Settings server "$serverver"
+					Clear_Lock
+					PressEnter
+					exec "$0"
+					exit 0
+				;;
+				*)
+					printf "\\n"
+					Clear_Lock
+					return 1
+				;;
+			esac
+					
 		else
-			Print_Output true "No new version - latest is $localver" "$WARN"
+			Print_Output true "No updates available - latest is $localver" "$WARN"
 			Clear_Lock
 		fi
 	fi
@@ -207,16 +217,19 @@ Update_Version(){
 	if [ "$1" = "force" ]; then
 		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
+		Update_File shared-jy.tar.gz
 		Update_File "$ARCH.tar.gz"
 		Update_File spdstats_www.asp
-		Update_File shared-jy.tar.gz
 		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
-		chmod 0755 /jffs/scripts/"$SCRIPT_NAME_LOWER"
+		chmod 0755 "/jffs/scripts/$SCRIPT_NAME"
+		Set_Version_Custom_Settings local "$serverver"
+		Set_Version_Custom_Settings server "$serverver"
 		Clear_Lock
 		if [ -z "$2" ]; then
-			exec "$0" setversion
+			PressEnter
+			exec "$0"
 		elif [ "$2" = "unattended" ]; then
-			exec "$0" setversion unattended
+			exec "$0" postupdate
 		fi
 		exit 0
 	fi
@@ -231,7 +244,7 @@ Update_File(){
 		localmd5="$(md5sum "$OOKLA_DIR/speedtest" | awk '{print $1}')"
 		tmpmd5="$(md5sum /tmp/speedtest | awk '{print $1}')"
 		if [ "$localmd5" != "$tmpmd5" ]; then
-			rm -f "$OOKLA_DIR/*"
+			rm -f "$OOKLA_DIR"/*
 			Download_File "$SCRIPT_REPO/$1" "$OOKLA_DIR/$1"
 			tar -xzf "$OOKLA_DIR/$1" -C "$OOKLA_DIR"
 			rm -f "$OOKLA_DIR/$1"
@@ -285,13 +298,9 @@ Validate_Bandwidth(){
 }
 
 Validate_Number(){
-	if [ "$2" -eq "$2" ] 2>/dev/null; then
+	if [ "$1" -eq "$1" ] 2>/dev/null; then
 		return 0
 	else
-		formatted="$(echo "$1" | sed -e 's/|/ /g')"
-		if [ -z "$3" ]; then
-			Print_Output false "$formatted - $2 is not a number" "$ERR"
-		fi
 		return 1
 	fi
 }
@@ -328,13 +337,13 @@ License_Acceptance(){
 				printf "\\n    http://www.speedtest.net/privacy\\n"
 				printf "\\n==============================================================================\\n\\n"
 				
-				printf "\\n\\e[1mYou must accept the license agreements for Speedtest CLI. Do you want to continue? (y/n)\\e[0m\\n"
+				printf "\\n\\e[1mYou must accept the license agreements for Speedtest CLI to use %s. Do you want to continue? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
 				printf "\\e[1mNote: This will require an initial speedtest to run, please be patient\\e[0m\\n"
+				printf "\\e[1mEnter answer:\\e[0m  "
 				read -r confirm
 				case "$confirm" in
 					y|Y)
-						"$OOKLA_DIR"/speedtest --accept-license >/dev/null 2>&1
-						"$OOKLA_DIR"/speedtest --accept-gdpr >/dev/null 2>&1
+						"$OOKLA_DIR/speedtest" --accept-license --accept-gdpr >/dev/null 2>&1
 						License_Acceptance save
 						return 0
 					;;
@@ -467,7 +476,7 @@ Conf_FromSettings(){
 			while IFS='' read -r line || [ -n "$line" ]; do
 				SETTINGNAME="$(echo "$line" | cut -f1 -d'=' | awk '{ print toupper($1) }')"
 				SETTINGVALUE="$(echo "$line" | cut -f2- -d'=' | sed "s/=/ /g")"
-				sed -i "s/$SETTINGNAME=.*/$SETTINGNAME=$SETTINGVALUE/" "$SCRIPT_CONF"
+				sed -i "s~$SETTINGNAME=.*~$SETTINGNAME=$SETTINGVALUE~" "$SCRIPT_CONF"
 			done < "$TMPFILE"
 			grep 'spdmerlin_version' "$SETTINGSFILE" > "$TMPFILE"
 			sed -i "\\~spdmerlin_~d" "$SETTINGSFILE"
@@ -479,8 +488,19 @@ Conf_FromSettings(){
 			ScriptStorageLocation "$(ScriptStorageLocation check)"
 			Create_Symlinks
 			
-			Auto_Cron delete 2>/dev/null
-			Auto_Cron create 2>/dev/null
+			if AutomaticMode check; then
+				Auto_Cron delete 2>/dev/null
+				Auto_Cron create 2>/dev/null
+			else
+				Auto_Cron delete 2>/dev/null
+			fi
+			
+			if [ "$(AutoBWEnable check)" = "true" ]; then
+				if [ "$(ExcludeFromQoS check)" = "false" ]; then
+					Print_Output true "Enabling Exclude from QoS (required for AutoBW)"
+					ExcludeFromQoS enable
+				fi
+			fi
 			
 			Generate_CSVs
 			
@@ -560,37 +580,30 @@ Conf_Exists(){
 		dos2unix "$SCRIPT_CONF"
 		chmod 0644 "$SCRIPT_CONF"
 		sed -i -e 's/"//g' "$SCRIPT_CONF"
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 11 ]; then
-			sed -i 's/PREFERREDSERVER/PREFERREDSERVER_WAN/g' "$SCRIPT_CONF"
-			sed -i 's/USEPREFERRED/USEPREFERRED_WAN/g' "$SCRIPT_CONF"
-			sed -i '/USESINGLE/d' "$SCRIPT_CONF"
-			for index in 1 2 3 4 5; do
-				{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
-			done
+		if grep -q "SCHEDULESTART" "$SCRIPT_CONF"; then
+			{
+				echo "SCHDAYS=*";
+				echo "SCHHOURS=*";
+				echo "SCHMINS=12,42";
+			} >> "$SCRIPT_CONF"
+			sed -i '/SCHEDULESTART/d;/SCHEDULEEND/d;/MINUTE/d;/TESTFREQUENCY/d' "$SCRIPT_CONF"
+			if AutomaticMode check; then
+				Auto_Cron delete 2>/dev/null
+				Auto_Cron create 2>/dev/null
+			else
+				Auto_Cron delete 2>/dev/null
+			fi
 		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 20 ]; then
-			{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; } >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 27 ]; then
-			echo "STORERESULTURL=false" >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 28 ]; then
-			echo "EXCLUDEFROMQOS=true" >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 29 ]; then
-			echo "AUTOBW_THRESHOLD_UP=10" >> "$SCRIPT_CONF"
-		fi
-		if [ "$(wc -l < "$SCRIPT_CONF")" -eq 30 ]; then
-			sed -i 's/AUTOBW_RESULT_THRESHOLD/AUTOBW_THRESHOLD_UP/g' "$SCRIPT_CONF"
-			echo "AUTOBW_THRESHOLD_DOWN=10" >> "$SCRIPT_CONF"
+		if ! grep -q "AUTOBW_AVERAGE_CALC" "$SCRIPT_CONF"; then
+			echo "AUTOBW_AVERAGE_CALC=10" >> "$SCRIPT_CONF"
 		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "SCHEDULESTART=0" ; echo "SCHEDULEEND=23"; echo "MINUTE=12"; echo "TESTFREQUENCY=halfhourly"; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; } >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "AUTOBW_AVERAGE_CALC=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42";} >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -601,7 +614,7 @@ Auto_ServiceEvent(){
 			if [ -f /jffs/scripts/service-event ]; then
 				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				# shellcheck disable=SC2016
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" &'' # '"$SCRIPT_NAME" /jffs/scripts/service-event)
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
@@ -609,13 +622,13 @@ Auto_ServiceEvent(){
 				
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
 					# shellcheck disable=SC2016
-					echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
+					echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event
 				echo "" >> /jffs/scripts/service-event
 				# shellcheck disable=SC2016
-				echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
+				echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				chmod 0755 /jffs/scripts/service-event
 			fi
 		;;
@@ -644,19 +657,19 @@ Auto_Startup(){
 			
 			if [ -f /jffs/scripts/post-mount ]; then
 				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/post-mount)
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" &'' # '"$SCRIPT_NAME" /jffs/scripts/post-mount)
+				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" & # '"$SCRIPT_NAME" /jffs/scripts/post-mount)
 				
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/post-mount
 				fi
 				
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
-					echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/post-mount
+					echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" & # '"$SCRIPT_NAME" >> /jffs/scripts/post-mount
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/post-mount
 				echo "" >> /jffs/scripts/post-mount
-				echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" &'' # '"$SCRIPT_NAME" >> /jffs/scripts/post-mount
+				echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' "$@" & # '"$SCRIPT_NAME" >> /jffs/scripts/post-mount
 				chmod 0755 /jffs/scripts/post-mount
 			fi
 		;;
@@ -683,40 +696,13 @@ Auto_Startup(){
 Auto_Cron(){
 	case $1 in
 		create)
-		STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
-		
-		if [ "$STARTUPLINECOUNT" -eq 0 ]; then
-				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
-				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
-				TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
-				if [ "$MINUTESTART" = "*" ]; then
-					MINUTESTART=12
-				fi
-				if [ "$TESTFREQUENCY" = "halfhourly" ]; then
-					MINUTEEND=$((MINUTESTART + 30))
-					[ "$MINUTEEND" -gt 59 ] && MINUTEEND=$((MINUTEEND - 60))
-					
-					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-					else
-						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						else
-							cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						fi
-					fi
-				elif [ "$TESTFREQUENCY" = "hourly" ]; then
-					if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-					else
-						if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						else
-							cru a "$SCRIPT_NAME" "$MINUTESTART $SCHEDULESTART-23,0-$SCHEDULEEND * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-						fi
-					fi
-				fi
+			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
+			
+			if [ "$STARTUPLINECOUNT" -eq 0 ]; then
+				CRU_DAYNUMBERS="$(grep "SCHDAYS" "$SCRIPT_CONF" | cut -f2 -d"=" | sed 's/Sun/0/;s/Mon/1/;s/Tues/2/;s/Wed/3/;s/Thurs/4/;s/Fri/5/;s/Sat/6/;')"
+				CRU_HOURS="$(grep "SCHHOURS" "$SCRIPT_CONF" | cut -f2 -d"=")"
+				CRU_MINUTES="$(grep "SCHMINS" "$SCRIPT_CONF" | cut -f2 -d"=")"
+				cru a "$SCRIPT_NAME" "$CRU_MINUTES $CRU_HOURS * * $CRU_DAYNUMBERS /jffs/scripts/$SCRIPT_NAME_LOWER generate"
 			fi
 		;;
 		delete)
@@ -733,7 +719,7 @@ Get_Interface_From_Name(){
 	IFACE=""
 	case "$1" in
 		WAN)
-			if [ "$(nvram get sw_mode)" -ne "1" ]; then
+			if [ "$(nvram get sw_mode)" -ne 1 ]; then
 				IFACE="br0"
 			elif [ "$(nvram get wan0_proto)" = "pppoe" ] || [ "$(nvram get wan0_proto)" = "pptp" ] || [ "$(nvram get wan0_proto)" = "l2tp" ]; then
 				IFACE="ppp0"
@@ -791,13 +777,13 @@ Generate_Interface_List(){
 	printf "\\ne)  Go back\\n"
 	
 	while true; do
-	printf "\\n\\e[1mPlease select a chart to toggle inclusion in %s (1-%s):\\e[0m\\n" "$SCRIPT_NAME" "$interfacecount"
+	printf "\\n\\e[1mPlease select a chart to toggle inclusion in %s (1-%s):\\e[0m  " "$SCRIPT_NAME" "$interfacecount"
 	read -r interface
 	
 	if [ "$interface" = "e" ]; then
 		goback="true"
 		break
-	elif ! Validate_Number "" "$interface" "silent"; then
+	elif ! Validate_Number "$interface"; then
 		printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$interfacecount"
 	else
 		if [ "$interface" -lt 1 ] || [ "$interface" -gt "$interfacecount" ]; then
@@ -850,16 +836,53 @@ Get_WebUI_Page(){
 	done
 }
 
+### function based on @dave14305's FlexQoS webconfigpage function ###
+Get_WebUI_URL(){
+	urlpage=""
+	urlproto=""
+	urldomain=""
+	urlport=""
+	
+	urlpage="$(sed -nE "/$SCRIPT_NAME/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" /tmp/menuTree.js)"
+	if [ "$(nvram get http_enable)" -eq 1 ]; then
+		urlproto="https"
+	else
+		urlproto="http"
+	fi
+	if [ -n "$(nvram get lan_domain)" ]; then
+		urldomain="$(nvram get lan_hostname).$(nvram get lan_domain)"
+	else
+		urldomain="$(nvram get lan_ipaddr)"
+	fi
+	if [ "$(nvram get ${urlproto}_lanport)" -eq 80 ] || [ "$(nvram get ${urlproto}_lanport)" -eq 443 ]; then
+		urlport=""
+	else
+		urlport=":$(nvram get ${urlproto}_lanport)"
+	fi
+	
+	if echo "$urlpage" | grep -qE "user[0-9]+\.asp"; then
+		echo "${urlproto}://${urldomain}${urlport}/${urlpage}" | tr "A-Z" "a-z"
+	else
+		echo "WebUI page not found"
+	fi
+}
+### ###
+
+### locking mechanism code credit to Martineau (@MartineauUK) ###
 Mount_WebUI(){
+	Print_Output true "Mounting WebUI tab for $SCRIPT_NAME" "$PASS"
+	LOCKFILE=/tmp/addonwebui.lock
+	FD=386
+	eval exec "$FD>$LOCKFILE"
+	flock -x "$FD"
 	Get_WebUI_Page "$SCRIPT_DIR/spdstats_www.asp"
 	if [ "$MyPage" = "none" ]; then
 		Print_Output true "Unable to mount $SCRIPT_NAME WebUI page, exiting" "$CRIT"
-		Clear_Lock
-		exit 1
+		flock -u "$FD"
+		return 1
 	fi
-	Print_Output true "Mounting $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
 	cp -f "$SCRIPT_DIR/spdstats_www.asp" "$SCRIPT_WEBPAGE_DIR/$MyPage"
-	echo "spdMerlin" > "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.').title"
+	echo "$SCRIPT_NAME" > "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.').title"
 	
 	if [ "$(uname -o)" = "ASUSWRT-Merlin" ]; then
 		if [ ! -f /tmp/index_style.css ]; then
@@ -895,161 +918,8 @@ Mount_WebUI(){
 		umount /www/require/modules/menuTree.js 2>/dev/null
 		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 	fi
-}
-
-GenerateServerList(){
-	promptforservername="$2"
-	printf "Generating list of closest servers for %s...\\n\\n" "$1"
-	serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$1")" --servers --format="json")" 2>/dev/null
-	if [ -z "$serverlist" ]; then
-		Print_Output true "Error retrieving server list for for $1" "$CRIT"
-		serverno="exit"
-		return 1
-	fi
-	servercount="$(echo "$serverlist" | jq '.servers | length')"
-	COUNTER=1
-	until [ $COUNTER -gt "$servercount" ]; do
-		serverdetails="$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')|$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
-		
-		if [ "$COUNTER" -lt 10 ]; then
-			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
-		elif [ "$COUNTER" -ge 10 ]; then
-			printf "%s) %s\\n" "$COUNTER" "$serverdetails"
-		fi
-		COUNTER=$((COUNTER + 1))
-	done
-	
-	printf "\\ne)  Go back\\n"
-	
-	while true; do
-		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$servercount"
-		printf "\\n\\e[1mOr press c to enter a known server ID\\e[0m\\n"
-		read -r server
-		
-		if [ "$server" = "e" ]; then
-			serverno="exit"
-			break
-		elif [ "$server" = "c" ]; then
-				while true; do
-					printf "\\n\\e[1mPlease enter server ID (WARNING: this is not validated) or e to go back\\e[0m\\n"
-					read -r customserver
-					if [ "$customserver" = "e" ]; then
-						break
-					elif ! Validate_Number "" "$customserver" "silent"; then
-						printf "\\n\\e[31mPlease enter a valid number\\e[0m\\n"
-					else
-						serverno="$customserver"
-						if [ "$promptforservername" != "no" ]; then
-							while true; do
-								printf "\\n\\e[1mWould you like to enter a name for this server? (default: Custom) (y/n)?\\e[0m    "
-								read -r servername_select
-								
-								if [ "$servername_select" = "n" ] || [ "$servername_select" = "N" ]; then
-									servername="Custom"
-									break
-								elif [ "$servername_select" = "y" ] || [ "$servername_select" = "Y" ]; then
-									printf "\\n\\e[1mPlease enter the name for this server:\\e[0m    "
-									read -r servername
-									printf "\\n\\e[1m%s\\e[0m\\n" "$servername"
-									printf "\\n\\e[1mIs that correct (y/n)?    \\e[0m"
-									read -r servername_confirm
-									if [ "$servername_confirm" = "y" ] || [ "$servername_confirm" = "Y" ]; then
-										break
-									else
-										printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
-									fi
-								else
-									printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
-								fi
-							done
-						else
-							servername="Custom"
-						fi
-						
-						printf "\\n"
-						return 0
-					fi
-				done
-		elif ! Validate_Number "" "$server" "silent"; then
-			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$servercount"
-		else
-			if [ "$server" -lt 1 ] || [ "$server" -gt "$servercount" ]; then
-				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$servercount"
-			else
-				serverno="$(echo "$serverlist" | jq -r --argjson index "$((server-1))" '.servers[$index] | .id')"
-				servername="$(echo "$serverlist" | jq -r --argjson index "$((server-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
-				printf "\\n"
-				break
-			fi
-		fi
-	done
-}
-
-GenerateServerList_WebUI(){
-	serverlistfile="$2"
-	rm -f "/tmp/$serverlistfile.txt"
-	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
-	
-	spdifacename="$1"
-	
-	if [ "$spdifacename" = "ALL" ]; then
-		while IFS='' read -r line || [ -n "$line" ]; do
-			if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
-				IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
-			fi
-		done < "$SCRIPT_INTERFACES_USER"
-		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
-		
-		for IFACE_NAME in $IFACELIST; do
-			serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json")" 2>/dev/null
-			servercount="$(echo "$serverlist" | jq '.servers | length')"
-			COUNTER=1
-			until [ $COUNTER -gt "$servercount" ]; do
-				printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "/tmp/$serverlistfile.tmp"
-				COUNTER=$((COUNTER + 1))
-			done
-			#shellcheck disable=SC2039
-			printf "-----\\n" >> "/tmp/$serverlistfile.tmp"
-		done
-	else
-		serverlist="$("$OOKLA_DIR"/speedtest --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json")" 2>/dev/null
-		servercount="$(echo "$serverlist" | jq '.servers | length')"
-		COUNTER=1
-		until [ $COUNTER -gt "$servercount" ]; do
-			printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "/tmp/$serverlistfile.tmp"
-			COUNTER=$((COUNTER + 1))
-		done
-	fi
-	sleep 1
-	mv "/tmp/$serverlistfile.tmp" "/tmp/$serverlistfile.txt"
-	ln -s "/tmp/$serverlistfile.txt" "$SCRIPT_WEB_DIR/$serverlistfile.htm" 2>/dev/null
-}
-
-PreferredServer(){
-	case "$1" in
-		update)
-			GenerateServerList "$2"
-			if [ "$serverno" != "exit" ]; then
-				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno|$servername"'/' "$SCRIPT_CONF"
-			else
-				return 1
-			fi
-		;;
-		enable)
-			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=true/' "$SCRIPT_CONF"
-		;;
-		disable)
-			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=false/' "$SCRIPT_CONF"
-		;;
-		check)
-			USEPREFERRED=$(grep "USEPREFERRED_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$USEPREFERRED" = "true" ]; then return 0; else return 1; fi
-		;;
-		list)
-			PREFERREDSERVER=$(grep "PREFERREDSERVER_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
-			echo "$PREFERREDSERVER"
-		;;
-	esac
+	flock -u "$FD"
+	Print_Output true "Mounted $SCRIPT_NAME WebUI page as $MyPage" "$PASS"
 }
 
 AutomaticMode(){
@@ -1072,27 +942,17 @@ AutomaticMode(){
 TestSchedule(){
 	case "$1" in
 		update)
-			sed -i 's/^'"SCHEDULESTART"'.*$/SCHEDULESTART='"$2"'/' "$SCRIPT_CONF"
-			sed -i 's/^'"SCHEDULEEND"'.*$/SCHEDULEEND='"$3"'/' "$SCRIPT_CONF"
-			sed -i 's/^'"MINUTE"'.*$/MINUTE='"$4"'/' "$SCRIPT_CONF"
-			sed -i 's/^'"TESTFREQUENCY"'.*$/TESTFREQUENCY='"$5"'/' "$SCRIPT_CONF"
+			sed -i 's/^SCHDAYS.*$/SCHDAYS='"$(echo "$2" | sed 's/0/Sun/;s/1/Mon/;s/2/Tues/;s/3/Wed/;s/4/Thurs/;s/5/Fri/;s/6/Sat/;')"'/' "$SCRIPT_CONF"
+			sed -i 's~^SCHHOURS.*$~SCHHOURS='"$3"'~' "$SCRIPT_CONF"
+			sed -i 's~^SCHMINS.*$~SCHMINS='"$4"'~' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
 		check)
-			SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
-			SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-			MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
-			TESTFREQUENCY=$(grep "TESTFREQUENCY" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$SCHEDULESTART" != "*" ] && [ "$SCHEDULEEND" != "*" ] && [ "$MINUTESTART" != "*" ]; then
-				schedulestart="$SCHEDULESTART"
-				scheduleend="$SCHEDULEEND"
-				minutestart="$MINUTESTART"
-				frequencytest="$TESTFREQUENCY"
-				return 0
-			else
-				return 1
-			fi
+			SCHDAYS=$(grep "SCHDAYS" "$SCRIPT_CONF" | cut -f2 -d"=")
+			SCHHOURS=$(grep "SCHHOURS" "$SCRIPT_CONF" | cut -f2 -d"=")
+			SCHMINS=$(grep "SCHMINS" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$SCHDAYS|$SCHHOURS|$SCHMINS"
 		;;
 	esac
 }
@@ -1242,7 +1102,7 @@ WritePlainData_ToJS(){
 	inputfile="$1"
 	outputfile="$2"
 	shift;shift
-	i="0"
+	i=0
 	for var in "$@"; do
 		i=$((i+1))
 		{
@@ -1272,7 +1132,7 @@ WriteSql_ToFile(){
 	{
 		echo ".mode csv"
 		echo ".headers off"
-		echo ".output $5${6}_$7.tmp"
+		echo ".output ${5}${6}_${7}.tmp"
 	} >> "$8"
 	
 	echo "SELECT '$1' Metric, Min([Timestamp]) Time, IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
@@ -1287,15 +1147,189 @@ Generate_LastXResults(){
 	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL]FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT 10;" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	sed -i 's/,,/,null,/g;s/,/ /g;s/"//g;' /tmp/spd-lastx.csv
-	WritePlainData_ToJS "/tmp/spd-lastx.csv" "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataDataDownload_$1" "DataDataUpload_$1" "DataResultURL_$1"
+	WritePlainData_ToJS /tmp/spd-lastx.csv "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataDataDownload_$1" "DataDataUpload_$1" "DataResultURL_$1"
 	rm -f /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.csv
 }
 
+GenerateServerList(){
+	if [ ! -f /opt/bin/jq ]; then
+		opkg update
+		opkg install jq
+	fi
+	promptforservername="$2"
+	printf "Generating list of closest servers for %s...\\n\\n" "$1"
+	serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$1")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+	if [ -z "$serverlist" ]; then
+		Print_Output true "Error retrieving server list for for $1" "$CRIT"
+		serverno="exit"
+		return 1
+	fi
+	servercount="$(echo "$serverlist" | jq '.servers | length')"
+	COUNTER=1
+	until [ $COUNTER -gt "$servercount" ]; do
+		serverdetails="$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')|$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+		
+		if [ "$COUNTER" -lt 10 ]; then
+			printf "%s)  %s\\n" "$COUNTER" "$serverdetails"
+		elif [ "$COUNTER" -ge 10 ]; then
+			printf "%s) %s\\n" "$COUNTER" "$serverdetails"
+		fi
+		COUNTER=$((COUNTER + 1))
+	done
+	
+	printf "\\ne)  Go back\\n"
+	
+	while true; do
+		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$servercount"
+		printf "\\n\\e[1mOr press c to enter a known server ID\\e[0m\\n"
+		printf "\\e[1mEnter answer:\\e[0m  "
+		read -r server
+		
+		if [ "$server" = "e" ]; then
+			serverno="exit"
+			break
+		elif [ "$server" = "c" ]; then
+				while true; do
+					printf "\\n\\e[1mPlease enter server ID (WARNING: this is not validated) or e to go back\\e[0m  "
+					read -r customserver
+					if [ "$customserver" = "e" ]; then
+						break
+					elif ! Validate_Number "$customserver"; then
+						printf "\\n\\e[31mPlease enter a valid number\\e[0m\\n"
+					else
+						serverno="$customserver"
+						if [ "$promptforservername" != "no" ]; then
+							while true; do
+								printf "\\n\\e[1mWould you like to enter a name for this server? (default: Custom) (y/n)?\\e[0m  "
+								read -r servername_select
+								
+								if [ "$servername_select" = "n" ] || [ "$servername_select" = "N" ]; then
+									servername="Custom"
+									break
+								elif [ "$servername_select" = "y" ] || [ "$servername_select" = "Y" ]; then
+									printf "\\n\\e[1mPlease enter the name for this server:\\e[0m  "
+									read -r servername
+									printf "\\n\\e[1m%s\\e[0m\\n" "$servername"
+									printf "\\n\\e[1mIs that correct (y/n)?\\e[0m  "
+									read -r servername_confirm
+									if [ "$servername_confirm" = "y" ] || [ "$servername_confirm" = "Y" ]; then
+										break
+									else
+										printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
+									fi
+								else
+									printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
+								fi
+							done
+						else
+							servername="Custom"
+						fi
+						
+						printf "\\n"
+						return 0
+					fi
+				done
+		elif ! Validate_Number "$server"; then
+			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$servercount"
+		else
+			if [ "$server" -lt 1 ] || [ "$server" -gt "$servercount" ]; then
+				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$servercount"
+			else
+				serverno="$(echo "$serverlist" | jq -r --argjson index "$((server-1))" '.servers[$index] | .id')"
+				servername="$(echo "$serverlist" | jq -r --argjson index "$((server-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
+				printf "\\n"
+				break
+			fi
+		fi
+	done
+}
+
+GenerateServerList_WebUI(){
+	if [ ! -f /opt/bin/jq ]; then
+		opkg update
+		opkg install jq
+	fi
+	serverlistfile="$2"
+	rm -f "/tmp/$serverlistfile.txt"
+	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
+	
+	spdifacename="$1"
+	
+	if [ "$spdifacename" = "ALL" ]; then
+		while IFS='' read -r line || [ -n "$line" ]; do
+			if [ "$(echo "$line" | grep -c "interface not up")" -eq 0 ]; then
+				IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+			fi
+		done < "$SCRIPT_INTERFACES_USER"
+		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+		
+		for IFACE_NAME in $IFACELIST; do
+			serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+			servercount="$(echo "$serverlist" | jq '.servers | length')"
+			COUNTER=1
+			until [ $COUNTER -gt "$servercount" ]; do
+				printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "/tmp/$serverlistfile.tmp"
+				COUNTER=$((COUNTER + 1))
+			done
+			#shellcheck disable=SC2039
+			printf "-----\\n" >> "/tmp/$serverlistfile.tmp"
+		done
+	else
+		serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+		servercount="$(echo "$serverlist" | jq '.servers | length')"
+		COUNTER=1
+		until [ $COUNTER -gt "$servercount" ]; do
+			printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "/tmp/$serverlistfile.tmp"
+			COUNTER=$((COUNTER + 1))
+		done
+	fi
+	sleep 1
+	mv "/tmp/$serverlistfile.tmp" "/tmp/$serverlistfile.txt"
+	ln -s "/tmp/$serverlistfile.txt" "$SCRIPT_WEB_DIR/$serverlistfile.htm" 2>/dev/null
+}
+
+PreferredServer(){
+	case "$1" in
+		update)
+			GenerateServerList "$2"
+			if [ "$serverno" != "exit" ]; then
+				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno|$servername"'/' "$SCRIPT_CONF"
+			else
+				return 1
+			fi
+		;;
+		enable)
+			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=true/' "$SCRIPT_CONF"
+		;;
+		disable)
+			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=false/' "$SCRIPT_CONF"
+		;;
+		check)
+			USEPREFERRED=$(grep "USEPREFERRED_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
+			if [ "$USEPREFERRED" = "true" ]; then return 0; else return 1; fi
+		;;
+		list)
+			PREFERREDSERVER=$(grep "PREFERREDSERVER_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$PREFERREDSERVER"
+		;;
+	esac
+}
+
 Run_Speedtest(){
+	if [ ! -f /opt/bin/xargs ]; then
+		Print_Output true "Installing findutils from Entware"
+		opkg update
+		opkg install findutils
+	fi
+	#shellcheck disable=SC2009
+	if [ -n "$PPID" ]; then
+		ps | grep -v grep | grep -v $$ | grep -v "$PPID" | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+	else
+		ps | grep -v grep | grep -v $$ | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+	fi
 	Create_Dirs
 	Conf_Exists
-	Set_Version_Custom_Settings local
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -1315,6 +1349,10 @@ Run_Speedtest(){
 	resultfile=/tmp/spd-result.txt
 	printf "" > "$resultfile"
 	
+	if [ -n "$(pidof speedtest)" ]; then
+		killall speedtest
+	fi
+	
 	if Check_Swap ; then
 		if [ "$(echo "$mode" | grep -c "webui")" -eq 0 ]; then
 			if ! License_Acceptance check ; then
@@ -1326,7 +1364,7 @@ Run_Speedtest(){
 					fi
 				else
 					echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
-					Print_Output true "Licenses not accepted, please run spdMerlin to accept them" "$ERR"
+					Print_Output true "Licenses not accepted, please run spdmerlin at the command line / SSH to accept them" "$ERR"
 					return 1
 				fi
 			fi
@@ -1353,14 +1391,25 @@ Run_Speedtest(){
 		
 		if [ "$IFACELIST" != "" ]; then
 			if [ "$(ExcludeFromQoS check)" = "true" ]; then
-			for proto in tcp udp; do
-					iptables -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -A OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -A POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-				done
-				
-				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
+				stoppedqos="false"
+				if [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -eq 1 ]; then
+					for ACTION in -D -A ; do
+						for proto in tcp udp; do
+							iptables "$ACTION" OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables "$ACTION" OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle "$ACTION" OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle "$ACTION" OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle "$ACTION" POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						done
+						stoppedqos="true"
+					done
+				elif [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -ne 1 ] && [ -f /tmp/qos ]; then
+					/tmp/qos stop >/dev/null 2>&1
+					stoppedqos="true"
+				elif [ "$(nvram get qos_enable)" -eq 0 ] && [ -f /jffs/addons/cake-qos/cake-qos ]; then
 					/jffs/addons/cake-qos/cake-qos stop >/dev/null 2>&1
+					stoppedqos="true"
 				fi
 			fi
 			
@@ -1393,7 +1442,7 @@ Run_Speedtest(){
 							mode="auto"
 						fi
 					elif [ "$mode" = "onetime" ]; then
-						GenerateServerList "$IFACE_NAME" "no"
+						GenerateServerList "$IFACE_NAME" no
 						if [ "$serverno" != "exit" ]; then
 							speedtestserverno="$serverno"
 							speedtestservername="$servername"
@@ -1411,22 +1460,50 @@ Run_Speedtest(){
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
-						"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
+						"$OOKLA_DIR/speedtest" --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+						speedtestcount=0
+						while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+							speedtestcount="$((speedtestcount + 1))"
+							sleep 1
+						done
+						if [ "$speedtestcount" -ge 120 ]; then
+							Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
+							killall speedtest
+							continue
+						fi
 					else
-						if [ "$speedtestserverno" != "0" ]; then
+						if [ "$speedtestserverno" -ne 0 ]; then
 							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR"/speedtest --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
+							"$OOKLA_DIR/speedtest" --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							speedtestcount=0
+							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+								speedtestcount="$((speedtestcount + 1))"
+								sleep 1
+							done
+							if [ "$speedtestcount" -ge 120 ]; then
+								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
+								killall speedtest
+								continue
+							fi
 						else
 							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR"/speedtest --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" 2>/dev/null
+							"$OOKLA_DIR/speedtest" --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							speedtestcount=0
+							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+								speedtestcount="$((speedtestcount + 1))"
+								sleep 1
+							done
+							if [ "$speedtestcount" -ge 120 ]; then
+								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
+								killall speedtest
+								continue
+							fi
 						fi
 					fi
 					
-					if [ ! -f "$tmpfile" ] || [ -z "$(cat "$tmpfile")" ]; then
+					if [ ! -f "$tmpfile" ] || [ -z "$(cat "$tmpfile")" ] || [ "$(grep -c FAILED $tmpfile)" -gt 0 ]; then
 						Print_Output true "Error running speedtest for $IFACE_NAME" "$CRIT"
-						echo 'var spdteststatus = "Error";' > /tmp/detect_spdtest.js
-						Clear_Lock
-						return 1
+						continue
 					fi
 					
 					ScriptStorageLocation load
@@ -1442,20 +1519,20 @@ Run_Speedtest(){
 					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
 					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $4}' | tr -d '(')"
 					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}' | tr -d '%')"
-					resulturl="$(grep "Result URL" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}')"
+					resulturl="$(grep 'Result URL' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}')"
 					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
 					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
 					
 					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print substr($7,1,length($7)-1)}')"
 					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print substr($7,1,length($7)-1)}')"
 					
-					! Validate_Bandwidth "$download" && download="0";
-					! Validate_Bandwidth "$upload" && upload="0";
-					! Validate_Bandwidth "$latency" && latency=null;
-					! Validate_Bandwidth "$jitter" && jitter=null;
-					! Validate_Bandwidth "$pktloss" && pktloss=null;
-					! Validate_Bandwidth "$datadownload" && datadownload="0";
-					! Validate_Bandwidth "$dataupload" && dataupload="0";
+					! Validate_Bandwidth "$download" && download=0;
+					! Validate_Bandwidth "$upload" && upload=0;
+					! Validate_Bandwidth "$latency" && latency="null";
+					! Validate_Bandwidth "$jitter" && jitter="null";
+					! Validate_Bandwidth "$pktloss" && pktloss="null";
+					! Validate_Bandwidth "$datadownload" && datadownload=0;
+					! Validate_Bandwidth "$dataupload" && dataupload=0;
 					
 					if [ "$datadownloadunit" = "GB" ]; then
 						datadownload="$(echo "$datadownload" | awk '{printf ($1*1024)}')"
@@ -1467,33 +1544,6 @@ Run_Speedtest(){
 					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					
-					if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME" ]; then
-						{
-							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Latency] REAL;"
-							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Jitter] REAL;"
-							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [PktLoss] REAL;"
-						} > /tmp/spd-stats.sql
-						"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
-						touch "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME"
-					fi
-					
-					if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME" ]; then
-						{
-							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [ResultURL] TEXT;"
-						} > /tmp/spd-stats.sql
-						"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
-						touch "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME"
-					fi
-					
-					if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME" ]; then
-						{
-							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [DataDownload] REAL NOT NULL DEFAULT 0;"
-							echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [DataUpload] REAL NOT NULL DEFAULT 0;"
-						} > /tmp/spd-stats.sql
-						"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
-						touch "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME"
-					fi
 					
 					STORERESULTURL="$(StoreResultURL check)"
 					
@@ -1509,7 +1559,7 @@ Run_Speedtest(){
 					rm -f /tmp/spd-stats.sql
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
-					spdtestresult2="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1' | sed 's/%/%%/')"
+					spdtestresult2="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1')"
 					
 					printf "\\n"
 					Print_Output true "Speedtest results - $spdtestresult" "$PASS"
@@ -1518,7 +1568,7 @@ Run_Speedtest(){
 					{
 						printf "Speedtest result for %s\\n" "$IFACE_NAME"
 						printf "\\nBandwidth - %s\\n" "$spdtestresult"
-						printf "Quality - %s\\n\\n" "$(echo "$spdtestresult2" | sed 's/%%/%/')"
+						printf "Quality - %s\\n\\n" "$spdtestresult2"
 						grep "Result URL" "$tmpfile" | awk '{$1=$1};1'
 						printf "\\n\\n\\n"
 					} >> "$resultfile"
@@ -1531,16 +1581,24 @@ Run_Speedtest(){
 			done
 			
 			if [ "$(ExcludeFromQoS check)" = "true" ]; then
-				for proto in tcp udp; do
-					iptables -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -D OUTPUT -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-					iptables -t mangle -D POSTROUTING -p "$proto" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
-				done
-				
-				if [ -f /jffs/addons/cake-qos/cake-qos ]; then
-					/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
+				if [ "$stoppedqos" = "true" ]; then
+					if [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -eq 1 ]; then
+						for proto in tcp udp; do
+							iptables -D OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D OUTPUT -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D POSTROUTING -p "$proto" -o "$(Get_Interface_From_Name WAN)" -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D OUTPUT -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+							iptables -t mangle -D POSTROUTING -p "$proto" -o tun1+ -j MARK --set-xmark 0x80000000/0xC0000000 2>/dev/null
+						done
+					elif [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -ne 1 ] && [ -f /tmp/qos ]; then
+						/tmp/qos start >/dev/null 2>&1
+					elif [ "$(nvram get qos_enable)" -eq 0 ] && [ -f /jffs/addons/cake-qos/cake-qos ]; then
+						/jffs/addons/cake-qos/cake-qos start >/dev/null 2>&1
+					fi
 				fi
 			fi
+			
 			Generate_CSVs
 			
 			echo "Stats last updated: $timenowfriendly" > /tmp/spdstatstitle.txt
@@ -1606,44 +1664,6 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
-	while IFS='' read -r line || [ -n "$line" ]; do
-		IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
-	done < "$SCRIPT_INTERFACES_USER"
-	
-	for IFACE_NAME in $IFACELIST; do
-		IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
-		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
-		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-		
-		if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME" ]; then
-			{
-				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Latency] REAL;"
-				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [Jitter] REAL;"
-				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [PktLoss] REAL;"
-			} > /tmp/spd-stats.sql
-			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
-			touch "$SCRIPT_STORAGE_DIR/.tableupgraded_$IFACE_NAME"
-		fi
-		
-		if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME" ]; then
-			{
-				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [ResultURL] TEXT;"
-			} > /tmp/spd-stats.sql
-			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
-			touch "$SCRIPT_STORAGE_DIR/.tableupgraded2_$IFACE_NAME"
-		fi
-		
-		if [ ! -f "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME" ]; then
-			{
-				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [DataDownload] REAL NOT NULL DEFAULT 0;"
-				echo "ALTER TABLE [spdstats_$IFACE_NAME] ADD [DataUpload] REAL NOT NULL DEFAULT 0;"
-			} > /tmp/spd-stats.sql
-			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
-			touch "$SCRIPT_STORAGE_DIR/.tableupgraded3_$IFACE_NAME"
-		fi
-	done
-	rm -f /tmp/spd-stats.sql
-	
 	# shellcheck disable=SC2028
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
 		{
@@ -1651,6 +1671,14 @@ Process_Upgrade(){
 			echo 'document.getElementById("statstitle").innerHTML="Stats last updated: Not yet updated\r\n";';
 			echo "}";
 		} > "$SCRIPT_STORAGE_DIR/spdtitletext.js"
+	fi
+	
+	if [ "$(AutoBWEnable check)" = "true" ]; then
+		if [ "$(ExcludeFromQoS check)" = "false" ]; then
+			Print_Output false "Enabling Exclude from QoS (required for AutoBW)"
+			ExcludeFromQoS enable
+			PressEnter
+		fi
 	fi
 }
 
@@ -1669,7 +1697,6 @@ Generate_CSVs(){
 		rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
 		
 		for IFACE_NAME in $IFACELIST; do
-			
 			IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				
 			TZ=$(cat /etc/TZ)
@@ -1729,15 +1756,12 @@ Generate_CSVs(){
 			cat "$CSV_OUTPUT_DIR/DataDownloadweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploadweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsageweekly_$IFACE_NAME.htm" 2> /dev/null
 			cat "$CSV_OUTPUT_DIR/DataDownloadmonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploadmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsagemonthly_$IFACE_NAME.htm" 2> /dev/null
 			
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME.htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME.htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME.htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME.htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME.htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME.htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/DataUsagedaily_$IFACE_NAME.htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/DataUsageweekly_$IFACE_NAME.htm"
-			sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/DataUsagemonthly_$IFACE_NAME.htm"
+			csvlist="Combined Quality DataUsage"
+			for csvfile in $csvlist; do
+				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}daily_$IFACE_NAME.htm"
+				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}weekly_$IFACE_NAME.htm"
+				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}monthly_$IFACE_NAME.htm"
+			done
 			
 			INCLUDEURL=""
 			if [ "$STORERESULTURL" = "true" ]; then
@@ -1792,6 +1816,31 @@ Generate_CSVs(){
 	fi
 }
 
+# shellcheck disable=SC2012
+Reset_DB(){
+	SIZEAVAIL="$(df -P -k "$SCRIPT_STORAGE_DIR" | awk '{print $4}' | tail -n 1)"
+	SIZEDB="$(ls -l "$SCRIPT_STORAGE_DIR/spdstats.db" | awk '{print $5}')"
+	if [ "$SIZEDB" -gt "$SIZEAVAIL" ]; then
+		Print_Output true "Database size exceeds available space. $(ls -lh "$SCRIPT_STORAGE_DIR/spdstats.db" | awk '{print $5}')B is required to create backup." "$ERR"
+		return 1
+	else
+		Print_Output true "Sufficient free space to back up database, proceeding..." "$PASS"
+		if ! cp -a "$SCRIPT_STORAGE_DIR/spdstats.db" "$SCRIPT_STORAGE_DIR/spdstats.db.bak"; then
+			Print_Output true "Database backup failed, please check storage device" "$WARN"
+		fi
+		
+		tablelist="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+		for dbtable in $tablelist; do
+			echo "DELETE FROM [spdstats_$dbtable];" > /tmp/spdstats-stats.sql
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+			rm -f /tmp/spd-stats.sql
+		done
+		
+		Print_Output true "Database reset complete" "$WARN"
+	fi
+}
+
+
 Shortcut_Script(){
 	case $1 in
 		create)
@@ -1835,7 +1884,7 @@ ScriptHeader(){
 	printf "\\e[1m##          | |                                                   ##\\e[0m\\n"
 	printf "\\e[1m##          |_|                                                   ##\\e[0m\\n"
 	printf "\\e[1m##                                                                ##\\e[0m\\n"
-	printf "\\e[1m##                       %s on %-9s                      ##\\e[0m\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
+	printf "\\e[1m##                       %s on %-11s                    ##\\e[0m\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
 	printf "\\e[1m##                                                                ##\\e[0m\\n"
 	printf "\\e[1m##              https://github.com/jackyaz/spdMerlin              ##\\e[0m\\n"
 	printf "\\e[1m##                                                                ##\\e[0m\\n"
@@ -1845,42 +1894,47 @@ ScriptHeader(){
 
 MainMenu(){
 	AUTOMATIC_ENABLED=""
-	TEST_SCHEDULE=""
 	EXCLUDEFROMQOS_MENU=""
-	if AutomaticMode check; then AUTOMATIC_ENABLED="Enabled"; else AUTOMATIC_ENABLED="Disabled"; fi
-	if TestSchedule check; then
-		TEST_SCHEDULE="Start: $schedulestart    -    End: $scheduleend"
-		if [ "$frequencytest" = "halfhourly" ]; then
-			minuteend=$((minutestart + 30))
-			[ "$minuteend" -gt 60 ] && minuteend=$((minuteend - 60))
-			if [ "$minutestart" -lt "$minuteend" ]; then
-				TEST_SCHEDULE2="Tests will run at $minutestart and $minuteend past the hour"
-			else
-				TEST_SCHEDULE2="Tests will run at $minuteend and $minutestart past the hour"
-			fi
-		elif [ "$frequencytest" = "hourly" ]; then
-			TEST_SCHEDULE2="Tests will run at $minutestart past the hour"
-		fi
+	if AutomaticMode check; then AUTOMATIC_ENABLED="${PASS}Enabled"; else AUTOMATIC_ENABLED="${ERR}Disabled"; fi
+	TEST_SCHEDULE="$(TestSchedule check)"
+	if [ "$(echo "$TEST_SCHEDULE" | cut -f2 -d'|' | grep -c "/")" -gt 0 ] && [ "$(echo "$TEST_SCHEDULE" | cut -f3 -d'|')" -eq 0 ]; then
+		TEST_SCHEDULE_MENU="Every $(echo "$TEST_SCHEDULE" | cut -f2 -d'|' | cut -f2 -d'/') hours"
+	elif [ "$(echo "$TEST_SCHEDULE" | cut -f3 -d'|' | grep -c "/")" -gt 0 ] && [ "$(echo "$TEST_SCHEDULE" | cut -f2 -d'|')" = "*" ]; then
+		TEST_SCHEDULE_MENU="Every $(echo "$TEST_SCHEDULE" | cut -f3 -d'|' | cut -f2 -d'/') minutes"
 	else
-		TEST_SCHEDULE="No defined schedule - tests run every hour"
-		TEST_SCHEDULE2="Tests will run at 12 and 42 past the hour"
+		TEST_SCHEDULE_MENU="Hours: $(echo "$TEST_SCHEDULE" | cut -f2 -d'|')    -    Minutes: $(echo "$TEST_SCHEDULE" | cut -f3 -d'|')"
 	fi
+
+	if [ "$(echo "$TEST_SCHEDULE" | cut -f1 -d'|')" = "*" ]; then
+		TEST_SCHEDULE_MENU2="Days of week: All"
+	else
+		TEST_SCHEDULE_MENU2="Days of week: $(echo "$TEST_SCHEDULE" | cut -f1 -d'|')"
+	fi
+	STORERESULTURL_MENU=""
+	if [ "$(StoreResultURL check)" = "true" ]; then
+		STORERESULTURL_MENU="Enabled"
+	else
+		STORERESULTURL_MENU="Disabled"
+	fi
+	
+	printf "WebUI for %s is available at:\\n${SETTING}%s\\e[0m\\n\\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
 	if [ "$(ExcludeFromQoS check)" = "true" ]; then EXCLUDEFROMQOS_MENU="excluded from"; else EXCLUDEFROMQOS_MENU="included in"; fi
 	
 	printf "1.    Run a speedtest now\\n\\n"
 	printf "2.    Choose a preferred server for an interface\\n\\n"
-	printf "3.    Toggle automatic speedtests\\n      Currently %s\\n\\n" "$AUTOMATIC_ENABLED"
-	printf "4.    Configure schedule for automatic speedtests\\n      %s\\n      %s\\n\\n" "$TEST_SCHEDULE" "$TEST_SCHEDULE2"
-	printf "5.    Toggle data output mode\\n      Currently \\e[1m%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode check)"
-	printf "6.    Toggle time output mode\\n      Currently \\e[1m%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
-	printf "7.    Toggle storage of speedtest result URLs\\n      Currently \\e[1m%s\\e[0m\\n\\n" "$(StoreResultURL check)"
+	printf "3.    Toggle automatic speedtests\\n      Currently: \\e[1m${AUTOMATIC_ENABLED}%s\\e[0m\\n\\n"
+	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s\\e[0m\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
+	printf "5.    Toggle data output mode\\n      Currently ${SETTING}%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode check)"
+	printf "6.    Toggle time output mode\\n      Currently ${SETTING}%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
+	printf "7.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$STORERESULTURL_MENU"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
-	printf "s.    Toggle storage location for stats and config\\n      Current location is \\e[1m%s\\e[0m \\n\\n" "$(ScriptStorageLocation check)"
-	printf "q.    Toggle exclusion %s speedtests from QoS\\n      Currently %s speedtests are \\e[1m%s\\e[0m QoS\\n\\n" "$SCRIPT_NAME" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
+	printf "s.    Toggle storage location for stats and config\\n      Current location is ${SETTING}%s\\e[0m \\n\\n" "$(ScriptStorageLocation check)"
+	printf "q.    Toggle exclusion %s speedtests from QoS\\n      Currently %s speedtests are ${SETTING}%s\\e[0m QoS\\n\\n" "$SCRIPT_NAME" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
 	printf "a.    AutoBW\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
+	printf "rt.    Reset %s database / delete all data\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
 	printf "z.    Uninstall %s\\n" "$SCRIPT_NAME"
 	printf "\\n"
@@ -1888,7 +1942,7 @@ MainMenu(){
 	printf "\\n"
 	
 	while true; do
-		printf "Choose an option:    "
+		printf "Choose an option:  "
 		read -r menu
 		case "$menu" in
 			1)
@@ -1905,7 +1959,11 @@ MainMenu(){
 			;;
 			3)
 				printf "\\n"
-				Menu_ToggleAutomated
+				if AutomaticMode check; then
+					AutomaticMode disable
+				else
+					AutomaticMode enable
+				fi
 				break
 			;;
 			4)
@@ -1916,38 +1974,68 @@ MainMenu(){
 			;;
 			5)
 				printf "\\n"
-				Menu_ToggleOutputDataMode
+				if [ "$(OutputDataMode check)" = "raw" ]; then
+					OutputDataMode average
+				elif [ "$(OutputDataMode check)" = "average" ]; then
+					OutputDataMode raw
+				fi
 				break
 			;;
 			6)
 				printf "\\n"
-				Menu_ToggleOutputTimeMode
+				if [ "$(OutputTimeMode check)" = "unix" ]; then
+					OutputTimeMode non-unix
+				elif [ "$(OutputTimeMode check)" = "non-unix" ]; then
+					OutputTimeMode unix
+				fi
 				break
 			;;
 			7)
 				printf "\\n"
-				Menu_ToggleStoreResultURL
+				if [ "$(StoreResultURL check)" = "true" ]; then
+					StoreResultURL disable
+				elif [ "$(StoreResultURL check)" = "false" ]; then
+					StoreResultURL enable
+				fi
 				break
 			;;
 			c)
-				Menu_CustomiseInterfaceList
-				Menu_ProcessInterfaces
+				Generate_Interface_List
+				printf "\\n"
+				Create_Symlinks
+				printf "\\n"
 				PressEnter
 				break
 			;;
 			r)
-				Menu_ProcessInterfaces force
+				Create_Symlinks force
+				printf "\\n"
 				PressEnter
 				break
 			;;
 			s)
 				printf "\\n"
-				Menu_ToggleStorageLocation
+				if [ "$(ScriptStorageLocation check)" = "jffs" ]; then
+					ScriptStorageLocation usb
+					Create_Symlinks
+				elif [ "$(ScriptStorageLocation check)" = "usb" ]; then
+					ScriptStorageLocation jffs
+					Create_Symlinks
+				fi
 				break
 			;;
 			q)
 				printf "\\n"
-				Menu_ToggleExcludeFromQoS
+				if [ "$(ExcludeFromQoS check)" = "true" ]; then
+					if [ "$(AutoBWEnable check)" = "true" ]; then
+						Print_Output false "Cannot disable Exclude from QoS when AutoBW is enabled" "$WARN"
+						PressEnter
+					elif [ "$(AutoBWEnable check)" = "false" ]; then
+						ExcludeFromQoS disable
+					fi
+				elif [ "$(ExcludeFromQoS check)" = "false" ]; then
+					ExcludeFromQoS enable
+				fi
 				break
 			;;
 			a)
@@ -1958,7 +2046,8 @@ MainMenu(){
 			u)
 				printf "\\n"
 				if Check_Lock menu; then
-					Menu_Update
+					Update_Version
+					Clear_Lock
 				fi
 				PressEnter
 				break
@@ -1966,7 +2055,17 @@ MainMenu(){
 			uf)
 				printf "\\n"
 				if Check_Lock menu; then
-					Menu_ForceUpdate
+					Update_Version force
+					Clear_Lock
+				fi
+				PressEnter
+				break
+			;;
+			rt)
+				printf "\\n"
+				if Check_Lock menu; then
+					Menu_ResetDB
+					Clear_Lock
 				fi
 				PressEnter
 				break
@@ -1978,7 +2077,7 @@ MainMenu(){
 			;;
 			z)
 				while true; do
-					printf "\\n\\e[1mAre you sure you want to uninstall %s? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
+					printf "\\n\\e[1mAre you sure you want to uninstall %s? (y/n)\\e[0m  " "$SCRIPT_NAME"
 					read -r confirm
 					case "$confirm" in
 						y|Y)
@@ -2054,7 +2153,8 @@ Menu_Install(){
 	
 	Create_Dirs
 	Conf_Exists
-	Set_Version_Custom_Settings local
+	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
+	Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 	ScriptStorageLocation load
 	Create_Symlinks
 	
@@ -2067,23 +2167,13 @@ Menu_Install(){
 	Update_File shared-jy.tar.gz
 	
 	Auto_Startup create 2>/dev/null
-	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
+	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	
 	License_Acceptance accept
 	
 	Clear_Lock
-}
-
-Menu_CustomiseInterfaceList(){
-	Generate_Interface_List
-	printf "\\n"
-}
-
-Menu_ProcessInterfaces(){
-	Create_Symlinks "$1"
-	printf "\\n"
 }
 
 Menu_Startup(){
@@ -2109,7 +2199,6 @@ Menu_Startup(){
 	
 	Create_Dirs
 	Conf_Exists
-	Set_Version_Custom_Settings local
 	ScriptStorageLocation load
 	Create_Symlinks
 	Auto_Startup create 2>/dev/null
@@ -2138,13 +2227,13 @@ Menu_RunSpeedtest(){
 				COUNTER=$((COUNTER+1))
 			fi
 		done < "$SCRIPT_INTERFACES_USER"
-		printf "\\nChoose an option:    "
+		printf "\\nChoose an option:  "
 		read -r iface_choice
 		
 		if [ "$iface_choice" = "e" ]; then
 			exitmenu="exit"
 			break
-		elif ! Validate_Number "" "$iface_choice" "silent"; then
+		elif ! Validate_Number "$iface_choice"; then
 			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$((COUNTER-1))"
 			validselection="false"
 		else
@@ -2169,13 +2258,13 @@ Menu_RunSpeedtest(){
 				printf "1.    Auto-select\\n"
 				printf "2.    Preferred server\\n"
 				printf "3.    Choose a server\\n"
-				printf "\\nChoose an option:    "
+				printf "\\nChoose an option:  "
 				read -r usepref_choice
 				
 				if [ "$usepref_choice" = "e" ]; then
 					exitmenu="exit"
 					break
-				elif ! Validate_Number "" "$usepref_choice" "silent"; then
+				elif ! Validate_Number "$usepref_choice"; then
 					printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
 					validselection="false"
 				else
@@ -2240,13 +2329,13 @@ Menu_ConfigurePreferred(){
 			fi
 		done < "$SCRIPT_INTERFACES_USER"
 		while true; do
-			printf "\\nChoose an option:    "
+			printf "\\nChoose an option:  "
 			read -r iface_choice
 			
 			if [ "$iface_choice" = "e" ]; then
 				exitmenu="exit"
 				break
-			elif ! Validate_Number "" "$iface_choice" "silent"; then
+			elif ! Validate_Number "$iface_choice"; then
 				printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$((COUNTER-1))"
 			else
 				if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$((COUNTER-1))" ]; then
@@ -2271,12 +2360,12 @@ Menu_ConfigurePreferred(){
 					printf "What would you like to do?\\n\\n"
 					printf "1.    Turn on preferred servers\\n"
 					printf "2.    Turn off preferred servers\\n"
-					printf "\\nChoose an option:    "
+					printf "\\nChoose an option:  "
 					read -r usepref_choice
 					
 					if [ "$usepref_choice" = "e" ]; then
 						break
-					elif ! Validate_Number "" "$usepref_choice" "silent"; then
+					elif ! Validate_Number "$usepref_choice"; then
 						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
 					else
 						if [ "$usepref_choice" -lt 1 ] || [ "$usepref_choice" -gt 2 ]; then
@@ -2305,12 +2394,12 @@ Menu_ConfigurePreferred(){
 					printf "What would you like to do?\\n\\n"
 					printf "1.    Toggle preferred server on/off - currently: %s\\n" "$pref_enabled"
 					printf "2.    Set preferred server - currently: %s\\n" "$(PreferredServer list "$prefiface" | cut -f2 -d"|")"
-					printf "\\nChoose an option:    "
+					printf "\\nChoose an option:  "
 					read -r ifpref_choice
 					
 					if [ "$ifpref_choice" = "e" ]; then
 						break
-					elif ! Validate_Number "" "$ifpref_choice" "silent"; then
+					elif ! Validate_Number "$ifpref_choice"; then
 						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
 					else
 						if [ "$ifpref_choice" -lt 1 ] || [ "$ifpref_choice" -gt 2 ]; then
@@ -2350,86 +2439,63 @@ Menu_ConfigurePreferred(){
 	fi
 }
 
-Menu_ToggleAutomated(){
-	if AutomaticMode check; then
-		AutomaticMode disable
-	else
-		AutomaticMode enable
-	fi
-}
-
-Menu_ToggleOutputDataMode(){
-	if [ "$(OutputDataMode check)" = "raw" ]; then
-		OutputDataMode average
-	elif [ "$(OutputDataMode check)" = "average" ]; then
-		OutputDataMode raw
-	fi
-}
-
-Menu_ToggleOutputTimeMode(){
-	if [ "$(OutputTimeMode check)" = "unix" ]; then
-		OutputTimeMode non-unix
-	elif [ "$(OutputTimeMode check)" = "non-unix" ]; then
-		OutputTimeMode unix
-	fi
-}
-
-Menu_ToggleStoreResultURL(){
-	if [ "$(StoreResultURL check)" = "true" ]; then
-		StoreResultURL disable
-	elif [ "$(StoreResultURL check)" = "false" ]; then
-		StoreResultURL enable
-	fi
-}
-
-Menu_ToggleStorageLocation(){
-	if [ "$(ScriptStorageLocation check)" = "jffs" ]; then
-		ScriptStorageLocation usb
-		Create_Symlinks
-	elif [ "$(ScriptStorageLocation check)" = "usb" ]; then
-		ScriptStorageLocation jffs
-		Create_Symlinks
-	fi
-}
-
-Menu_ToggleExcludeFromQoS(){
-	if [ "$(ExcludeFromQoS check)" = "true" ]; then
-		ExcludeFromQoS disable
-	elif [ "$(ExcludeFromQoS check)" = "false" ]; then
-		ExcludeFromQoS enable
-	fi
-}
-
-Menu_ToggleAutoBW(){
-	if [ "$(AutoBWEnable check)" = "true" ]; then
-		AutoBWEnable disable
-	elif [ "$(AutoBWEnable check)" = "false" ]; then
-		AutoBWEnable enable
-	fi
-}
-
 Menu_EditSchedule(){
-	exitmenu="false"
-	starthour=""
-	endhour=""
-	startminute=""
-	testfrequency=""
-	ScriptHeader
+	exitmenu=""
+	formattype=""
+	crudays=""
+	crudaysvalidated=""
+	cruhours=""
+	crumins=""
 	
 	while true; do
-		printf "\\n\\e[1mPlease enter a start hour (0-23):\\e[0m\\n"
-		read -r hour
+		printf "\\n\\e[1mPlease choose which day(s) to run speedtest (0-6 - 0 = Sunday, * for every day, or comma separated days):\\e[0m  "
+		read -r day_choice
 		
-		if [ "$hour" = "e" ]; then
+		if [ "$day_choice" = "e" ]; then
 			exitmenu="exit"
 			break
-		elif ! Validate_Number "" "$hour" "silent"; then
-			printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+		elif [ "$day_choice" = "*" ]; then
+			crudays="$day_choice"
+			printf "\\n"
+			break
+		elif [ -z "$day_choice" ]; then
+			printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values\\e[0m\\n"
 		else
-			if [ "$hour" -lt 0 ] || [ "$hour" -gt 23 ]; then
-				printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
-			else
-				starthour="$hour"
+			crudaystmp="$(echo "$day_choice" | sed "s/,/ /g")"
+			crudaysvalidated="true"
+			for i in $crudaystmp; do
+				if echo "$i" | grep -q "-"; then
+					if [ "$i" = "-" ]; then
+						printf "\\n\\e[31mPlease enter a valid number (0-6)\\e[0m\\n"
+						crudaysvalidated="false"
+						break
+					fi
+					crudaystmp2="$(echo "$i" | sed "s/-/ /")"
+					for i2 in $crudaystmp2; do
+						if ! Validate_Number "$i2"; then
+							printf "\\n\\e[31mPlease enter a valid number (0-6)\\e[0m\\n"
+							crudaysvalidated="false"
+							break
+						elif [ "$i2" -lt 0 ] || [ "$i2" -gt 6 ]; then
+							printf "\\n\\e[31mPlease enter a number between 0 and 6\\e[0m\\n"
+							crudaysvalidated="false"
+							break
+						fi
+					done
+				elif ! Validate_Number "$i"; then
+					printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values\\e[0m\\n"
+					crudaysvalidated="false"
+					break
+				else
+					if [ "$i" -lt 0 ] || [ "$i" -gt 6 ]; then
+						printf "\\n\\e[31mPlease enter a number between 0 and 6 or comma separated values\\e[0m\\n"
+						crudaysvalidated="false"
+						break
+					fi
+				fi
+			done
+			if [ "$crudaysvalidated" = "true" ]; then
+				crudays="$day_choice"
 				printf "\\n"
 				break
 			fi
@@ -2438,63 +2504,20 @@ Menu_EditSchedule(){
 	
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
-			printf "\\n\\e[1mPlease enter an end hour (0-23):\\e[0m\\n"
-			read -r hour
+			printf "\\n\\e[1mPlease choose the format to specify the hour/minute(s) to run speedtest:\\e[0m\\n"
+			printf "    1. Every X hours/minutes\\n"
+			printf "    2. Custom\\n\\n"
+			printf "Choose an option:  "
+			read -r formatmenu
 			
-			if [ "$hour" = "e" ]; then
-				exitmenu="exit"
-				break
-			elif ! Validate_Number "" "$hour" "silent"; then
-				printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
-			else
-				if [ "$hour" -lt 0 ] || [ "$hour" -gt 23 ]; then
-					printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
-				else
-					endhour="$hour"
-					printf "\\n"
-					break
-				fi
-			fi
-		done
-	fi
-	
-	if [ "$exitmenu" != "exit" ]; then
-		while true; do
-			printf "\\n\\e[1mPlease enter the minute to run the test on (0-59):\\e[0m\\n"
-			read -r minute
-			
-			if [ "$minute" = "e" ]; then
-				exitmenu="exit"
-				break
-			elif ! Validate_Number "" "$minute" "silent"; then
-				printf "\\n\\e[31mPlease enter a valid number (0-59)\\e[0m\\n"
-			else
-				if [ "$minute" -lt 0 ] || [ "$minute" -gt 59 ]; then
-					printf "\\n\\e[31mPlease enter a number between 0 and 59\\e[0m\\n"
-				else
-					startminute="$minute"
-					printf "\\n"
-					break
-				fi
-			fi
-		done
-	fi
-	
-	if [ "$exitmenu" != "exit" ]; then
-		while true; do
-			printf "\\n\\e[1mPlease select the frequency for speedtests:\\e[0m\\n"
-			printf "1.    Every 30 minutes (twice an hour)\\n"
-			printf "2.    Every 60 minutes (once an hour)\\n\\n"
-			printf "Choose an option:    "
-			read -r frequency
-			case "$frequency" in
+			case "$formatmenu" in
 				1)
-					testfrequency="halfhourly"
+					formattype="everyx"
 					printf "\\n"
 					break
 				;;
 				2)
-					testfrequency="hourly"
+					formattype="custom"
 					printf "\\n"
 					break
 				;;
@@ -2503,15 +2526,266 @@ Menu_EditSchedule(){
 					break
 				;;
 				*)
-					printf "\\nPlease choose a valid option\\n\\n"
+					printf "\\n\\e[31mPlease enter a valid choice (1-2)\\e[0m\\n"
 				;;
 			esac
 		done
 	fi
 	
 	if [ "$exitmenu" != "exit" ]; then
-		TestSchedule update "$starthour" "$endhour" "$startminute" "$testfrequency"
+		if [ "$formattype" = "everyx" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose whether to specify every X hours or every X minutes to run speedtest:\\e[0m\\n"
+				printf "    1. Hours\\n"
+				printf "    2. Minutes\\n\\n"
+				printf "Choose an option:  "
+				read -r formatmenu
+				
+				case "$formatmenu" in
+					1)
+						formattype="hours"
+						printf "\\n"
+						break
+					;;
+					2)
+						formattype="mins"
+						printf "\\n"
+						break
+					;;
+					e)
+						exitmenu="exit"
+						break
+					;;
+					*)
+						printf "\\n\\e[31mPlease enter a valid choice (1-2)\\e[0m\\n"
+					;;
+				esac
+			done
+		fi
 	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		if [ "$formattype" = "hours" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose how often to run speedtest (every X hours, where X is 1-24):\\e[0m  "
+				read -r hour_choice
+				
+				if [ "$hour_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif ! Validate_Number "$hour_choice"; then
+						printf "\\n\\e[31mPlease enter a valid number (1-24)\\e[0m\\n"
+				elif [ "$hour_choice" -lt 1 ] || [ "$hour_choice" -gt 24 ]; then
+					printf "\\n\\e[31mPlease enter a number between 1 and 24\\e[0m\\n"
+				elif [ "$hour_choice" -eq 24 ]; then
+					cruhours=0
+					crumins=0
+					printf "\\n"
+					break
+				else
+					cruhours="*/$hour_choice"
+					crumins=0
+					printf "\\n"
+					break
+				fi
+			done
+		elif [ "$formattype" = "mins" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose how often to run speedtest (every X minutes, where X is 1-30):\\e[0m  "
+				read -r min_choice
+				
+				if [ "$min_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif ! Validate_Number "$min_choice"; then
+						printf "\\n\\e[31mPlease enter a valid number (1-30)\\e[0m\\n"
+				elif [ "$min_choice" -lt 1 ] || [ "$min_choice" -gt 30 ]; then
+					printf "\\n\\e[31mPlease enter a number between 1 and 30\\e[0m\\n"
+				else
+					crumins="*/$min_choice"
+					cruhours="*"
+					printf "\\n"
+					break
+				fi
+			done
+		fi
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		if [ "$formattype" = "custom" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose which hour(s) to run speedtest (0-23, * for every hour, or comma separated hours):\\e[0m  "
+				read -r hour_choice
+				
+				if [ "$hour_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif [ "$hour_choice" = "*" ]; then
+					cruhours="$hour_choice"
+					printf "\\n"
+					break
+				else
+					cruhourstmp="$(echo "$hour_choice" | sed "s/,/ /g")"
+					cruhoursvalidated="true"
+					for i in $cruhourstmp; do
+						if echo "$i" | grep -q "-"; then
+							if [ "$i" = "-" ]; then
+								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								cruhoursvalidated="false"
+								break
+							fi
+							cruhourstmp2="$(echo "$i" | sed "s/-/ /")"
+							for i2 in $cruhourstmp2; do
+								if ! Validate_Number "$i2"; then
+									printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+									cruhoursvalidated="false"
+									break
+								elif [ "$i2" -lt 0 ] || [ "$i2" -gt 23 ]; then
+									printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
+									cruhoursvalidated="false"
+									break
+								fi
+							done
+						elif echo "$i" | grep -q "/"; then
+							cruhourstmp3="$(echo "$i" | sed "s/\*\///")"
+							if ! Validate_Number "$cruhourstmp3"; then
+								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								cruhoursvalidated="false"
+								break
+							elif [ "$cruhourstmp3" -lt 0 ] || [ "$cruhourstmp3" -gt 23 ]; then
+								printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
+								cruhoursvalidated="false"
+								break
+							fi
+						elif ! Validate_Number "$i"; then
+							printf "\\n\\e[31mPlease enter a valid number (0-23) or comma separated values\\e[0m\\n"
+							cruhoursvalidated="false"
+							break
+						elif [ "$i" -lt 0 ] || [ "$i" -gt 23 ]; then
+							printf "\\n\\e[31mPlease enter a number between 0 and 23 or comma separated values\\e[0m\\n"
+							cruhoursvalidated="false"
+							break
+						fi
+					done
+					if [ "$cruhoursvalidated" = "true" ]; then
+						if echo "$hour_choice" | grep -q "-"; then
+							cruhours1="$(echo "$hour_choice" | cut -f1 -d'-')"
+							cruhours2="$(echo "$hour_choice" | cut -f2 -d'-')"
+							if [ "$cruhours1" -lt "$cruhours2" ]; then
+								cruhours="$hour_choice"
+							elif [ "$cruhours2" -lt "$cruhours1" ]; then
+								cruhours="$cruhours1-23,0-$cruhours2"
+							fi
+						else
+							cruhours="$hour_choice"
+						fi
+						printf "\\n"
+						break
+					fi
+				fi
+			done
+		fi
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		if [ "$formattype" = "custom" ]; then
+			while true; do
+				printf "\\n\\e[1mPlease choose which minutes(s) to run speedtest (0-59, * for every minute, or comma separated minutes):\\e[0m  "
+				read -r min_choice
+				
+				if [ "$min_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif [ "$min_choice" = "*" ]; then
+					crumins="$min_choice"
+					printf "\\n"
+					break
+				else
+					cruminstmp="$(echo "$min_choice" | sed "s/,/ /g")"
+					cruminsvalidated="true"
+					for i in $cruminstmp; do
+						if echo "$i" | grep -q "-"; then
+							if [ "$i" = "-" ]; then
+								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								cruminsvalidated="false"
+								break
+							fi
+							cruminstmp2="$(echo "$i" | sed "s/-/ /")"
+							for i2 in $cruminstmp2; do
+								if ! Validate_Number "$i2"; then
+									printf "\\n\\e[31mPlease enter a valid number (0-59)\\e[0m\\n"
+									cruminsvalidated="false"
+									break
+								elif [ "$i2" -lt 0 ] || [ "$i2" -gt 59 ]; then
+									printf "\\n\\e[31mPlease enter a number between 0 and 59\\e[0m\\n"
+									cruminsvalidated="false"
+									break
+								fi
+							done
+						elif echo "$i" | grep -q "/"; then
+							cruminstmp3="$(echo "$i" | sed "s/\*\///")"
+							if ! Validate_Number "$cruminstmp3"; then
+								printf "\\n\\e[31mPlease enter a valid number (0-30)\\e[0m\\n"
+								cruminsvalidated="false"
+								break
+							elif [ "$cruminstmp3" -lt 0 ] || [ "$cruminstmp3" -gt 30 ]; then
+								printf "\\n\\e[31mPlease enter a number between 0 and 30\\e[0m\\n"
+								cruminsvalidated="false"
+								break
+							fi
+						elif ! Validate_Number "$i"; then
+							printf "\\n\\e[31mPlease enter a valid number (0-59) or comma separated values\\e[0m\\n"
+							cruminsvalidated="false"
+							break
+						elif [ "$i" -lt 0 ] || [ "$i" -gt 59 ]; then
+							printf "\\n\\e[31mPlease enter a number between 0 and 59 or comma separated values\\e[0m\\n"
+							cruminsvalidated="false"
+							break
+						fi
+					done
+					
+					if [ "$cruminsvalidated" = "true" ]; then
+						if echo "$min_choice" | grep -q "-"; then
+							crumins1="$(echo "$min_choice" | cut -f1 -d'-')"
+							crumins2="$(echo "$min_choice" | cut -f2 -d'-')"
+							if [ "$crumins1" -lt "$crumins2" ]; then
+								crumins="$min_choice"
+							elif [ "$crumins2" -lt "$crumins1" ]; then
+								crumins="$crumins1-59,0-$crumins2"
+							fi
+						else
+							crumins="$min_choice"
+						fi
+						printf "\\n"
+						break
+					fi
+				fi
+			done
+		fi
+	fi
+	
+	if [ "$exitmenu" != "exit" ]; then
+		TestSchedule update "$crudays" "$cruhours" "$crumins"
+		return 0
+	else
+		return 1
+	fi
+}
+
+Menu_ResetDB(){
+	printf "\\e[1m\\e[33mWARNING: This will reset the %s database by deleting all database records.\\n" "$SCRIPT_NAME"
+	printf "A backup of the database will be created if you change your mind.\\e[0m\\n"
+	printf "\\n\\e[1mDo you want to continue? (y/n)\\e[0m  "
+	read -r confirm
+	case "$confirm" in
+		y|Y)
+			printf "\\n"
+			Reset_DB
+		;;
+		*)
+			printf "\\n\\e[1m\\e[33mDatabase reset cancelled\\e[0m\\n\\n"
+		;;
+	esac
 }
 
 Menu_AutoBW(){
@@ -2527,15 +2801,16 @@ Menu_AutoBW(){
 		fi
 		
 		printf "1.    Update QoS bandwidth values now\\n\\n"
-		printf "2.    Configure scale factor\\n      Download: %s%%  -  Upload: %s%%\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
-		printf "3.    Configure bandwidth limits\\n      Upper Limit    Download: %s Mbps  -  Upload: %s Mbps\\n      Lower Limit    Download: %s Mbps  -  Upload: %s Mbps\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
-		printf "4.    Configure threshold for updating QoS bandwidth values\\n      Download: %s%% - Upload: %s%%\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
-		printf "5.    Toggle AutoBW on/off\\n      Currently: %s\\n\\n" "$AUTOBW_MENU"
+		printf "2.    Configure number of speedtests used to calculate average bandwidth\\n      Currently bandwidth is calculated using the avergae of the last ${SETTING}%s\\e[0m speedtest(s)\\n\\n" "$(AutoBWConf check AVERAGE CALC)"
+		printf "3.    Configure scale factor\\n      Download: ${SETTING}%s%%\\e[0m  -  Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
+		printf "4.    Configure bandwidth limits\\n      Upper Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n      Lower Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
+		printf "5.    Configure threshold for updating QoS bandwidth values\\n      Download: ${SETTING}%s%%\\e[0m - Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
+		printf "6.    Toggle AutoBW on/off\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$AUTOBW_MENU"
 		printf "e.    Go back\\n\\n"
 		printf "\\e[1m####################################################################\\e[0m\\n"
 		printf "\\n"
 		
-		printf "Choose an option:    "
+		printf "Choose an option:  "
 		read -r autobwmenu
 		case "$autobwmenu" in
 			1)
@@ -2547,6 +2822,40 @@ Menu_AutoBW(){
 				while true; do
 					ScriptHeader
 					exitmenu=""
+					avgnum=""
+					while true; do
+						printf "\\n"
+						printf "Enter number of speedtests to use to calculate avg bandwidth (1-30):  "
+						read -r avgnumvalue
+							if [ "$avgnumvalue" = "e" ]; then
+								exitmenu="exit"
+								break
+							elif ! Validate_Number "$avgnumvalue"; then
+								printf "\\n\\e[31mPlease enter a valid number (1-30)\\e[0m\\n"
+							else
+								if [ "$avgnumvalue" -lt 1 ] || [ "$avgnumvalue" -gt 30 ]; then
+									printf "\\n\\e[31mPlease enter a number between 1 and 30\\e[0m\\n"
+								else
+									avgnum="$avgnumvalue"
+									break
+								fi
+							fi
+					done
+					if [ "$exitmenu" != "exit" ]; then
+						AutoBWConf update AVERAGE CALC "$avgnum"
+						break
+					fi
+					if [ "$exitmenu" = "exit" ]; then
+						break
+					fi
+				done
+				printf "\\n"
+				PressEnter
+			;;
+			3)
+				while true; do
+					ScriptHeader
+					exitmenu=""
 					updown=""
 					sfvalue=""
 					printf "\\n"
@@ -2554,12 +2863,12 @@ Menu_AutoBW(){
 					printf "1.    Download\\n"
 					printf "2.    Upload\\n\\n"
 					while true; do
-						printf "Choose an option:    "
+						printf "Choose an option:  "
 						read -r autobwsfchoice
 						if [ "$autobwsfchoice" = "e" ]; then
 							exitmenu="exit"
 							break
-						elif ! Validate_Number "" "$autobwsfchoice" silent; then
+						elif ! Validate_Number "$autobwsfchoice"; then
 							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
 						else
 							if [ "$autobwsfchoice" -lt 1 ] || [ "$autobwsfchoice" -gt 2 ]; then
@@ -2578,12 +2887,12 @@ Menu_AutoBW(){
 					if [ "$exitmenu" != "exit" ]; then
 						while true; do
 							printf "\\n"
-							printf "Enter percentage to scale bandwidth by (1-100):    "
+							printf "Enter percentage to scale bandwidth by (1-100):  "
 							read -r autobwsfvalue
 								if [ "$autobwsfvalue" = "e" ]; then
 									exitmenu="exit"
 									break
-								elif ! Validate_Number "" "$autobwsfvalue" "silent"; then
+								elif ! Validate_Number "$autobwsfvalue"; then
 									printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
 								else
 									if [ "$autobwsfvalue" -lt 1 ] || [ "$autobwsfvalue" -gt 100 ]; then
@@ -2608,7 +2917,7 @@ Menu_AutoBW(){
 				printf "\\n"
 				PressEnter
 			;;
-			3)
+			4)
 				while true; do
 					ScriptHeader
 					exitmenu=""
@@ -2620,12 +2929,12 @@ Menu_AutoBW(){
 					printf "1.    Download\\n"
 					printf "2.    Upload\\n\\n"
 					while true; do
-						printf "Choose an option:    "
+						printf "Choose an option:  "
 						read -r autobwchoice
 						if [ "$autobwchoice" = "e" ]; then
 							exitmenu="exit"
 							break
-						elif ! Validate_Number "" "$autobwchoice" silent; then
+						elif ! Validate_Number "$autobwchoice"; then
 							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
 						else
 							if [ "$autobwchoice" -lt 1 ] || [ "$autobwchoice" -gt 2 ]; then
@@ -2647,12 +2956,12 @@ Menu_AutoBW(){
 							printf "Select a limit to set\\n"
 							printf "1.    Upper\\n"
 							printf "2.    Lower\\n\\n"
-							printf "Choose an option:    "
+							printf "Choose an option:  "
 							read -r autobwlimit
 								if [ "$autobwlimit" = "e" ]; then
 									exitmenu="exit"
 									break
-								elif ! Validate_Number "" "$autobwlimit" silent; then
+								elif ! Validate_Number "$autobwlimit"; then
 									printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
 								else
 									if [ "$autobwlimit" -lt 1 ] || [ "$autobwlimit" -gt 100 ]; then
@@ -2669,12 +2978,12 @@ Menu_AutoBW(){
 								if [ "$exitmenu" != "exit" ]; then
 									while true; do
 										printf "\\n"
-										printf "Enter value to set limit to (0 = unlimited for upper):    "
+										printf "Enter value to set limit to (0 = unlimited for upper):  "
 										read -r autobwlimvalue
 										if [ "$autobwlimvalue" = "e" ]; then
 											exitmenu="exit"
 											break
-										elif ! Validate_Number "" "$autobwlimvalue" silent; then
+										elif ! Validate_Number "$autobwlimvalue"; then
 											printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
 										else
 											limitvalue="$autobwlimvalue"
@@ -2697,76 +3006,85 @@ Menu_AutoBW(){
 				printf "\\n"
 				PressEnter
 			;;
-			4)
-			while true; do
-				ScriptHeader
-				exitmenu=""
-				updown=""
-				thvalue=""
-				printf "\\n"
-				printf "Select a threshold to set\\n"
-				printf "1.    Download\\n"
-				printf "2.    Upload\\n\\n"
+			5)
 				while true; do
-					printf "Choose an option:    "
-					read -r autobwthchoice
-					if [ "$autobwthchoice" = "e" ]; then
-						exitmenu="exit"
-						break
-					elif ! Validate_Number "" "$autobwthchoice" silent; then
-						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
-					else
-						if [ "$autobwthchoice" -lt 1 ] || [ "$autobwthchoice" -gt 2 ]; then
-							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
-						else
-							if [ "$autobwthchoice" -eq 1 ]; then
-								updown="DOWN"
-								break
-							elif [ "$autobwthchoice" -eq 2 ]; then
-								updown="UP"
-								break
-							fi
-						fi
-					fi
-				done
-				
-				if [ "$exitmenu" != "exit" ]; then
+					ScriptHeader
+					exitmenu=""
+					updown=""
+					thvalue=""
+					printf "\\n"
+					printf "Select a threshold to set\\n"
+					printf "1.    Download\\n"
+					printf "2.    Upload\\n\\n"
 					while true; do
-						printf "\\n"
-						printf "Enter percentage to use for result threshold:    "
-						read -r autobwthvalue
-						if [ "$autobwthvalue" = "e" ]; then
+						printf "Choose an option:  "
+						read -r autobwthchoice
+						if [ "$autobwthchoice" = "e" ]; then
 							exitmenu="exit"
 							break
-						elif ! Validate_Number "" "$autobwthvalue" "silent"; then
-							printf "\\n\\e[31mPlease enter a valid number (0-100)\\e[0m\\n"
+						elif ! Validate_Number "$autobwthchoice"; then
+							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
 						else
-							if [ "$autobwthvalue" -lt 0 ] || [ "$autobwthvalue" -gt 100 ]; then
-								printf "\\n\\e[31mPlease enter a number between 0 and 100\\e[0m\\n"
+							if [ "$autobwthchoice" -lt 1 ] || [ "$autobwthchoice" -gt 2 ]; then
+								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
 							else
-								thvalue="$autobwthvalue"
-								break
+								if [ "$autobwthchoice" -eq 1 ]; then
+									updown="DOWN"
+									break
+								elif [ "$autobwthchoice" -eq 2 ]; then
+									updown="UP"
+									break
+								fi
 							fi
 						fi
 					done
-				fi
+					
+					if [ "$exitmenu" != "exit" ]; then
+						while true; do
+							printf "\\n"
+							printf "Enter percentage to use for result threshold:  "
+							read -r autobwthvalue
+							if [ "$autobwthvalue" = "e" ]; then
+								exitmenu="exit"
+								break
+							elif ! Validate_Number "$autobwthvalue"; then
+								printf "\\n\\e[31mPlease enter a valid number (0-100)\\e[0m\\n"
+							else
+								if [ "$autobwthvalue" -lt 0 ] || [ "$autobwthvalue" -gt 100 ]; then
+									printf "\\n\\e[31mPlease enter a number between 0 and 100\\e[0m\\n"
+								else
+									thvalue="$autobwthvalue"
+									break
+								fi
+							fi
+						done
+					fi
+					
+					if [ "$exitmenu" != "exit" ]; then
+						AutoBWConf update THRESHOLD "$updown" "$thvalue"
+						break
+					fi
+					
+					if [ "$exitmenu" = "exit" ]; then
+						break
+					fi
+				done
 				
-				if [ "$exitmenu" != "exit" ]; then
-					AutoBWConf update THRESHOLD "$updown" "$thvalue"
-					break
-				fi
-				
-				if [ "$exitmenu" = "exit" ]; then
-					break
-				fi
-			done
-			
-			printf "\\n"
-			PressEnter
-			;;
-			5)
 				printf "\\n"
-				Menu_ToggleAutoBW
+				PressEnter
+			;;
+			6)
+				printf "\\n"
+				if [ "$(AutoBWEnable check)" = "true" ]; then
+					AutoBWEnable disable
+				elif [ "$(AutoBWEnable check)" = "false" ]; then
+					AutoBWEnable enable
+					if [ "$(ExcludeFromQoS check)" = "false" ]; then
+						Print_Output false "Enabling Exclude from QoS (required for AutoBW)"
+						ExcludeFromQoS enable
+						PressEnter
+					fi
+				fi
 			;;
 			e)
 				break
@@ -2776,7 +3094,7 @@ Menu_AutoBW(){
 }
 
 Menu_AutoBW_Update(){
-	if [ "$(nvram get qos_enable)" = "0" ]; then
+	if [ "$(nvram get qos_enable)" -eq 0 ]; then
 		Print_Output true "QoS is not enabled, please enable this in the Asus WebUI." "$ERR"
 		return 1
 	fi
@@ -2788,6 +3106,7 @@ Menu_AutoBW_Update(){
 	dlimithigh="$(($(AutoBWConf check ULIMIT DOWN)*1024))"
 	ulimitlow="$(($(AutoBWConf check LLIMIT UP)*1024))"
 	ulimithigh="$(($(AutoBWConf check ULIMIT UP)*1024))"
+	avgcalc="$(AutoBWConf check AVERAGE CALC)"
 	
 	metriclist="Download Upload"
 	
@@ -2797,7 +3116,7 @@ Menu_AutoBW_Update(){
 			echo ".mode list"
 			echo ".headers off"
 			echo ".output /tmp/spdbw$metric"
-			echo "SELECT avg($metric) FROM (SELECT $metric FROM spdstats_WAN ORDER BY [Timestamp] DESC LIMIT 10);"
+			echo "SELECT avg($metric) FROM (SELECT $metric FROM spdstats_WAN ORDER BY [Timestamp] DESC LIMIT $avgcalc);"
 		} > /tmp/spd-autobw.sql
 		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-autobw.sql
 		rm -f /tmp/spd-autobw.sql
@@ -2838,7 +3157,7 @@ Menu_AutoBW_Update(){
 		nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
 		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS"
 	else
-		Print_Output true "Calculated Download speed ($dspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD DOWN)%% threshold of existing value ($old_dspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Download speed ($dspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD DOWN)% threshold of existing value ($old_dspdkbps Kbps)" "$WARN"
 	fi
 	
 	ubw_threshold="$(AutoBWConf check THRESHOLD UP | awk '{printf ($1/100)}')"
@@ -2848,24 +3167,14 @@ Menu_AutoBW_Update(){
 		nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
 		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS"
 	else
-		Print_Output true "Calculated Upload speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)%% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Upload speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
 	fi
 	
 	if [ "$bw_changed" = "true" ]; then
 		nvram commit
-		service restart_qos >/dev/null 2>&1
+		service "restart_qos;restart_firewall" >/dev/null 2>&1
 	fi
 	
-	Clear_Lock
-}
-
-Menu_Update(){
-	Update_Version
-	Clear_Lock
-}
-
-Menu_ForceUpdate(){
-	Update_Version force
 	Clear_Lock
 }
 
@@ -2885,7 +3194,7 @@ Menu_Uninstall(){
 	
 	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
 	
-	printf "\\n\\e[1mDo you want to delete %s stats and config? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
+	printf "\\n\\e[1mDo you want to delete %s stats and config? (y/n)\\e[0m  " "$SCRIPT_NAME"
 	read -r confirm
 	case "$confirm" in
 		y|Y)
@@ -2908,17 +3217,15 @@ Menu_Uninstall(){
 
 NTP_Ready(){
 	if [ "$(nvram get ntp_ready)" -eq 0 ]; then
-		ntpwaitcount="0"
+		ntpwaitcount=0
 		Check_Lock
-		while [ "$(nvram get ntp_ready)" -eq 0 ] && [ "$ntpwaitcount" -lt 300 ]; do
-			ntpwaitcount="$((ntpwaitcount + 1))"
-			if [ "$ntpwaitcount" -eq 60 ]; then
-				Print_Output true "Waiting for NTP to sync..." "$WARN"
-			fi
-			sleep 1
+		while [ "$(nvram get ntp_ready)" -eq 0 ] && [ "$ntpwaitcount" -lt 600 ]; do
+			ntpwaitcount="$((ntpwaitcount + 30))"
+			Print_Output true "Waiting for NTP to sync..." "$WARN"
+			sleep 30
 		done
-		if [ "$ntpwaitcount" -ge 300 ]; then
-			Print_Output true "NTP failed to sync after 5 minutes. Please resolve!" "$CRIT"
+		if [ "$ntpwaitcount" -ge 600 ]; then
+			Print_Output true "NTP failed to sync after 10 minutes. Please resolve!" "$CRIT"
 			Clear_Lock
 			exit 1
 		else
@@ -2950,6 +3257,47 @@ Entware_Ready(){
 }
 ### ###
 
+### function based on @dave14305's FlexQoS about function ###
+Show_About(){
+	cat <<EOF
+About
+  $SCRIPT_NAME is an internet speedtest and monitoring tool for
+  AsusWRT Merlin with charts for daily, weekly and monthly summaries.
+  It tracks download/upload bandwidth as well as latency, jitter and
+  packet loss.
+License
+  $SCRIPT_NAME is free to use under the GNU General Public License
+  version 3 (GPL-3.0) https://opensource.org/licenses/GPL-3.0
+Help & Support
+  https://www.snbforums.com/forums/asuswrt-merlin-addons.60/?prefix_id=19
+Source code
+  https://github.com/jackyaz/$SCRIPT_NAME
+EOF
+	printf "\\n"
+}
+### ###
+
+### function based on @dave14305's FlexQoS show_help function ###
+Show_Help(){
+	cat <<EOF
+Available commands:
+  $SCRIPT_NAME_LOWER about              explains functionality
+  $SCRIPT_NAME_LOWER update             checks for updates
+  $SCRIPT_NAME_LOWER forceupdate        updates to latest version (force update)
+  $SCRIPT_NAME_LOWER startup force      runs startup actions such as mount WebUI tab
+  $SCRIPT_NAME_LOWER install            installs script
+  $SCRIPT_NAME_LOWER uninstall          uninstalls script
+  $SCRIPT_NAME_LOWER generate           run speedtest and save to database. also runs outputcsv
+  $SCRIPT_NAME_LOWER outputcsv          create CSVs from database, used by WebUI and export
+  $SCRIPT_NAME_LOWER enable             enable automatic speedtests
+  $SCRIPT_NAME_LOWER disable            disable automatic speedtests
+  $SCRIPT_NAME_LOWER develop            switch to development branch
+  $SCRIPT_NAME_LOWER stable             switch to stable branch
+EOF
+	printf "\\n"
+}
+### ###
+
 if [ -f "/opt/share/$SCRIPT_NAME_LOWER.d/config" ]; then
 	SCRIPT_CONF="/opt/share/$SCRIPT_NAME_LOWER.d/config"
 	SCRIPT_STORAGE_DIR="/opt/share/$SCRIPT_NAME_LOWER.d"
@@ -2970,20 +3318,16 @@ if [ -z "$1" ]; then
 		opkg update
 		opkg install sqlite3-cli
 	fi
-	rm -f spdstatsdata.js 2>/dev/null
-	rm -f spdstatstext.js 2>/dev/null
-	rm -f spdlastx.js 2>/dev/null
 	
 	Create_Dirs
 	Conf_Exists
-	Set_Version_Custom_Settings local
 	ScriptStorageLocation load
 	Create_Symlinks
 	
 	Process_Upgrade
 	
 	Auto_Startup create 2>/dev/null
-	Auto_Cron create 2>/dev/null
+	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	License_Acceptance load
@@ -3012,6 +3356,7 @@ case "$1" in
 	;;
 	service_event)
 		if [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}spdtest"; then
+			rm -f /tmp/detect_spdtest.js
 			Check_Lock webui
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
@@ -3043,28 +3388,51 @@ case "$1" in
 		Clear_Lock
 		exit 0
 	;;
-	automatic)
+	enable)
 		Entware_Ready
-		Check_Lock
-		Menu_ToggleAutomated
-		Clear_Lock
+		AutomaticMode enable
+		exit 0
+	;;
+	disable)
+		Entware_Ready
+		AutomaticMode disable
 		exit 0
 	;;
 	update)
-		Update_Version unattended
+		Update_Version
 		exit 0
 	;;
 	forceupdate)
-		Update_Version force unattended
+		Update_Version force
 		exit 0
 	;;
-	setversion)
-		Set_Version_Custom_Settings local
+	postupdate)
+		Create_Dirs
+		Conf_Exists
+		ScriptStorageLocation load
+		Create_Symlinks
+		Process_Upgrade
+		Auto_Startup create 2>/dev/null
+		if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
+		Auto_ServiceEvent create 2>/dev/null
+		Shortcut_Script create
+		License_Acceptance load
+		Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
-		if [ -z "$2" ]; then
-			exec "$0"
-		fi
-		exit 0
+	;;
+	setversion)
+		Create_Dirs
+		Conf_Exists
+		ScriptStorageLocation load
+		Create_Symlinks
+		Process_Upgrade
+		Auto_Startup create 2>/dev/null
+		if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
+		Auto_ServiceEvent create 2>/dev/null
+		Shortcut_Script create
+		License_Acceptance load
+		Set_Version_Custom_Settings local "$SCRIPT_VERSION"
+		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 	;;
 	checkupdate)
 		Update_Check
@@ -3087,8 +3455,20 @@ case "$1" in
 		Update_Version force
 		exit 0
 	;;
+	about)
+		ScriptHeader
+		Show_About
+		exit 0
+	;;
+	help)
+		ScriptHeader
+		Show_Help
+		exit 0
+	;;
 	*)
-		echo "Command not recognised, please try again"
+		ScriptHeader
+		Print_Output false "Command not recognised." "$ERR"
+		Print_Output false "For a list of available commands run: $SCRIPT_NAME_LOWER help"
 		exit 1
 	;;
 esac
