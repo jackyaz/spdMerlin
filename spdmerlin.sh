@@ -23,7 +23,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="spdMerlin"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v4.2.0"
+readonly SCRIPT_VERSION="v4.2.1"
 SCRIPT_BRANCH="master"
 SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -221,7 +221,7 @@ Update_Version(){
 		Update_File "$ARCH.tar.gz"
 		Update_File spdstats_www.asp
 		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
-		chmod 0755 "/jffs/scripts/$SCRIPT_NAME"
+		chmod 0755 "/jffs/scripts/$SCRIPT_NAME_LOWER"
 		Set_Version_Custom_Settings local "$serverver"
 		Set_Version_Custom_Settings server "$serverver"
 		Clear_Lock
@@ -1831,7 +1831,7 @@ Reset_DB(){
 		
 		tablelist="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
 		for dbtable in $tablelist; do
-			echo "DELETE FROM [spdstats_$dbtable];" > /tmp/spdstats-stats.sql
+			echo "DELETE FROM [spdstats_$dbtable];" > /tmp/spd-stats.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 			rm -f /tmp/spd-stats.sql
 		done
