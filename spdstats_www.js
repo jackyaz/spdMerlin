@@ -553,7 +553,6 @@ function LogarithmicFormatter(tickValue, index, ticks){
 	}
 };
 
-
 function getDataSets(charttype, objdata, objTrafficTypes){
 	var datasets = [];
 	colourname="#fc8500";
@@ -674,6 +673,18 @@ function RedrawAllCharts(){
 	}
 }
 
+function SetGlobalDataset(txtchartname,dataobject){
+	window[txtchartname] = dataobject;
+	currentNoCharts++;
+	if(currentNoCharts == maxNoCharts){
+		var interfacetextarray = interfacelist.split(',');
+		for(var i = 0; i < interfacetextarray.length; i++){
+			Draw_Chart(interfacetextarray[i],"Combined");
+			Draw_Chart(interfacetextarray[i],"Quality");
+		}
+	}
+}
+
 function getTimeFormat(value,format){
 	var timeformat;
 	
@@ -775,18 +786,6 @@ function initial(){
 	ScriptUpdateLayout();
 	get_statstitle_file();
 	get_interfaces_file();
-}
-
-function SetGlobalDataset(txtchartname,dataobject){
-	window[txtchartname] = dataobject;
-	currentNoCharts++;
-	if(currentNoCharts == maxNoCharts){
-		var interfacetextarray = interfacelist.split(',');
-		for(var i = 0; i < interfacetextarray.length; i++){
-			Draw_Chart(interfacetextarray[i],"Combined");
-			Draw_Chart(interfacetextarray[i],"Quality");
-		}
-	}
 }
 
 function ScriptUpdateLayout(){
