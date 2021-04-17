@@ -2130,6 +2130,7 @@ Check_Requirements(){
 		opkg install sqlite3-cli
 		opkg install jq
 		opkg install p7zip
+		opkg install findutils
 		return 0
 	else
 		return 1
