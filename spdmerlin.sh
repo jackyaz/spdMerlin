@@ -1771,8 +1771,8 @@ Generate_CSVs(){
 				echo ".mode csv"
 				echo ".headers on"
 				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.htm"
+				echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) ORDER BY [Timestamp] DESC;"
 			} > /tmp/spd-complete.sql
-			echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) ORDER BY [Timestamp] DESC;" >> /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
 			rm -f /tmp/spd-complete.sql
 			
