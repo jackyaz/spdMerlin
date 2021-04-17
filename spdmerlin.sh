@@ -57,7 +57,6 @@ servername=""
 ### End of Speedtest Server Variables ###
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
-# shellcheck disable=SC2059
 Print_Output(){
 	if [ "$1" = "true" ]; then
 		logger -t "$SCRIPT_NAME" "$2"
@@ -1772,8 +1771,8 @@ Generate_CSVs(){
 				echo ".mode csv"
 				echo ".headers on"
 				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.htm"
+				echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) ORDER BY [Timestamp] DESC;"
 			} > /tmp/spd-complete.sql
-			echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) ORDER BY [Timestamp] DESC;" >> /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
 			rm -f /tmp/spd-complete.sql
 			
@@ -2131,6 +2130,7 @@ Check_Requirements(){
 		opkg install sqlite3-cli
 		opkg install jq
 		opkg install p7zip
+		opkg install findutils
 		return 0
 	else
 		return 1
