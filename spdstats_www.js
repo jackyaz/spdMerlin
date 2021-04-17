@@ -1204,9 +1204,9 @@ function SaveConfig(){
 		}
 		document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject());
 		document.form.action_script.value = "start_spdmerlinconfig";
+		document.form.action_wait.value = 10;
 		showLoading();
 		document.form.submit();
-		document.form.action_wait.value = 10;
 	}
 	else{
 		return false;
