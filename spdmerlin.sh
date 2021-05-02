@@ -1383,8 +1383,8 @@ Run_Speedtest(){
 		fi
 		
 		if [ "$IFACELIST" != "" ]; then
+			stoppedqos="false"
 			if [ "$(ExcludeFromQoS check)" = "true" ]; then
-				stoppedqos="false"
 				if [ "$(nvram get qos_enable)" -eq 1 ] && [ "$(nvram get qos_type)" -eq 1 ]; then
 					for ACTION in -D -A ; do
 						for proto in tcp udp; do
