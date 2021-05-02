@@ -1669,6 +1669,9 @@ Process_Upgrade(){
 			PressEnter
 		fi
 	fi
+	
+	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
+	
 }
 
 Generate_CSVs(){
