@@ -1666,12 +1666,17 @@ Process_Upgrade(){
 		if [ "$(ExcludeFromQoS check)" = "false" ]; then
 			Print_Output false "Enabling Exclude from QoS (required for AutoBW)"
 			ExcludeFromQoS enable
-			PressEnter
 		fi
 	fi
 	
 	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
 	
+	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+	for IFACE_NAME in $FULL_IFACELIST; do
+		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
+		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+	done
+	rm -f /tmp/spd-stats.sql
 }
 
 Generate_CSVs(){
@@ -2163,6 +2168,8 @@ Menu_Install(){
 	Auto_Cron create 2>/dev/null
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
+	
+	Process_Upgrade
 	
 	License_Acceptance accept
 	
