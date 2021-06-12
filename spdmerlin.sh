@@ -15,9 +15,14 @@
 ############################################################
 
 #############        Shellcheck directives      ############
+# shellcheck disable=SC2009
+# shellcheck disable=SC2016
 # shellcheck disable=SC2018
 # shellcheck disable=SC2019
+# shellcheck disable=SC2028
+# shellcheck disable=SC2039
 # shellcheck disable=SC2059
+# shellcheck disable=SC2155
 ############################################################
 
 ### Start of script variables ###
@@ -612,7 +617,6 @@ Auto_ServiceEvent(){
 		create)
 			if [ -f /jffs/scripts/service-event ]; then
 				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)
-				# shellcheck disable=SC2016
 				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
@@ -620,13 +624,11 @@ Auto_ServiceEvent(){
 				fi
 				
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
-					# shellcheck disable=SC2016
 					echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event
 				echo "" >> /jffs/scripts/service-event
-				# shellcheck disable=SC2016
 				echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				chmod 0755 /jffs/scripts/service-event
 			fi
@@ -1263,7 +1265,6 @@ GenerateServerList_WebUI(){
 				printf "%s|%s\\n" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .id')" "$(echo "$serverlist" | jq -r --argjson index "$((COUNTER-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"  >> "/tmp/$serverlistfile.tmp"
 				COUNTER=$((COUNTER + 1))
 			done
-			#shellcheck disable=SC2039
 			printf "-----\\n" >> "/tmp/$serverlistfile.tmp"
 		done
 	else
@@ -1313,7 +1314,6 @@ Run_Speedtest(){
 		opkg update
 		opkg install findutils
 	fi
-	#shellcheck disable=SC2009
 	if [ -n "$PPID" ]; then
 		ps | grep -v grep | grep -v $$ | grep -v "$PPID" | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
 	else
@@ -1653,7 +1653,6 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
-	# shellcheck disable=SC2028
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
 		{
 			echo 'function SetSPDStatsTitle(){';
