@@ -1660,6 +1660,8 @@ Run_Speedtest(){
 				fi
 			fi
 			
+			echo 'var spdteststatus = "GenerateCSV";' > /tmp/detect_spdtest.js
+			
 			Generate_CSVs
 			
 			echo "Stats last updated: $timenowfriendly" > /tmp/spdstatstitle.txt
