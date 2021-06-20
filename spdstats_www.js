@@ -741,15 +741,28 @@ $j.fn.serializeObject = function(){
 	var o = custom_settings;
 	var a = this.serializeArray();
 	$j.each(a, function(){
-		if(o[this.name] !== undefined && this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1 && this.name.indexOf("schdays") == -1){
+		if(o[this.name] !== undefined && this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1 && this.name.indexOf("schdays") == -1 && this.name.indexOf("spdmerlin_preferredserver") == -1){
 			if(!o[this.name].push){
 				o[this.name] = [o[this.name]];
 			}
 			o[this.name].push(this.value || '');
-		} else if(this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1 && this.name.indexOf("schdays") == -1){
+		} else if(this.name.indexOf("spdmerlin") != -1 && this.name.indexOf("version") == -1 && this.name.indexOf("spdmerlin_iface_enabled") == -1 && this.name.indexOf("spdmerlin_usepreferred") == -1 && this.name.indexOf("schdays") == -1 && this.name.indexOf("spdmerlin_preferredserver") == -1){
 			o[this.name] = this.value || '';
 		}
 	});
+	
+	$j.each(a, function(){
+		if(o[this.name] !== undefined && this.name.indexOf("spdmerlin_preferredserver") != -1){
+			if(!o[this.name].push){
+				o[this.name] = [o[this.name]];
+			}
+			o[this.name].push(this.value || '');
+		} else if(this.name.indexOf("spdmerlin_preferredserver") != -1){
+			o[this.name] = this.value || '';
+		}
+	});
+	
+	
 	var schdays = [];
 	$j.each($j("input[name='spdmerlin_schdays']:checked"), function(){
 		schdays.push($j(this).val());
