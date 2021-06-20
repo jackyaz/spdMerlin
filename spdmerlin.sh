@@ -456,13 +456,17 @@ Create_Symlinks(){
 	
 	rm -rf "${SCRIPT_WEB_DIR:?}/"* 2>/dev/null
 	
-	ln -s /tmp/spd-stats.txt "$SCRIPT_WEB_DIR/spd-stats.htm" 2>/dev/null
 	ln -s /tmp/spd-result.txt "$SCRIPT_WEB_DIR/spd-result.htm" 2>/dev/null
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces_user.htm" 2>/dev/null
 	ln -s "$SCRIPT_STORAGE_DIR/spdtitletext.js" "$SCRIPT_WEB_DIR/spdtitletext.js" 2>/dev/null
+	
+	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+	for IFACE_NAME in $FULL_IFACELIST; do
+		ln -s "$SCRIPT_STORAGE_DIR/lastx_${IFACE_NAME}.htm" "$SCRIPT_WEB_DIR/lastx_${IFACE_NAME}.htm"
+	done
 	
 	ln -s "$CSV_OUTPUT_DIR" "$SCRIPT_WEB_DIR/csv" 2>/dev/null
 	
