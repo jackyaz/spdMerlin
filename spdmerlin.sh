@@ -465,7 +465,7 @@ Create_Symlinks(){
 	
 	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
 	for IFACE_NAME in $FULL_IFACELIST; do
-		ln -s "$SCRIPT_STORAGE_DIR/lastx_${IFACE_NAME}.htm" "$SCRIPT_WEB_DIR/lastx_${IFACE_NAME}.htm"
+		ln -s "$SCRIPT_STORAGE_DIR/lastx_${IFACE_NAME}.csv" "$SCRIPT_WEB_DIR/lastx_${IFACE_NAME}.htm"
 	done
 	
 	ln -s "$CSV_OUTPUT_DIR" "$SCRIPT_WEB_DIR/csv" 2>/dev/null
@@ -1796,6 +1796,10 @@ Process_Upgrade(){
 
 #$1 iface name
 Generate_LastXResults(){
+	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+	for IFACE_NAME in $FULL_IFACELIST; do
+		rm -f "$SCRIPT_STORAGE_DIR/lastx_${IFACE_NAME}.htm"
+	done
 	{
 		echo ".mode csv"
 		echo ".output /tmp/spd-lastx.csv"
@@ -1804,7 +1808,7 @@ Generate_LastXResults(){
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.sql
 	sed -i 's/,,/,null,/g;s/"//g;' /tmp/spd-lastx.csv
-	mv /tmp/spd-lastx.csv "$SCRIPT_STORAGE_DIR/lastx_$1.htm"
+	mv /tmp/spd-lastx.csv "$SCRIPT_STORAGE_DIR/lastx_$1.csv"
 }
 
 Generate_CSVs(){
@@ -2317,7 +2321,10 @@ Menu_Install(){
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	
-	touch "$SCRIPT_STORAGE_DIR/lastx.htm"
+	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+	for IFACE_NAME in $FULL_IFACELIST; do
+		touch "$SCRIPT_STORAGE_DIR/lastx_${IFACE_NAME}.csv"
+	done
 	Process_Upgrade
 	
 	License_Acceptance accept
