@@ -1187,14 +1187,14 @@ WriteSql_ToFile(){
 	if ! echo "$5" | grep -q "day"; then
 		{
 			echo ".mode csv"
-			echo ".headers on"
+			echo ".headers off"
 			echo ".output ${5}_${6}_${7}.tmp"
 			echo "SELECT '$1' Metric,Min(strftime('%s',datetime(strftime('%Y-%m-%d %H:00:00',datetime([Timestamp],'unixepoch'))))) Time,IFNULL(printf('%f',Avg($1)),'NaN') Value FROM $2 WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$maxcount hour'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')),strftime('%H',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
 		} > "$8"
 	else
 		{
 			echo ".mode csv"
-			echo ".headers on"
+			echo ".headers off"
 			echo ".output ${5}_${6}_${7}.tmp"
 			echo "SELECT '$1' Metric,Min(strftime('%s',datetime([Timestamp],'unixepoch','start of day'))) Time,IFNULL(printf('%f',Avg($1)),'NaN') Value FROM $2 WHERE ([Timestamp] > strftime('%s',datetime($timenow,'unixepoch','start of day','+1 day','-$maxcount day'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
 		} > "$8"
