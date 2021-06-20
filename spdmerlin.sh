@@ -456,6 +456,7 @@ Create_Symlinks(){
 	
 	rm -rf "${SCRIPT_WEB_DIR:?}/"* 2>/dev/null
 	
+	ln -s /tmp/spd-stats.txt "$SCRIPT_WEB_DIR/spd-stats.htm" 2>/dev/null
 	ln -s /tmp/spd-result.txt "$SCRIPT_WEB_DIR/spd-result.htm" 2>/dev/null
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
 	
@@ -1661,6 +1662,7 @@ Run_Speedtest(){
 			fi
 			
 			echo 'var spdteststatus = "GenerateCSV";' > /tmp/detect_spdtest.js
+			Print_Output true "Retrieving data for WebUI charts" "$PASS"
 			Generate_CSVs
 			
 			echo "Stats last updated: $timenowfriendly" > /tmp/spdstatstitle.txt
