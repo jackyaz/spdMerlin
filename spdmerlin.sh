@@ -605,13 +605,22 @@ Conf_Exists(){
 		if ! grep -q "AUTOBW_AVERAGE_CALC" "$SCRIPT_CONF"; then
 			echo "AUTOBW_AVERAGE_CALC=10" >> "$SCRIPT_CONF"
 		fi
+		if grep -q "OUTPUTDATAMODE" "$SCRIPT_CONF"; then
+			sed -i '/OUTPUTDATAMODE/d;' "$SCRIPT_CONF"
+		fi
+		if ! grep -q "DAYSTOKEEP" "$SCRIPT_CONF"; then
+			echo "DAYSTOKEEP=30" >> "$SCRIPT_CONF"
+		fi
+		if ! grep -q "LASTXRESULTS" "$SCRIPT_CONF"; then
+			echo "LASTXRESULTS=10" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "AUTOBW_AVERAGE_CALC=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42";} >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "AUTOBW_AVERAGE_CALC=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42"; echo "DAYSTOKEEP=30"; echo "LASTXRESULTS=10";} >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -1005,23 +1014,6 @@ ScriptStorageLocation(){
 	esac
 }
 
-OutputDataMode(){
-	case "$1" in
-		raw)
-			sed -i 's/^OUTPUTDATAMODE.*$/OUTPUTDATAMODE=raw/' "$SCRIPT_CONF"
-			Generate_CSVs
-		;;
-		average)
-			sed -i 's/^OUTPUTDATAMODE.*$/OUTPUTDATAMODE=average/' "$SCRIPT_CONF"
-			Generate_CSVs
-		;;
-		check)
-			OUTPUTDATAMODE=$(grep "OUTPUTDATAMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
-			echo "$OUTPUTDATAMODE"
-		;;
-	esac
-}
-
 OutputTimeMode(){
 	case "$1" in
 		unix)
@@ -1035,6 +1027,97 @@ OutputTimeMode(){
 		check)
 			OUTPUTTIMEMODE=$(grep "OUTPUTTIMEMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
 			echo "$OUTPUTTIMEMODE"
+		;;
+	esac
+}
+
+DaysToKeep(){
+	case "$1" in
+		update)
+			daystokeep=30
+			exitmenu=""
+			ScriptHeader
+			while true; do
+				printf "\\n${BOLD}Please enter the desired number of days\\nto keep data for (30-365 days):${CLEARFORMAT}  "
+				read -r daystokeep_choice
+				
+				if [ "$daystokeep_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif ! Validate_Number "$daystokeep_choice"; then
+					printf "\\n${ERR}Please enter a valid number (30-365)${CLEARFORMAT}\\n"
+				elif [ "$daystokeep_choice" -lt 30 ] || [ "$daystokeep_choice" -gt 365 ]; then
+						printf "\\n${ERR}Please enter a number between 30 and 365${CLEARFORMAT}\\n"
+				else
+					daystokeep="$daystokeep_choice"
+					printf "\\n"
+					break
+				fi
+			done
+			
+			if [ "$exitmenu" != "exit" ]; then
+				sed -i 's/^DAYSTOKEEP.*$/DAYSTOKEEP='"$daystokeep"'/' "$SCRIPT_CONF"
+				return 0
+			else
+				printf "\\n"
+				return 1
+			fi
+		;;
+		check)
+			DAYSTOKEEP=$(grep "DAYSTOKEEP" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$DAYSTOKEEP"
+		;;
+	esac
+}
+
+LastXResults(){
+	case "$1" in
+		update)
+			lastxresults=10
+			exitmenu=""
+			ScriptHeader
+			while true; do
+				printf "\\n${BOLD}Please enter the desired number of results\\nto display in the WebUI (1-100):${CLEARFORMAT}  "
+				read -r lastx_choice
+				
+				if [ "$lastx_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif ! Validate_Number "$lastx_choice"; then
+					printf "\\n${ERR}Please enter a valid number (1-100)${CLEARFORMAT}\\n"
+				elif [ "$lastx_choice" -lt 1 ] || [ "$lastx_choice" -gt 100 ]; then
+						printf "\\n${ERR}Please enter a number between 1 and 100${CLEARFORMAT}\\n"
+				else
+					lastxresults="$lastx_choice"
+					printf "\\n"
+					break
+				fi
+			done
+			
+			if [ "$exitmenu" != "exit" ]; then
+				sed -i 's/^LASTXRESULTS.*$/LASTXRESULTS='"$lastxresults"'/' "$SCRIPT_CONF"
+				
+				IFACELIST=""
+				
+				while IFS='' read -r line || [ -n "$line" ]; do
+					IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+				done < "$SCRIPT_INTERFACES_USER"
+				IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+				
+				if [ "$IFACELIST" != "" ]; then
+					for IFACE_NAME in $IFACELIST; do
+						Generate_LastXResults "$IFACE_NAME"
+					done
+				fi
+				return 0
+			else
+				printf "\\n"
+				return 1
+			fi
+		;;
+		check)
+			LASTXRESULTS=$(grep "LASTXRESULTS" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$LASTXRESULTS"
 		;;
 	esac
 }
@@ -1920,11 +2003,12 @@ MainMenu(){
 	
 	printf "1.    Run a speedtest now\\n\\n"
 	printf "2.    Choose a preferred server for an interface\\n\\n"
-	printf "3.    Toggle automatic speedtests\\n      Currently: \\e[1m${AUTOMATIC_ENABLED}%s\\e[0m\\n\\n"
-	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s\\e[0m\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
-	printf "5.    Toggle data output mode\\n      Currently ${SETTING}%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode check)"
-	printf "6.    Toggle time output mode\\n      Currently ${SETTING}%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
-	printf "7.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$STORERESULTURL_MENU"
+	printf "3.    Toggle automatic speedtests\\n      Currently: ${BOLD}${AUTOMATIC_ENABLED}%s${CLEARFORMAT}\\n\\n"
+	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s${CLEARFORMAT}\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
+	printf "5.    Toggle time output mode\\n      Currently ${SETTING}%s${CLEARFORMAT} time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
+	printf "6.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
+	printf "7.    Set number of timeserver stats to show in WebUI\\n      Currently: ${SETTING}%s results will be shown${CLEARFORMAT}\\n\\n" "$(LastXResults check)"
+	printf "8.    Set number of days data to keep in database\\n      Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\\n\\n" "$(DaysToKeep check)"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "s.    Toggle storage location for stats and config\\n      Current location is ${SETTING}%s${CLEARFORMAT} \\n\\n" "$(ScriptStorageLocation check)"
@@ -1972,15 +2056,6 @@ MainMenu(){
 			;;
 			5)
 				printf "\\n"
-				if [ "$(OutputDataMode check)" = "raw" ]; then
-					OutputDataMode average
-				elif [ "$(OutputDataMode check)" = "average" ]; then
-					OutputDataMode raw
-				fi
-				break
-			;;
-			6)
-				printf "\\n"
 				if [ "$(OutputTimeMode check)" = "unix" ]; then
 					OutputTimeMode non-unix
 				elif [ "$(OutputTimeMode check)" = "non-unix" ]; then
@@ -1988,13 +2063,25 @@ MainMenu(){
 				fi
 				break
 			;;
-			7)
+			6)
 				printf "\\n"
 				if [ "$(StoreResultURL check)" = "true" ]; then
 					StoreResultURL disable
 				elif [ "$(StoreResultURL check)" = "false" ]; then
 					StoreResultURL enable
 				fi
+				break
+			;;
+			7)
+				printf "\\n"
+				LastXResults update
+				PressEnter
+				break
+			;;
+			8)
+				printf "\\n"
+				DaysToKeep update
+				PressEnter
 				break
 			;;
 			c)
