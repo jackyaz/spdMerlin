@@ -560,10 +560,10 @@ Interfaces_FromSettings(){
 				if echo "$interfaceline" | grep -q "#excluded" ; then
 					IFACE_LOWER="$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')" | tr "A-Z" "a-z")"
 					if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
-						sed -i "$ifacelinenumber"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_INTERFACES_USER"
+						sed -i "${ifacelinenumber}s/ #excluded#/ #excluded - interface not up#/" "$SCRIPT_INTERFACES_USER"
 					else
-						sed -i "$ifacelinenumber"'s/ #excluded - interface not up#//' "$SCRIPT_INTERFACES_USER"
-						sed -i "$ifacelinenumber"'s/ #excluded#//' "$SCRIPT_INTERFACES_USER"
+						sed -i "${ifacelinenumber}s/ #excluded - interface not up#//" "$SCRIPT_INTERFACES_USER"
+						sed -i "${ifacelinenumber}s/ #excluded#//" "$SCRIPT_INTERFACES_USER"
 					fi
 				else
 					IFACE_LOWER="$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')" | tr "A-Z" "a-z")"
@@ -1326,15 +1326,16 @@ GenerateServerList(){
 }
 
 GenerateServerList_WebUI(){
-	if [ ! -f /opt/bin/jq ]; then
-		opkg update
-		opkg install jq
-	fi
 	serverlistfile="$2"
 	rm -f "/tmp/$serverlistfile.txt"
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
 	
 	spdifacename="$1"
+	
+	if [ ! -f /opt/bin/jq ]; then
+		opkg update
+		opkg install jq
+	fi
 	
 	if [ "$spdifacename" = "ALL" ]; then
 		while IFS='' read -r line || [ -n "$line" ]; do
@@ -1675,13 +1676,13 @@ Run_Speedtest(){
 				fi
 			fi
 			
+			echo 'var spdteststatus = "GenerateCSV";' > /tmp/detect_spdtest.js
+			
 			Generate_CSVs
 			
 			echo "Stats last updated: $timenowfriendly" > /tmp/spdstatstitle.txt
 			rm -f "$SCRIPT_STORAGE_DIR/spdtitletext.js"
 			WriteStats_ToJS /tmp/spdstatstitle.txt "$SCRIPT_STORAGE_DIR/spdtitletext.js" SetSPDStatsTitle statstitle
-			
-			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
 			rm -f "$tmpfile"
 			rm -f /tmp/spdstatstitle.txt
@@ -1689,6 +1690,8 @@ Run_Speedtest(){
 			if [ "$applyautobw" = "true" ]; then
 				Menu_AutoBW_Update
 			fi
+			
+			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
 			Clear_Lock
 		else
@@ -1740,6 +1743,7 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
+	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
 		{
 			echo 'function SetSPDStatsTitle(){';
@@ -2224,6 +2228,7 @@ Check_Requirements(){
 }
 
 Menu_Install(){
+	ScriptHeader
 	Print_Output true "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
 	sleep 1
 	
@@ -2257,11 +2262,15 @@ Menu_Install(){
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	
+	touch "$SCRIPT_STORAGE_DIR/lastx.htm"
 	Process_Upgrade
 	
 	License_Acceptance accept
 	
 	Clear_Lock
+	
+	ScriptHeader
+	MainMenu
 }
 
 Menu_Startup(){
@@ -3337,7 +3346,7 @@ Entware_Ready(){
 	if [ ! -f "/opt/bin/opkg" ]; then
 		Check_Lock
 		sleepcount=1
-		while [ ! -f "/opt/bin/opkg" ] && [ "$sleepcount" -le 10 ]; do
+		while [ ! -f /opt/bin/opkg ] && [ "$sleepcount" -le 10 ]; do
 			Print_Output true "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
 			sleepcount="$((sleepcount + 1))"
 			sleep 10
