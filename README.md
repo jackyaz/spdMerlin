@@ -9,13 +9,11 @@ spdMerlin is an internet speedtest and monitoring tool for AsusWRT Merlin with c
 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
-spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli)
-
-spdMerlin includes the required licenses, which must be accepted on first run of Speedtest CLI.
-
-This script began as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
+spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli) and includes the required licenses, which must be accepted on first run of Speedtest CLI.
 
 A swap file is required, you can set one up easily by using amtm, which is built into the router.
+
+This script began as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
 
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
