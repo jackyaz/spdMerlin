@@ -462,7 +462,6 @@ Create_Symlinks(){
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces_user.htm" 2>/dev/null
-	ln -s "$SCRIPT_STORAGE_DIR/spdjs.js" "$SCRIPT_WEB_DIR/spdjs.js" 2>/dev/null
 	ln -s "$SCRIPT_STORAGE_DIR/spdtitletext.js" "$SCRIPT_WEB_DIR/spdtitletext.js" 2>/dev/null
 	
 	ln -s "$CSV_OUTPUT_DIR" "$SCRIPT_WEB_DIR/csv" 2>/dev/null
@@ -975,7 +974,6 @@ ScriptStorageLocation(){
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/.interfaces_user" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/config" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/config.bak" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
-			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdjs.js" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdtitletext.js" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdstats.db" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			SCRIPT_CONF="/opt/share/$SCRIPT_NAME_LOWER.d/config"
@@ -989,7 +987,6 @@ ScriptStorageLocation(){
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/.interfaces_user" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/config" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/config.bak" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
-			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdjs.js" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdtitletext.js" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdstats.db" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME_LOWER.d/config"
@@ -1178,20 +1175,26 @@ AutoBWConf(){
 	esac
 }
 
-WritePlainData_ToJS(){
-	inputfile="$1"
-	outputfile="$2"
-	shift;shift
-	i=0
-	for var in "$@"; do
-		i=$((i+1))
+#$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 outputfrequency $7 interfacename $8 sqlfile $9 timestamp
+WriteSql_ToFile(){
+	timenow="$9"
+	maxcount="$(echo "$3" "$4" | awk '{printf ((24*$2)/$1)}')"
+	
+	if ! echo "$5" | grep -q "day"; then
 		{
-			echo "var $var;"
-			echo "$var = [];"
-			echo "${var}.unshift('$(awk -v i=$i '{printf t $i} {t=","}' "$inputfile" | sed "s~,~\\',\\'~g")');"
-			echo
-		} >> "$outputfile"
-	done
+			echo ".mode csv"
+			echo ".headers on"
+			echo ".output ${5}_${6}_${7}.tmp"
+			echo "SELECT '$1' Metric,Min(strftime('%s',datetime(strftime('%Y-%m-%d %H:00:00',datetime([Timestamp],'unixepoch'))))) Time,IFNULL(printf('%f',Avg($1)),'NaN') Value FROM $2 WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$maxcount hour'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')),strftime('%H',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
+		} > "$8"
+	else
+		{
+			echo ".mode csv"
+			echo ".headers on"
+			echo ".output ${5}_${6}_${7}.tmp"
+			echo "SELECT '$1' Metric,Min(strftime('%s',datetime([Timestamp],'unixepoch','start of day'))) Time,IFNULL(printf('%f',Avg($1)),'NaN') Value FROM $2 WHERE ([Timestamp] > strftime('%s',datetime($timenow,'unixepoch','start of day','+1 day','-$maxcount day'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
+		} > "$8"
+	fi
 }
 
 WriteStats_ToJS(){
@@ -1202,34 +1205,6 @@ WriteStats_ToJS(){
 	done < "$1"
 	html="$html"'"'
 	printf "%s\\r\\n}\\r\\n" "$html" >> "$2"
-}
-
-#$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 outputfrequency $7 interfacename $8 sqlfile $9 timestamp
-WriteSql_ToFile(){
-	timenow="$9"
-	maxcount="$(echo "$3" "$4" | awk '{printf ((24*$2)/$1)}')"
-	multiplier="$(echo "$3" | awk '{printf (60*60*$1)}')"
-	{
-		echo ".mode csv"
-		echo ".headers off"
-		echo ".output ${5}${6}_${7}.tmp"
-	} >> "$8"
-	
-	echo "SELECT '$1' Metric, Min([Timestamp]) Time, IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
-}
-
-#$1 iface name
-Generate_LastXResults(){
-	{
-		echo ".mode csv"
-		echo ".output /tmp/spd-lastx.csv"
-	} > /tmp/spd-lastx.sql
-	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL]FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT 10;" >> /tmp/spd-lastx.sql
-	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
-	sed -i 's/,,/,null,/g;s/,/ /g;s/"//g;' /tmp/spd-lastx.csv
-	WritePlainData_ToJS /tmp/spd-lastx.csv "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataDataDownload_$1" "DataDataUpload_$1" "DataResultURL_$1"
-	rm -f /tmp/spd-lastx.sql
-	rm -f /tmp/spd-lastx.csv
 }
 
 GenerateServerList(){
@@ -1621,7 +1596,7 @@ Run_Speedtest(){
 						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)}')"
 					fi
 					
-					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
+					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					STORERESULTURL="$(StoreResultURL check)"
@@ -1633,8 +1608,13 @@ Run_Speedtest(){
 					fi
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
-					echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));" > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+					{
+						echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < strftime('%s',datetime($timenow,'unixepoch','-$(DaysToKeep check) day'));"
+						echo "PRAGMA analysis_limit=0;"
+						echo "PRAGMA cache_size=-20000;"
+						echo "ANALYZE spdstats_$IFACE_NAME;"
+					} > /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
 					rm -f /tmp/spd-stats.sql
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
@@ -1759,18 +1739,74 @@ Process_Upgrade(){
 		fi
 	fi
 	
-	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
-	
 	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
 	for IFACE_NAME in $FULL_IFACELIST; do
-		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
-		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spdstats-upgrade.sql
+		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 	done
-	rm -f /tmp/spd-stats.sql
+	
+	if [ ! -f "$SCRIPT_STORAGE_DIR/.indexcreated" ]; then
+		renice 15 $$
+		Print_Output true "Creating database table indexes..." "$PASS"
+		FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+		for IFACE_NAME in $FULL_IFACELIST; do
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_download ON spdstats_${IFACE_NAME} (Timestamp,Download);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_upload ON spdstats_${IFACE_NAME} (Timestamp,Upload);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_latency ON spdstats_${IFACE_NAME} (Timestamp,Latency);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_jitter ON spdstats_${IFACE_NAME} (Timestamp,Jitter);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_pktloss ON spdstats_${IFACE_NAME} (Timestamp,PktLoss);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_resulturl ON spdstats_${IFACE_NAME} (Timestamp,ResultURL collate nocase);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_datadownload ON spdstats_${IFACE_NAME} (Timestamp,DataDownload);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_datadownload ON spdstats_${IFACE_NAME} (Timestamp,DataUpload);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+		done
+		touch "$SCRIPT_STORAGE_DIR/.indexcreated"
+		Print_Output true "Database ready, continuing..." "$PASS"
+		renice 0 $$
+	fi
+	rm -f /tmp/spdstats-upgrade.sql
+}
+
+#$1 iface name
+Generate_LastXResults(){
+	{
+		echo ".mode csv"
+		echo ".output /tmp/spd-lastx.csv"
+	} > /tmp/spd-lastx.sql
+	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL] FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);" >> /tmp/spd-lastx.sql
+	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
+	rm -f /tmp/spd-lastx.sql
+	sed -i 's/,,/,null,/g;s/"//g;' /tmp/spd-lastx.csv
+	mv /tmp/spd-lastx.csv "$SCRIPT_STORAGE_DIR/lastx_$1.htm"
 }
 
 Generate_CSVs(){
-	OUTPUTDATAMODE="$(OutputDataMode check)"
+	Process_Upgrade
+	renice 15 $$
+	
 	OUTPUTTIMEMODE="$(OutputTimeMode check)"
 	STORERESULTURL="$(StoreResultURL check)"
 	IFACELIST=""
@@ -1781,8 +1817,6 @@ Generate_CSVs(){
 	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 	
 	if [ "$IFACELIST" != "" ]; then
-		rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
-		
 		for IFACE_NAME in $IFACELIST; do
 			IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				
@@ -1798,56 +1832,72 @@ Generate_CSVs(){
 				{
 					echo ".mode csv"
 					echo ".headers off"
-					echo ".output $CSV_OUTPUT_DIR/${metric}daily_$IFACE_NAME.tmp"
-					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
+					echo ".output $CSV_OUTPUT_DIR/${metric}_raw_daily_$IFACE_NAME.tmp"
+					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-1 day'))) ORDER BY [Timestamp] DESC;"
 				} > /tmp/spd-stats.sql
 				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-				rm -f /tmp/spd-stats.sql
 				
-				if [ "$OUTPUTDATAMODE" = "raw" ]; then
-					{
-						echo ".mode csv"
-						echo ".headers off"
-						echo ".output $CSV_OUTPUT_DIR/${metric}weekly_$IFACE_NAME.tmp"
-						echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
-					} > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-					
-					{
-						echo ".mode csv"
-						echo ".headers off"
-						echo ".output $CSV_OUTPUT_DIR/${metric}monthly_$IFACE_NAME.tmp"
-						echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
-					} > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-				elif [ "$OUTPUTDATAMODE" = "average" ]; then
-					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" weekly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-					
-					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" monthly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-				fi
+				{
+					echo ".mode csv"
+					echo ".headers off"
+					echo ".output $CSV_OUTPUT_DIR/${metric}_raw_weekly_$IFACE_NAME.tmp"
+					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-7 day'))) ORDER BY [Timestamp] DESC;"
+				} > /tmp/spd-stats.sql
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				{
+					echo ".mode csv"
+					echo ".headers off"
+					echo ".output $CSV_OUTPUT_DIR/${metric}_raw_monthly_$IFACE_NAME.tmp"
+					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-30 day'))) ORDER BY [Timestamp] DESC;"
+				} > /tmp/spd-stats.sql
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 1 "$CSV_OUTPUT_DIR/${metric}_hour" daily "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/${metric}_hour" weekly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 30 "$CSV_OUTPUT_DIR/${metric}_hour" monthly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 24 1 "$CSV_OUTPUT_DIR/${metric}_day" daily "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 24 7 "$CSV_OUTPUT_DIR/${metric}_day" weekly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 24 30 "$CSV_OUTPUT_DIR/${metric}_day" monthly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 			done
 			
-			cat "$CSV_OUTPUT_DIR/Downloaddaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploaddaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Downloadweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploadweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Downloadmonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploadmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Latencydaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jitterdaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossdaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Latencyweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jitterweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Latencymonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jittermonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/DataDownloaddaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploaddaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsagedaily_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/DataDownloadweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploadweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsageweekly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/DataDownloadmonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploadmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsagemonthly_$IFACE_NAME.htm" 2> /dev/null
+			periodfilelist="raw hour daily"
 			
+			for periodfile in $periodfilelist; do
+				cat "$CSV_OUTPUT_DIR/Download_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Upload_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Combined_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/Download_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Upload_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Combined_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/Download_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Upload_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Combined_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
+				
+				cat "$CSV_OUTPUT_DIR/Latency_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Jitter_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/PktLoss_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Quality_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/Latency_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Jitter_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/PktLoss_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Quality_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/Latency_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Jitter_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/PktLoss_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Quality_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
+				
+				cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
+			done
+				
 			csvlist="Combined Quality DataUsage"
 			for csvfile in $csvlist; do
-				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}daily_$IFACE_NAME.htm"
-				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}weekly_$IFACE_NAME.htm"
-				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}monthly_$IFACE_NAME.htm"
+				rm -f "$CSV_OUTPUT_DIR/${csvfile}daily_${IFACE_NAME}.htm"
+				rm -f "$CSV_OUTPUT_DIR/${csvfile}weekly_${IFACE_NAME}.htm"
+				rm -f "$CSV_OUTPUT_DIR/${csvfile}monthly_${IFACE_NAME}.htm"
+				for periodfile in $periodfilelist; do
+					sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}_${periodfile}_daily_${IFACE_NAME}.htm"
+					sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}_${periodfile}_weekly_${IFACE_NAME}.htm"
+					sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}_${periodfile}_monthly_${IFACE_NAME}.htm"
+				done
 			done
 			
 			INCLUDEURL=""
@@ -1858,8 +1908,8 @@ Generate_CSVs(){
 			{
 				echo ".mode csv"
 				echo ".headers on"
-				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.htm"
-				echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) ORDER BY [Timestamp] DESC;"
+				echo ".output $CSV_OUTPUT_DIR/CompleteResults_${IFACE_NAME}.htm"
+				echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$(DaysToKeep check) day'))) ORDER BY [Timestamp] DESC;"
 			} > /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
 			rm -f /tmp/spd-complete.sql
@@ -1901,6 +1951,7 @@ Generate_CSVs(){
 		mv "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$CSV_OUTPUT_DIR"
 		rm -rf "$tmpoutputdir"
 	fi
+	renice 0 $$
 }
 
 Reset_DB(){
