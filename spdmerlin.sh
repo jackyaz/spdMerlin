@@ -1878,7 +1878,7 @@ Generate_CSVs(){
 				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 			done
 			
-			periodfilelist="raw hour daily"
+			periodfilelist="raw hour day"
 			
 			for periodfile in $periodfilelist; do
 				cat "$CSV_OUTPUT_DIR/Download_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Upload_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Combined_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
