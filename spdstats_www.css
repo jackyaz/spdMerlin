@@ -193,6 +193,10 @@ th.sortable {
   cursor: pointer;
 }
 
+tbody.sortTableContent td a{
+  text-decoration: underline !important;
+}
+
 .removespacing {
   padding-left: 0px !important;
   margin-left: 0px !important;
