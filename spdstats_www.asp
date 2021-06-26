@@ -243,15 +243,6 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 <tr class="even" valign="middle">
 <th colspan="2" class="sectionheader">Script configuration</th>
 </tr>
-<tr class="even" id="rowdataoutput">
-<td class="settingname">Data Output Mode<br/><span style="color:#FFCC00;background:#2F3A3E;">(for weekly and monthly charts)</span></td>
-<td class="settingvalue">
-<input type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_average" class="input" value="average" checked>
-<label for="spdmerlin_dataoutput_average">Average</label>
-<input type="radio" name="spdmerlin_outputdatamode" id="spdmerlin_dataoutput_raw" class="input" value="raw">
-<label for="spdmerlin_dataoutput_raw">Raw</label>
-</td>
-</tr>
 <tr class="even" id="rowtimeoutput">
 <td class="settingname">Time Output Mode<br/><span style="color:#FFCC00;background:#2F3A3E;">(for CSV export)</span></td>
 <td class="settingvalue">
