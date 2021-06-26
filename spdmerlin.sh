@@ -1406,7 +1406,8 @@ Run_Speedtest(){
 	
 	tmpfile=/tmp/spd-stats.txt
 	resultfile=/tmp/spd-result.txt
-	printf "" > "$resultfile"
+	rm -f "$resultfile"
+	rm -f "$tmpfile"
 	
 	if [ -n "$(pidof speedtest)" ]; then
 		killall speedtest
@@ -1669,12 +1670,12 @@ Run_Speedtest(){
 			rm -f "$SCRIPT_STORAGE_DIR/spdtitletext.js"
 			WriteStats_ToJS /tmp/spdstatstitle.txt "$SCRIPT_STORAGE_DIR/spdtitletext.js" SetSPDStatsTitle statstitle
 			
-			rm -f "$tmpfile"
-			rm -f /tmp/spdstatstitle.txt
-			
 			if [ "$applyautobw" = "true" ]; then
 				Menu_AutoBW_Update
 			fi
+			
+			rm -f "$tmpfile"
+			rm -f /tmp/spdstatstitle.txt
 			
 			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
