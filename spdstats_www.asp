@@ -252,6 +252,22 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 <label for="spdmerlin_timeoutput_unix">Unix</label>
 </td>
 </tr>
+
+<tr class="even" id="rowlastxresults">
+<td class="settingname">Last X results to display</td>
+<td class="settingvalue">
+<input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_lastxresults" value="10" onkeypress="return validator.isNumber(this,event)" onblur="Validate_Number_Setting(this,100,1);Format_Number_Setting(this)" onkeyup="Validate_Number_Setting(this,100,1)"/>
+&nbsp;results <span style="color:#FFCC00;">(between 1 and 100,default: 10)</span>
+</td>
+</tr>
+<tr class="even" id="rowdaystokeep">
+<td class="settingname">Number of days of data to keep</td>
+<td class="settingvalue">
+<input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_daystokeep" value="30" onkeypress="return validator.isNumber(this,event)" onblur="Validate_Number_Setting(this,365,30);Format_Number_Setting(this)" onkeyup="Validate_Number_Setting(this,365,30)"/>
+&nbsp;days <span style="color:#FFCC00;">(between 30 and 365,default: 30)</span>
+</td>
+</tr>
+
 <tr class="even" id="rowstorageloc">
 <td class="settingname">Data Storage Location</td>
 <td class="settingvalue">
