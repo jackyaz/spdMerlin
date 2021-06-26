@@ -129,7 +129,7 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 </td>
 </tr>
 <tr style="display:none;" class="spdtest_output"><td colspan="2" style="padding: 0px;">
-<textarea cols="63" rows="8" wrap="off" readonly="readonly" id="spdtest_output" class="textarea_log_table" style="border:0px;font-family:Courier New, Courier, mono; font-size:11px;overflow-y:auto;overflow-x:hidden;">Speedtest output</textarea>
+<textarea cols="63" rows="8" wrap="off" readonly="readonly" id="spdtest_output" class="textarea_log_table" style="border:0px;font-family:Courier New,Courier,mono; font-size:11px;overflow-y:auto;overflow-x:hidden;">Speedtest output</textarea>
 </td></tr>
 </table>
 <div style="line-height:10px;">&nbsp;</div>
@@ -170,7 +170,7 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 <div style="margin-bottom:0px;" class="schedulesettings" id="schfrequency">
 <span class="schedulespan">Frequency</span>
 <span style="color:#FFFFFF;margin-left:3px;">Every </span>
-<input autocomplete="off" style="text-align:center;padding-left:2px;" type="text" maxlength="2" class="input_3_table removespacing" name="everyxvalue" id="everyxvalue" value="30" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_ScheduleValue(this)" onblur="Validate_ScheduleValue(this)" />
+<input autocomplete="off" style="text-align:center;padding-left:2px;" type="text" maxlength="2" class="input_3_table removespacing" name="everyxvalue" id="everyxvalue" value="30" onkeypress="return validator.isNumber(this,event)" onkeyup="Validate_ScheduleValue(this)" onblur="Validate_ScheduleValue(this)" />
 &nbsp;<select name="everyxselect" id="everyxselect" class="input_option" onchange="EveryXToggle(this)">
 <option value="hours">hours</option><option value="minutes" selected>minutes</option></select>
 <span id="spanxhours" style="color:#FFCC00;"> (between 1 and 24)</span>
@@ -209,35 +209,35 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 <tr class="even" id="rowautobwavgcalc">
 <td class="settingname">Number of speedtests to use to calculate average bandwidth</td>
 <td class="settingvalue">
-<input autocomplete="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_autobw_average_calc" value="10" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_AverageCalc(this)" onblur="Validate_AverageCalc(this)" /><span style="color:#FFFFFF;">&nbsp;&nbsp;speedtest(s)&nbsp;&nbsp;</span><span style="color:#FFCC00;">(between 1 and 30, default: 10)</span>
+<input autocomplete="off" type="text" maxlength="2" class="input_3_table removespacing" name="spdmerlin_autobw_average_calc" value="10" onkeypress="return validator.isNumber(this,event)" onkeyup="Validate_Number_Setting(this,30,1)" onblur="Validate_Number_Setting(this,30,1);Format_Number_Setting(this)" /><span style="color:#FFFFFF;">&nbsp;&nbsp;speedtest(s)&nbsp;&nbsp;</span><span style="color:#FFCC00;">(between 1 and 30,default: 10)</span>
 </td>
 </tr>
 <tr class="even" id="rowautobwsf">
 <td class="settingname">Scale factor to use for speedtest results</td>
 <td class="settingvalue">
-<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_sf_down" value="100" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_PercentRange(this)" onblur="Validate_PercentRange(this)" /><span style="color:#FFFFFF;"> %</span>
+<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_sf_down" value="100" onkeypress="return validator.isNumber(this,event)" onkeyup="Validate_Number_Setting(this,100,0)" onblur="Validate_Number_Setting(this,100,0);Format_Number_Setting(this)" /><span style="color:#FFFFFF;"> %</span>
 &nbsp;&nbsp;&nbsp;&nbsp;
-<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_sf_up" value="100" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_PercentRange(this)" onblur="Validate_PercentRange(this)" /><span style="color:#FFFFFF;"> %</span>
+<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_sf_up" value="100" onkeypress="return validator.isNumber(this,event)" onkeyup="Validate_Number_Setting(this,100,0)" onblur="Validate_Number_Setting(this,100,0);Format_Number_Setting(this)" /><span style="color:#FFFFFF;"> %</span>
 </td>
 </tr>
 <tr class="even" id="rowautobwlimits">
 <td class="settingname">Bandwidth limits for AutoBW calculations<br/><span style="color:#FFCC00;background:#2F3A3E;">(for Upper Limit 0 = Unlimited)</span></td>
 <td class="settingvalue"><span style="font-weight:bolder;color:#FFFFFF;">Upper Limit:&nbsp;&nbsp;&nbsp;&nbsp;</span>
-<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_ulimit_down" value="100" onkeypress="return validator.isNumber(this, event)" /><span style="color:#FFFFFF;"> Mbps</span>
+<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_ulimit_down" value="100" onkeypress="return validator.isNumber(this,event)" /><span style="color:#FFFFFF;"> Mbps</span>
 &nbsp;&nbsp;&nbsp;&nbsp;
-<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_ulimit_up" value="20" onkeypress="return validator.isNumber(this, event)" /><span style="color:#FFFFFF;"> Mbps</span><br />
+<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_ulimit_up" value="20" onkeypress="return validator.isNumber(this,event)" /><span style="color:#FFFFFF;"> Mbps</span><br />
 <span style="font-weight:bolder;color:#FFFFFF;">Lower Limit:&nbsp;&nbsp;&nbsp;&nbsp;</span>
-<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_llimit_down" value="50" onkeypress="return validator.isNumber(this, event)" /><span style="color:#FFFFFF;"> Mbps</span>
+<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_llimit_down" value="50" onkeypress="return validator.isNumber(this,event)" /><span style="color:#FFFFFF;"> Mbps</span>
 &nbsp;&nbsp;&nbsp;&nbsp;
-<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_llimit_up" value="10" onkeypress="return validator.isNumber(this, event)" /><span style="color:#FFFFFF;"> Mbps</span><br />
+<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="4" class="input_6_table removespacing" name="spdmerlin_autobw_llimit_up" value="10" onkeypress="return validator.isNumber(this,event)" /><span style="color:#FFFFFF;"> Mbps</span><br />
 </td>
 </tr>
 <tr class="even" id="rowautobwth">
 <td class="settingname">Threshold for updating QoS bandwidth values</td>
 <td class="settingvalue">
-<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_threshold_down" value="10" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_PercentRange(this)" onblur="Validate_PercentRange(this)" /><span style="color:#FFFFFF;"> %</span>
+<span class="schedulespan">Download</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_threshold_down" value="10" onkeypress="return validator.isNumber(this,event)" onkeyup="Validate_Number_Setting(this,100,0)" onblur="Validate_Number_Setting(this,100,0);Format_Number_Setting(this)" /><span style="color:#FFFFFF;"> %</span>
 &nbsp;&nbsp;&nbsp;&nbsp;
-<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_threshold_up" value="10" onkeypress="return validator.isNumber(this, event)" onkeyup="Validate_PercentRange(this)" onblur="Validate_PercentRange(this)" /><span style="color:#FFFFFF;"> %</span>
+<span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_threshold_up" value="10" onkeypress="return validator.isNumber(this,event)" onkeyup="Validate_Number_Setting(this,100,0)" onblur="Validate_Number_Setting(this,100,0);Format_Number_Setting(this)" /><span style="color:#FFFFFF;"> %</span>
 </td>
 </tr>
 <tr class="even" valign="middle">
@@ -300,7 +300,7 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 </td>
 </tr>
 <tr class="apply_gen" valign="top">
-<td colspan="2" style="background-color:rgb(77, 89, 93);">
+<td colspan="2" style="background-color:rgb(77,89,93);">
 <input type="button" onclick="ToggleDragZoom(this);" value="Drag Zoom On" class="button_gen" name="btnDragZoom">
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <input type="button" onclick="ResetZoom();" value="Reset Zoom" class="button_gen" name="btnResetZoom">
