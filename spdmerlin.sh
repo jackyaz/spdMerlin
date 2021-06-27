@@ -1575,17 +1575,17 @@ Run_Speedtest(){
 					timenow=$(date +"%s")
 					timenowfriendly=$(date +"%c")
 					
-					download="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
-					upload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
-					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
-					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $4}' | tr -d '(')"
-					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}' | tr -d '%')"
-					resulturl="$(grep 'Result URL' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}')"
-					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
-					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
+					download="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					upload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $4}' | tr -d '(')"
+					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $3}' | tr -d '%')"
+					resulturl="$(grep 'Result URL' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $3}')"
+					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $6}')"
+					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $6}')"
 					
-					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print substr($7,1,length($7)-1)}')"
-					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print substr($7,1,length($7)-1)}')"
+					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
+					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
 					
 					! Validate_Bandwidth "$download" && download=0;
 					! Validate_Bandwidth "$upload" && upload=0;
