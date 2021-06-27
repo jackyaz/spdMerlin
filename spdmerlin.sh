@@ -1587,6 +1587,9 @@ Run_Speedtest(){
 					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
 					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
 					
+					servername="$(grep Server "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | cut -f1 -d'(' | cut -f2 -d':' | awk '{$1=$1;print}')"
+					serverid="$(grep Server "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | cut -f2 -d'(' | awk '{print $3}' | tr -d ')')"
+					
 					! Validate_Bandwidth "$download" && download=0;
 					! Validate_Bandwidth "$upload" && upload=0;
 					! Validate_Bandwidth "$latency" && latency="null";
@@ -1603,15 +1606,15 @@ Run_Speedtest(){
 						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)}')"
 					fi
 					
-					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
+					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL,[ServerID] TEXT,[ServerName] TEXT);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					STORERESULTURL="$(StoreResultURL check)"
 					
 					if [ "$STORERESULTURL" = "true" ]; then
-						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'$resulturl',$datadownload,$dataupload);" > /tmp/spd-stats.sql
+						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload],[ServerID],[ServerName]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'$resulturl',$datadownload,$dataupload,$serverid,'$servername');" > /tmp/spd-stats.sql
 					elif [ "$STORERESULTURL" = "false" ]; then
-						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'',$datadownload,$dataupload);" > /tmp/spd-stats.sql
+						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload],[ServerID],[ServerName]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'',$datadownload,$dataupload,$serverid,'$servername');" > /tmp/spd-stats.sql
 					fi
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
@@ -1749,13 +1752,13 @@ Process_Upgrade(){
 	
 	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
 	for IFACE_NAME in $FULL_IFACELIST; do
-		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spdstats-upgrade.sql
+		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL,[ServerID] TEXT,[ServerName] TEXT);" > /tmp/spdstats-upgrade.sql
 		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 	done
 	
-	if [ ! -f "$SCRIPT_STORAGE_DIR/.indexcreated" ]; then
+	if [ ! -f "$SCRIPT_STORAGE_DIR/.databaseupgraded" ]; then
 		renice 15 $$
-		Print_Output true "Creating database table indexes..." "$PASS"
+		Print_Output true "Upgrading database..." "$PASS"
 		FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
 		for IFACE_NAME in $FULL_IFACELIST; do
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_download ON spdstats_${IFACE_NAME} (Timestamp,Download);" > /tmp/spdstats-upgrade.sql
@@ -1790,9 +1793,25 @@ Process_Upgrade(){
 			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
 				sleep 1
 			done
+			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerID] TEXT" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerName] TEXT" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_serverid ON spdstats_${IFACE_NAME} (Timestamp,ServerID);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_servername ON spdstats_${IFACE_NAME} (Timestamp,ServerName collate nocase);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
 			Generate_LastXResults "$IFACE_NAME"
 		done
-		touch "$SCRIPT_STORAGE_DIR/.indexcreated"
+		touch "$SCRIPT_STORAGE_DIR/.databaseupgraded"
 		Print_Output true "Database ready, continuing..." "$PASS"
 		renice 0 $$
 	fi
@@ -1809,7 +1828,7 @@ Generate_LastXResults(){
 		echo ".mode csv"
 		echo ".output /tmp/spd-lastx.csv"
 	} > /tmp/spd-lastx.sql
-	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL] FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);" >> /tmp/spd-lastx.sql
+	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL],[ServerID],[ServerName] FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);" >> /tmp/spd-lastx.sql
 	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
 	rm -f /tmp/spd-lastx.sql
 	sed -i 's/,,/,null,/g;s/"//g;' /tmp/spd-lastx.csv
@@ -1922,7 +1941,7 @@ Generate_CSVs(){
 				echo ".mode csv"
 				echo ".headers on"
 				echo ".output $CSV_OUTPUT_DIR/CompleteResults_${IFACE_NAME}.htm"
-				echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$(DaysToKeep check) day'))) ORDER BY [Timestamp] DESC;"
+				echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload],[ServerID],[ServerName] FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$(DaysToKeep check) day'))) ORDER BY [Timestamp] DESC;"
 			} > /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
 			rm -f /tmp/spd-complete.sql
