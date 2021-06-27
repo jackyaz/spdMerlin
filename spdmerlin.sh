@@ -1789,6 +1789,7 @@ Process_Upgrade(){
 			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
 				sleep 1
 			done
+			Generate_LastXResults "$IFACE_NAME"
 		done
 		touch "$SCRIPT_STORAGE_DIR/.indexcreated"
 		Print_Output true "Database ready, continuing..." "$PASS"
