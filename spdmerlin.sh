@@ -1729,6 +1729,7 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
+	rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
 	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
 		{
