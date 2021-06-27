@@ -3286,6 +3286,12 @@ Menu_AutoBW_Update(){
 	}
 	done
 	
+	autobwoutfile="$SCRIPT_STORAGE_DIR/.autobwoutfile"
+	TZ=$(cat /etc/TZ)
+	export TZ
+	
+	printf "AutoBW report - %s\\n\\n" "$(date +"%c")" > "$autobwoutfile"
+	
 	dspdkbps="$(echo "$(awk '{printf (1024*$1)}' /tmp/spdbwDownload)" "$dsf" | awk '{printf int($1*$2)}')"
 	uspdkbps="$(echo "$(awk '{printf (1024*$1)}' /tmp/spdbwUpload)" "$usf" | awk '{printf int($1*$2)}')"
 	
@@ -3293,18 +3299,18 @@ Menu_AutoBW_Update(){
 	rm -f /tmp/spdbwUpload
 	
 	if [ "$dspdkbps" -lt "$dlimitlow" ]; then
-		Print_Output true "Download speed ($dspdkbps Kbps) < lower limit ($dlimitlow Kbps)" "$WARN"
+		Print_Output true "Download speed ($dspdkbps Kbps) < lower limit ($dlimitlow Kbps)" "$WARN" | tee -a "$autobwoutfile"
 		dspdkbps="$dlimitlow"
 	elif [ "$dspdkbps" -gt "$dlimithigh" ] && [ "$dlimithigh" -gt 0 ]; then
-		Print_Output true "Download speed ($dspdkbps Kbps) > upper limit ($dlimithigh Kbps)" "$WARN"
+		Print_Output true "Download speed ($dspdkbps Kbps) > upper limit ($dlimithigh Kbps)" "$WARN" | tee -a "$autobwoutfile"
 		dspdkbps="$dlimithigh"
 	fi
 	
 	if [ "$uspdkbps" -lt "$ulimitlow" ]; then
-		Print_Output true "Upload speed ($uspdkbps Kbps) < lower limit ($ulimitlow Kbps)" "$WARN"
+		Print_Output true "Upload speed ($uspdkbps Kbps) < lower limit ($ulimitlow Kbps)" "$WARN" | tee -a "$autobwoutfile"
 		uspdkbps="$ulimitlow"
 	elif [ "$uspdkbps" -gt "$ulimithigh" ] && [ "$ulimithigh" -gt 0 ]; then
-		Print_Output true "Upload speed ($uspdkbps Kbps) > upper limit ($ulimithigh Kbps)" "$WARN"
+		Print_Output true "Upload speed ($uspdkbps Kbps) > upper limit ($ulimithigh Kbps)" "$WARN" | tee -a "$autobwoutfile"
 		uspdkbps="$ulimithigh"
 	fi
 	
@@ -3317,26 +3323,32 @@ Menu_AutoBW_Update(){
 	
 	if [ "$dspdkbps" -gt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$dspdkbps" -lt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
 		bw_changed="true"
-		nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
-		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS"
+		#nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
+		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS" | tee -a "$autobwoutfile"
 	else
-		Print_Output true "Calculated Download speed ($dspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD DOWN)% threshold of existing value ($old_dspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Download speed ($dspdkbps Kbps) does not exceed $(AutoBWConf check THRESHOLD DOWN)% threshold of existing value ($old_dspdkbps Kbps)" "$WARN" | tee -a "$autobwoutfile"
 	fi
 	
 	ubw_threshold="$(AutoBWConf check THRESHOLD UP | awk '{printf ($1/100)}')"
 	
 	if [ "$uspdkbps" -gt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$uspdkbps" -lt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
 		bw_changed="true"
-		nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
-		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS"
+		#nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
+		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS" | tee -a "$autobwoutfile"
 	else
-		Print_Output true "Calculated Upload speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Upload speed ($uspdkbps Kbps) does not exceed $(AutoBWConf check THRESHOLD UP)% threshold of existing value ($old_uspdkbps Kbps)" "$WARN" | tee -a "$autobwoutfile"
 	fi
 	
 	if [ "$bw_changed" = "true" ]; then
-		nvram commit
-		service "restart_qos;restart_firewall" >/dev/null 2>&1
+		:
+		#nvram commit
+		#service "restart_qos;restart_firewall" >/dev/null 2>&1
+		printf "AutoBW made changes to QoS bandwidth, QoS will be restarted" >> "$autobwoutfile"
+	else
+		printf "No changes made to QoS by AutoBW" >> "$autobwoutfile"
 	fi
+	
+	sed -i 's/[^a-zA-Z0-9():%<>-]/ /g;s/  1m//g;s/  33m//g;s/  0m//g' "$autobwoutfile"
 	
 	Clear_Lock
 }
