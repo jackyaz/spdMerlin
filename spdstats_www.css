@@ -75,12 +75,6 @@ td.nodata {
   padding: 0px !important;
 }
 
-.SettingsTable th.sectionheader {
-  padding-left: 10px !important;
-  border-right: solid 1px black !important;
-  border-left: solid 1px black !important;
-}
-
 .SettingsTable td {
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
@@ -217,4 +211,12 @@ div.schedulesettings {
 
 .spdtest_output {
   border: solid 1px black;
+}
+
+textarea.settings {
+  font-family: 'Courier New', Courier, mono !important;
+  font-size:11px !important;
+  padding:2px !important;
+  background:#576D73 !important;
+  width:98% !important;
 }
