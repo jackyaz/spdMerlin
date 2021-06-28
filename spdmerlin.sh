@@ -3343,7 +3343,7 @@ Menu_AutoBW_Update(){
 	
 	if [ "$dspdkbps" -gt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$dspdkbps" -lt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
 		bw_changed="true"
-		#nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
+		nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
 		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS" | tee -a "$autobwoutfile"
 	else
 		Print_Output true "Calculated Download speed ($dspdkbps Kbps) does not exceed $(AutoBWConf check THRESHOLD DOWN)% threshold of existing value ($old_dspdkbps Kbps)" "$WARN" | tee -a "$autobwoutfile"
@@ -3353,16 +3353,15 @@ Menu_AutoBW_Update(){
 	
 	if [ "$uspdkbps" -gt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$uspdkbps" -lt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
 		bw_changed="true"
-		#nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
+		nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
 		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS" | tee -a "$autobwoutfile"
 	else
 		Print_Output true "Calculated Upload speed ($uspdkbps Kbps) does not exceed $(AutoBWConf check THRESHOLD UP)% threshold of existing value ($old_uspdkbps Kbps)" "$WARN" | tee -a "$autobwoutfile"
 	fi
 	
 	if [ "$bw_changed" = "true" ]; then
-		:
-		#nvram commit
-		#service "restart_qos;restart_firewall" >/dev/null 2>&1
+		nvram commit
+		service "restart_qos;restart_firewall" >/dev/null 2>&1
 		printf "AutoBW made changes to QoS bandwidth, QoS will be restarted" >> "$autobwoutfile"
 	else
 		printf "No changes made to QoS by AutoBW" >> "$autobwoutfile"
