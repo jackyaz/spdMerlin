@@ -1583,6 +1583,8 @@ function ParseLastXData(name,data){
 			parsedsortline.DownloadData = resultfields[6].trim();
 			parsedsortline.UploadData = resultfields[7].trim();
 			parsedsortline.URL = resultfields[8].trim();
+			parsedsortline.ServerID = resultfields[9].trim();
+			parsedsortline.ServerName = resultfields[10].trim();
 			window['arraysortlistlines'+name].push(parsedsortline);
 		}
 		catch{
@@ -1601,6 +1603,7 @@ function SortTable(tableid,arrayid,sorttext,sortname,sortdir){
 			sorttype = 'date';
 		break
 		case 'ResultURL':
+		case 'ServerName':
 			sorttype = 'string';
 		break
 	}
@@ -1685,6 +1688,8 @@ function BuildLastXTable(name){
 	tablehtml += '<col style="width:80px;">';
 	tablehtml += '<col style="width:80px;">';
 	tablehtml += '<col style="width:130px;">';
+	tablehtml += '<col style="width:80px;">';
+	tablehtml += '<col style="width:250px;">';
 	
 	tablehtml += '<thead class="sortTableHeader">';
 	tablehtml += '<tr>';
@@ -1697,6 +1702,8 @@ function BuildLastXTable(name){
 	tablehtml += '<th class="sortable" onclick="SortTable(\'sortTable'+name+'\',\'arraysortlistlines'+name+'\',this.innerHTML.replace(/ \\(.*\\)/,\'\').replace(\' \',\'\'),\'sortname'+name+'\',\'sortdir'+name+'\')">Download Data (MB)</th>';
 	tablehtml += '<th class="sortable" onclick="SortTable(\'sortTable'+name+'\',\'arraysortlistlines'+name+'\',this.innerHTML.replace(/ \\(.*\\)/,\'\').replace(\' \',\'\'),\'sortname'+name+'\',\'sortdir'+name+'\')">Upload Data (MB)</th>';
 	tablehtml += '<th class="sortable" onclick="SortTable(\'sortTable'+name+'\',\'arraysortlistlines'+name+'\',this.innerHTML.replace(/ \\(.*\\)/,\'\'),\'sortname'+name+'\',\'sortdir'+name+'\')">URL</th>';
+	tablehtml += '<th class="sortable" onclick="SortTable(\'sortTable'+name+'\',\'arraysortlistlines'+name+'\',this.innerHTML.replace(/ \\(.*\\)/,\'\').replace(\' \',\'\'),\'sortname'+name+'\',\'sortdir'+name+'\')">Server ID</th>';
+	tablehtml += '<th class="sortable" onclick="SortTable(\'sortTable'+name+'\',\'arraysortlistlines'+name+'\',this.innerHTML.replace(/ \\(.*\\)/,\'\').replace(\' \',\'\'),\'sortname'+name+'\',\'sortdir'+name+'\')">Server Name</th>';
 	tablehtml += '</tr>';
 	tablehtml += '</thead>';
 	tablehtml += '<tbody class="sortTableContent">';
@@ -1717,6 +1724,8 @@ function BuildLastXTable(name){
 		else{
 			tablehtml += '<td>No result URL</td>';
 		}
+		tablehtml += '<td>'+window['arraysortlistlines'+name][i].ServerID.replace("null","")+'</td>';
+		tablehtml += '<td>'+window['arraysortlistlines'+name][i].ServerName.replace("null","")+'</td>';
 		tablehtml += '</tr>';
 	}
 	
