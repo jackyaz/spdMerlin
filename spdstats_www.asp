@@ -135,11 +135,14 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 <div style="line-height:10px;">&nbsp;</div>
 <table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable SettingsTable" style="border:0px;" id="table_config">
 <thead class="collapsible-jquery" id="scriptconfig">
-<tr><td colspan="2">General Configuration (click to expand/collapse)</td></tr>
+<td colspan="2">General Configuration (click to expand/collapse)</td>
 </thead>
-<tr class="even" valign="middle">
-<th colspan="2" class="sectionheader">Automatic speedtest configuration</th>
-</tr>
+<tr class="even" valign="middle" style="border-width:0px 1px;border-style:solid;border-color:black;">
+<td style="padding:0px;">
+<table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable SettingsTable" style="border:0px;">
+<thead class="collapsible-jquery" id="testconfig">
+<td colspan="2">Automatic speedtest configuration</td>
+</thead>
 <tr class="even" id="rowautomatedtests">
 <td class="settingname">Enable automatic speedtests</td>
 <td class="settingvalue">
@@ -194,9 +197,12 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 </div>
 </td>
 </tr>
-<tr class="even" valign="middle">
-<th colspan="2" class="sectionheader">AutoBW configuration</th>
-</tr>
+</table>
+<div style="line-height:10px;">&nbsp;</div>
+<table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable SettingsTable" style="border:0px;">
+<thead class="collapsible-jquery" id="autobwconfig">
+<td colspan="2">AutoBW configuration</td>
+</thead>
 <tr class="even" id="rowautobwenabled">
 <td class="settingname">Enable AutoBW?<br/><span style="color:#FFCC00;background:#2F3A3E;">Automatically adjust QoS bandwidth limits using automatic speedtest data</span></td>
 <td class="settingvalue">
@@ -240,9 +246,18 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 <span class="schedulespan">Upload</span><input autocomplete="off" type="text" maxlength="3" class="input_6_table removespacing" name="spdmerlin_autobw_threshold_up" value="10" onkeypress="return validator.isNumber(this,event)" onkeyup="Validate_Number_Setting(this,100,0)" onblur="Validate_Number_Setting(this,100,0);Format_Number_Setting(this)" /><span style="color:#FFFFFF;"> %</span>
 </td>
 </tr>
-<tr class="even" valign="middle">
-<th colspan="2" class="sectionheader">Script configuration</th>
+<tr>
+<td class="settingname">AutoBW status</td>
+<td class="settingvalue" style="padding:2px">
+<textarea cols="75" rows="15" wrap="soft" readonly="readonly" id="AutoBWOutput" class="textarea_log_table settings" style="font-size:11px;"></textarea>
+</td>
 </tr>
+</table>
+<div style="line-height:10px;">&nbsp;</div>
+<table width="100%" border="1" align="center" cellpadding="2" cellspacing="0" bordercolor="#6b8fa3" class="FormTable SettingsTable" style="border:0px;">
+<thead class="collapsible-jquery" id="generalconfig">
+<td colspan="2">Script configuration</td>
+</thead>
 <tr class="even" id="rowtimeoutput">
 <td class="settingname">Time Output Mode<br/><span style="color:#FFCC00;background:#2F3A3E;">(for CSV export)</span></td>
 <td class="settingvalue">
@@ -252,7 +267,6 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 <label for="spdmerlin_timeoutput_unix">Unix</label>
 </td>
 </tr>
-
 <tr class="even" id="rowlastxresults">
 <td class="settingname">Last X results to display</td>
 <td class="settingvalue">
@@ -267,7 +281,6 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 &nbsp;days <span style="color:#FFCC00;">(between 30 and 365,default: 30)</span>
 </td>
 </tr>
-
 <tr class="even" id="rowstorageloc">
 <td class="settingname">Data Storage Location</td>
 <td class="settingvalue">
@@ -293,6 +306,9 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 <label for="spdmerlin_exclude_true">Yes</label>
 <input type="radio" name="spdmerlin_excludefromqos" id="spdmerlin_exclude_false" class="input" value="false">
 <label for="spdmerlin_exclude_false">No</label>
+</td>
+</tr>
+</table>
 </td>
 </tr>
 <tr class="apply_gen" valign="top" height="35px">
@@ -327,9 +343,7 @@ var $j=jQuery.noConflict(),daysofweek=["Mon","Tues","Wed","Thurs","Fri","Sat","S
 </td>
 </tr>
 </table>
-
 <!-- Charts inserted here -->
-
 </td>
 </tr>
 </tbody>
