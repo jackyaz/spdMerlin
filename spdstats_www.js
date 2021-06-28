@@ -1343,6 +1343,19 @@ function GetVersionNumber(versiontype){
 	}
 }
 
+function get_autobw_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/autobwoutfile.htm',
+		dataType: 'text',
+		error: function(xhr){
+			setTimeout(get_autobw_file,5000);
+		},
+		success: function(data){
+			document.getElementById('AutoBWOutput').innerHTML=data;
+		}
+	});
+}
+
 function get_conf_file(){
 	$j.ajax({
 		url: '/ext/spdmerlin/config.htm',
@@ -1410,6 +1423,7 @@ function get_conf_file(){
 			ScheduleModeToggle($j('#schmode_'+$j('[name=schedulemode]:checked').val().toLowerCase())[0]);
 		}
 	});
+	get_autobw_file();
 }
 
 function get_interfaces_file(){
