@@ -1348,7 +1348,6 @@ function get_autobw_file(){
 		url: '/ext/spdmerlin/autobwoutfile.htm',
 		dataType: 'text',
 		error: function(xhr){
-			setTimeout(get_autobw_file,5000);
 		},
 		success: function(data){
 			document.getElementById('AutoBWOutput').innerHTML=data;
