@@ -3553,6 +3553,8 @@ case "$1" in
 	service_event)
 		if [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}spdtest"; then
 			rm -f /tmp/detect_spdtest.js
+			rm -f /tmp/spd-result.txt
+			rm -f /tmp/spd-stats.txt
 			Check_Lock webui
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
