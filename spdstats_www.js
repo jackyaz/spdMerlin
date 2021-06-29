@@ -1277,7 +1277,7 @@ function RunSpeedtest(){
 	document.formScriptActions.submit();
 	showhide('imgSpdTest',true);
 	showhide('spdtest_text',false);
-	setTimeout(StartSpeedTestInterval,3000);
+	setTimeout(StartSpeedTestInterval,2000);
 }
 
 var myinterval;
