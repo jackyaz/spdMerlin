@@ -3556,7 +3556,6 @@ case "$1" in
 			rm -f /tmp/spd-result.txt
 			rm -f /tmp/spd-stats.txt
 			Check_Lock webui
-			sleep 1
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
 			exit 0
