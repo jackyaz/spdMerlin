@@ -1407,8 +1407,8 @@ Run_Speedtest(){
 	
 	tmpfile=/tmp/spd-stats.txt
 	resultfile=/tmp/spd-result.txt
-	echo "" > "$resultfile"
-	echo "" > "$tmpfile"
+	rm -f "$resultfile"
+	rm -f "$tmpfile"
 	
 	if [ -n "$(pidof speedtest)" ]; then
 		killall speedtest
@@ -3552,9 +3552,9 @@ case "$1" in
 	;;
 	service_event)
 		if [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}spdtest"; then
-			echo "" > /tmp/detect_spdtest.js
-			echo "" > /tmp/spd-result.txt
-			echo "" > /tmp/spd-stats.txt
+			rm -f /tmp/detect_spdtest.js
+			rm -f /tmp/spd-result.txt
+			rm -f /tmp/spd-stats.txt
 			Check_Lock webui
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
