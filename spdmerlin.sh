@@ -1794,13 +1794,9 @@ Process_Upgrade(){
 				sleep 1
 			done
 			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerID] TEXT" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1
 			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerName] TEXT" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_serverid ON spdstats_${IFACE_NAME} (Timestamp,ServerID);" > /tmp/spdstats-upgrade.sql
 			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
 				sleep 1
@@ -2346,10 +2342,6 @@ Menu_Install(){
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
 	
-	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
-	for IFACE_NAME in $FULL_IFACELIST; do
-		touch "$SCRIPT_STORAGE_DIR/lastx_${IFACE_NAME}.csv"
-	done
 	Process_Upgrade
 	
 	License_Acceptance accept
