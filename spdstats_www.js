@@ -1284,7 +1284,7 @@ var myinterval;
 var intervalclear = false;
 function StartSpeedTestInterval(){
 	intervalclear = false;
-	myinterval = setInterval(update_spdtest,500);
+	myinterval = setInterval(update_spdtest,1000);
 }
 
 function SaveConfig(){
