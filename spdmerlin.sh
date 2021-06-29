@@ -351,7 +351,7 @@ License_Acceptance(){
 				read -r confirm
 				case "$confirm" in
 					y|Y)
-						"$OOKLA_DIR/speedtest" --accept-license --accept-gdpr
+						Run_Speedtest "auto" "All"
 						License_Acceptance save
 						return 0
 					;;
