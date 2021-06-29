@@ -1812,6 +1812,7 @@ Process_Upgrade(){
 			Generate_LastXResults "$IFACE_NAME"
 		done
 		touch "$SCRIPT_STORAGE_DIR/.databaseupgraded"
+		Generate_CSVs
 		Print_Output true "Database ready, continuing..." "$PASS"
 		renice 0 $$
 	fi
