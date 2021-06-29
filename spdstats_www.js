@@ -1144,7 +1144,7 @@ function get_spdtestresult_file(){
 		url: '/ext/spdmerlin/spd-result.htm',
 		dataType: 'text',
 		error: function(xhr){
-			setTimeout(get_spdtestresult_file,1000);
+			setTimeout(get_spdtestresult_file,500);
 		},
 		success: function(data){
 			var lines = data.trim().split('\n');
