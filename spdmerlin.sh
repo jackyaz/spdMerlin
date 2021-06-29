@@ -1859,7 +1859,7 @@ Generate_CSVs(){
 			timenow=$(date +"%s")
 			timenowfriendly=$(date +"%c")
 			
-			metriclist="Download Upload Latency Jitter PktLoss DataDownload DataUpload"
+			metriclist="Download Upload Latency Jitter PktLoss" # DataDownload DataUpload"
 			
 			for metric in $metriclist; do
 				{
@@ -1916,12 +1916,12 @@ Generate_CSVs(){
 				cat "$CSV_OUTPUT_DIR/Latency_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Jitter_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/PktLoss_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Quality_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
 				cat "$CSV_OUTPUT_DIR/Latency_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Jitter_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/PktLoss_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Quality_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
 				
-				cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
-				cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
-				cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
+				#cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
+				#cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
+				#cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
 			done
 				
-			csvlist="Combined Quality DataUsage"
+			csvlist="Combined Quality" # DataUsage"
 			for csvfile in $csvlist; do
 				rm -f "$CSV_OUTPUT_DIR/${csvfile}daily_${IFACE_NAME}.htm"
 				rm -f "$CSV_OUTPUT_DIR/${csvfile}weekly_${IFACE_NAME}.htm"
