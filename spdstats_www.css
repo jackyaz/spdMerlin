@@ -1,0 +1,222 @@
+p {
+  font-weight: bolder;
+}
+
+thead.collapsible-jquery {
+  color: white;
+  padding: 0px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  cursor: pointer;
+}
+
+td.nodata {
+  font-size: 48px !important;
+  font-weight: bolder !important;
+  height: 65px !important;
+  font-family: Arial !important;
+  border: none !important;
+  text-align: center !important;
+}
+
+.SettingsTable {
+  text-align: left;
+}
+
+.SettingsTable input {
+  text-align: left;
+  margin-left: 3px !important;
+}
+
+.SettingsTable input.savebutton {
+  text-align: center;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  border-right: solid 1px black;
+  border-left: solid 1px black;
+  border-bottom: solid 1px black;
+}
+
+.SettingsTable td.savebutton {
+  border-right: solid 1px black;
+  border-left: solid 1px black;
+  border-bottom: solid 1px black;
+  background-color:rgb(77,89,93);
+}
+
+.SettingsTable .cronbutton {
+  text-align: center;
+  min-width: 50px;
+  width: 50px;
+  height: 23px;
+  vertical-align: middle;
+}
+
+.SettingsTable select {
+  margin-left: 3px !important;
+}
+
+.SettingsTable label {
+  margin-right: 10px !important;
+  vertical-align: top !important;
+}
+
+.SettingsTable th {
+  background-color: #1F2D35 !important;
+  background: #2F3A3E !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  font-size: 12px !important;
+  color: white !important;
+  padding: 4px !important;
+  font-weight: bolder !important;
+  padding: 0px !important;
+}
+
+.SettingsTable td {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  border-right: none;
+  border-left: none;
+}
+
+.SettingsTable span.settingname {
+  background-color: #1F2D35 !important;
+  background: #2F3A3E !important;
+}
+
+.SettingsTable td.settingname {
+  border-right: solid 1px black;
+  border-left: solid 1px black;
+  background-color: #1F2D35 !important;
+  background: #2F3A3E !important;
+  width: 35% !important;
+}
+
+.SettingsTable td.settingvalue {
+  text-align: left !important;
+  border-right: solid 1px black;
+}
+
+.SettingsTable th:first-child{
+  border-left: none !important;
+}
+
+.SettingsTable th:last-child {
+  border-right: none !important;
+}
+
+
+.SettingsTable .invalid {
+  background-color: darkred !important;
+}
+
+.SettingsTable .disabled {
+  background-color: #CCCCCC !important;
+  color: #888888 !important;
+}
+
+div.sortTableContainer {
+  height: 300px;
+  overflow-y: scroll;
+  width: 745px;
+  border: 1px solid #000;
+}
+
+.sortTable {
+  table-layout: fixed !important;
+  border: none;
+}
+
+thead.sortTableHeader th {
+  background-image: linear-gradient(rgb(146, 160, 165) 0%, rgb(102, 117, 124) 100%);
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #000 !important;
+  font-weight: bolder;
+  padding: 2px;
+  text-align: center;
+  color: #fff;
+  position: sticky;
+  top: 0;
+  font-size: 11px !important;
+}
+
+thead.sortTableHeader th:first-child,
+thead.sortTableHeader th:last-child {
+  border-right: none !important;
+}
+
+thead.sortTableHeader th:last-child {
+  /*padding-left: 4px !important;*/
+}
+
+thead.sortTableHeader th:first-child,
+thead.sortTableHeader td:first-child {
+  border-left: none !important;
+}
+
+tbody.sortTableContent td:last-child, tbody.sortTableContent tr.sortNormalRow td:last-child, tbody.sortTableContent tr.sortAlternateRow td:last-child {
+  /*padding-left: 4px !important;*/
+}
+
+tbody.sortTableContent td{
+  border-bottom: 1px solid #000 !important;
+  border-left: none !important;
+  border-right: 1px solid #000 !important;
+  border-top: none !important;
+  padding: 2px;
+  text-align: center;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+}
+
+tbody.sortTableContent tr.sortRow:nth-child(odd) td {
+  background-color: #2F3A3E !important;
+}
+
+tbody.sortTableContent tr.sortRow:nth-child(even) td {
+  background-color: #475A5F !important;
+}
+
+th.sortable {
+  cursor: pointer;
+}
+
+tbody.sortTableContent td a{
+  text-decoration: underline !important;
+}
+
+.removespacing {
+  padding-left: 0px !important;
+  margin-left: 0px !important;
+  margin-bottom: 5px !important;
+  text-align: center !important;
+}
+
+.schedulespan {
+  display:inline-block !important;
+  width:70px !important;
+  color:#FFFFFF !important;
+  font-weight: bold !important;
+}
+
+div.schedulesettings {
+  margin-bottom: 5px;
+}
+
+.spdtest_output {
+  border: solid 1px black;
+}
+
+textarea.settings {
+  font-family: 'Courier New', Courier, mono !important;
+  font-size:11px !important;
+  padding:2px !important;
+  background:#576D73 !important;
+  width:98% !important;
+}

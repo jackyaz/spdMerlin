@@ -1,21 +1,22 @@
 #!/bin/sh
 
-############################################################
-##                   _  __  __              _  _          ##
-##                  | ||  \/  |            | |(_)         ##
-##   ___  _ __    __| || \  / |  ___  _ __ | | _  _ __    ##
-##  / __|| '_ \  / _` || |\/| | / _ \| '__|| || || '_ \   ##
-##  \__ \| |_) || (_| || |  | ||  __/| |   | || || | | |  ##
-##  |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_|  ##
-##       | |                                              ##
-##       |_|                                              ##
-##                                                        ##
-##        https://github.com/jackyaz/spdMerlin            ##
-##                                                        ##
-############################################################
+##############################################################
+##                    _  __  __              _  _           ##
+##                   | ||  \/  |            | |(_)          ##
+##    ___  _ __    __| || \  / |  ___  _ __ | | _  _ __     ##
+##   / __|| '_ \  / _` || |\/| | / _ \| '__|| || || '_ \    ##
+##   \__ \| |_) || (_| || |  | ||  __/| |   | || || | | |   ##
+##   |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_|   ##
+##        | |                                               ##
+##        |_|                                               ##
+##                                                          ##
+##         https://github.com/jackyaz/spdMerlin             ##
+##                                                          ##
+##############################################################
 
-#############        Shellcheck directives      ############
+##############        Shellcheck directives      #############
 # shellcheck disable=SC2009
+# shellcheck disable=SC2012
 # shellcheck disable=SC2016
 # shellcheck disable=SC2018
 # shellcheck disable=SC2019
@@ -24,12 +25,12 @@
 # shellcheck disable=SC2059
 # shellcheck disable=SC2155
 # shellcheck disable=SC3045
-############################################################
+##############################################################
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="spdMerlin"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v4.2.1"
+readonly SCRIPT_VERSION="v4.3.0"
 SCRIPT_BRANCH="master"
 SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -54,7 +55,9 @@ readonly CRIT="\\e[41m"
 readonly ERR="\\e[31m"
 readonly WARN="\\e[33m"
 readonly PASS="\\e[32m"
-readonly SETTING="\\e[1m\\e[36m"
+readonly BOLD="\\e[1m"
+readonly SETTING="${BOLD}\\e[36m"
+readonly CLEARFORMAT="\\e[0m"
 ### End of output format variables ###
 
 ### Start of Speedtest Server Variables ###
@@ -67,7 +70,7 @@ Print_Output(){
 	if [ "$1" = "true" ]; then
 		logger -t "$SCRIPT_NAME" "$2"
 	fi
-	printf "\\e[1m${3}%s\\e[0m\\n\\n" "$2"
+	printf "${BOLD}${3}%s${CLEARFORMAT}\\n\\n" "$2"
 }
 
 Firmware_Version_Check(){
@@ -188,7 +191,7 @@ Update_Version(){
 		fi
 		
 		if [ "$isupdate" != "false" ]; then
-			printf "\\n\\e[1mDo you want to continue with the update? (y/n)\\e[0m  "
+			printf "\\n${BOLD}Do you want to continue with the update? (y/n)${CLEARFORMAT}  "
 			read -r confirm
 			case "$confirm" in
 				y|Y)
@@ -342,13 +345,13 @@ License_Acceptance(){
 				printf "\\n    http://www.speedtest.net/privacy\\n"
 				printf "\\n==============================================================================\\n\\n"
 				
-				printf "\\n\\e[1mYou must accept the license agreements for Speedtest CLI to use %s. Do you want to continue? (y/n)\\e[0m\\n" "$SCRIPT_NAME"
-				printf "\\e[1mNote: This will require an initial speedtest to run, please be patient\\e[0m\\n"
-				printf "\\e[1mEnter answer:\\e[0m  "
+				printf "\\n${BOLD}You must accept the license agreements for Speedtest CLI to use %s. Do you want to continue? (y/n)${CLEARFORMAT}\\n" "$SCRIPT_NAME"
+				printf "${BOLD}Note: This will require an initial speedtest to run, please be patient${CLEARFORMAT}\\n"
+				printf "${BOLD}Enter answer:${CLEARFORMAT}  "
 				read -r confirm
 				case "$confirm" in
 					y|Y)
-						"$OOKLA_DIR/speedtest" --accept-license --accept-gdpr >/dev/null 2>&1
+						Run_Speedtest "auto" "All"
 						License_Acceptance save
 						return 0
 					;;
@@ -456,11 +459,16 @@ Create_Symlinks(){
 	ln -s /tmp/spd-stats.txt "$SCRIPT_WEB_DIR/spd-stats.htm" 2>/dev/null
 	ln -s /tmp/spd-result.txt "$SCRIPT_WEB_DIR/spd-result.htm" 2>/dev/null
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
+	ln -s "$SCRIPT_STORAGE_DIR/.autobwoutfile" "$SCRIPT_WEB_DIR/autobwoutfile.htm" 2>/dev/null
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
 	ln -s "$SCRIPT_INTERFACES_USER"  "$SCRIPT_WEB_DIR/interfaces_user.htm" 2>/dev/null
-	ln -s "$SCRIPT_STORAGE_DIR/spdjs.js" "$SCRIPT_WEB_DIR/spdjs.js" 2>/dev/null
 	ln -s "$SCRIPT_STORAGE_DIR/spdtitletext.js" "$SCRIPT_WEB_DIR/spdtitletext.js" 2>/dev/null
+	
+	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+	for IFACE_NAME in $FULL_IFACELIST; do
+		ln -s "$SCRIPT_STORAGE_DIR/lastx_${IFACE_NAME}.csv" "$SCRIPT_WEB_DIR/lastx_${IFACE_NAME}.htm"
+	done
 	
 	ln -s "$CSV_OUTPUT_DIR" "$SCRIPT_WEB_DIR/csv" 2>/dev/null
 	
@@ -557,10 +565,10 @@ Interfaces_FromSettings(){
 				if echo "$interfaceline" | grep -q "#excluded" ; then
 					IFACE_LOWER="$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')" | tr "A-Z" "a-z")"
 					if [ ! -f "/sys/class/net/$IFACE_LOWER/operstate" ] || [ "$(cat "/sys/class/net/$IFACE_LOWER/operstate")" = "down" ]; then
-						sed -i "$ifacelinenumber"'s/ #excluded#/ #excluded - interface not up#/' "$SCRIPT_INTERFACES_USER"
+						sed -i "${ifacelinenumber}s/ #excluded#/ #excluded - interface not up#/" "$SCRIPT_INTERFACES_USER"
 					else
-						sed -i "$ifacelinenumber"'s/ #excluded - interface not up#//' "$SCRIPT_INTERFACES_USER"
-						sed -i "$ifacelinenumber"'s/ #excluded#//' "$SCRIPT_INTERFACES_USER"
+						sed -i "${ifacelinenumber}s/ #excluded - interface not up#//" "$SCRIPT_INTERFACES_USER"
+						sed -i "${ifacelinenumber}s/ #excluded#//" "$SCRIPT_INTERFACES_USER"
 					fi
 				else
 					IFACE_LOWER="$(Get_Interface_From_Name "$(echo "$interfaceline" | cut -f1 -d"#" | sed 's/ *$//')" | tr "A-Z" "a-z")"
@@ -602,13 +610,22 @@ Conf_Exists(){
 		if ! grep -q "AUTOBW_AVERAGE_CALC" "$SCRIPT_CONF"; then
 			echo "AUTOBW_AVERAGE_CALC=10" >> "$SCRIPT_CONF"
 		fi
+		if grep -q "OUTPUTDATAMODE" "$SCRIPT_CONF"; then
+			sed -i '/OUTPUTDATAMODE/d;' "$SCRIPT_CONF"
+		fi
+		if ! grep -q "DAYSTOKEEP" "$SCRIPT_CONF"; then
+			echo "DAYSTOKEEP=30" >> "$SCRIPT_CONF"
+		fi
+		if ! grep -q "LASTXRESULTS" "$SCRIPT_CONF"; then
+			echo "LASTXRESULTS=10" >> "$SCRIPT_CONF"
+		fi
 		return 0
 	else
-		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTDATAMODE=raw"; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
+		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
 		for index in 1 2 3 4 5; do
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
-		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "AUTOBW_AVERAGE_CALC=10"; echo "STORERESULTURL=false"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42";} >> "$SCRIPT_CONF"
+		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "AUTOBW_AVERAGE_CALC=10"; echo "STORERESULTURL=true"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42"; echo "DAYSTOKEEP=30"; echo "LASTXRESULTS=10";} >> "$SCRIPT_CONF"
 		return 1
 	fi
 }
@@ -779,17 +796,17 @@ Generate_Interface_List(){
 	printf "\\ne)  Go back\\n"
 	
 	while true; do
-	printf "\\n\\e[1mPlease select a chart to toggle inclusion in %s (1-%s):\\e[0m  " "$SCRIPT_NAME" "$interfacecount"
+	printf "\\n${BOLD}Please select a chart to toggle inclusion in %s (1-%s):${CLEARFORMAT}  " "$SCRIPT_NAME" "$interfacecount"
 	read -r interface
 	
 	if [ "$interface" = "e" ]; then
 		goback="true"
 		break
 	elif ! Validate_Number "$interface"; then
-		printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$interfacecount"
+		printf "\\n\\e[31mPlease enter a valid number (1-%s)${CLEARFORMAT}\\n" "$interfacecount"
 	else
 		if [ "$interface" -lt 1 ] || [ "$interface" -gt "$interfacecount" ]; then
-			printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$interfacecount"
+			printf "\\n\\e[31mPlease enter a number between 1 and %s${CLEARFORMAT}\\n" "$interfacecount"
 		else
 			interfaceline="$(sed "$interface!d" "$SCRIPT_INTERFACES_USER" | awk '{$1=$1};1')"
 			if echo "$interfaceline" | grep -q "#excluded" ; then
@@ -963,7 +980,6 @@ ScriptStorageLocation(){
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/.interfaces_user" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/config" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/config.bak" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
-			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdjs.js" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdtitletext.js" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/spdstats.db" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			SCRIPT_CONF="/opt/share/$SCRIPT_NAME_LOWER.d/config"
@@ -977,7 +993,6 @@ ScriptStorageLocation(){
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/.interfaces_user" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/config" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/config.bak" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
-			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdjs.js" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdtitletext.js" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/spdstats.db" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME_LOWER.d/config"
@@ -1002,23 +1017,6 @@ ScriptStorageLocation(){
 	esac
 }
 
-OutputDataMode(){
-	case "$1" in
-		raw)
-			sed -i 's/^OUTPUTDATAMODE.*$/OUTPUTDATAMODE=raw/' "$SCRIPT_CONF"
-			Generate_CSVs
-		;;
-		average)
-			sed -i 's/^OUTPUTDATAMODE.*$/OUTPUTDATAMODE=average/' "$SCRIPT_CONF"
-			Generate_CSVs
-		;;
-		check)
-			OUTPUTDATAMODE=$(grep "OUTPUTDATAMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
-			echo "$OUTPUTDATAMODE"
-		;;
-	esac
-}
-
 OutputTimeMode(){
 	case "$1" in
 		unix)
@@ -1032,6 +1030,97 @@ OutputTimeMode(){
 		check)
 			OUTPUTTIMEMODE=$(grep "OUTPUTTIMEMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
 			echo "$OUTPUTTIMEMODE"
+		;;
+	esac
+}
+
+DaysToKeep(){
+	case "$1" in
+		update)
+			daystokeep=30
+			exitmenu=""
+			ScriptHeader
+			while true; do
+				printf "\\n${BOLD}Please enter the desired number of days\\nto keep data for (30-365 days):${CLEARFORMAT}  "
+				read -r daystokeep_choice
+				
+				if [ "$daystokeep_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif ! Validate_Number "$daystokeep_choice"; then
+					printf "\\n${ERR}Please enter a valid number (30-365)${CLEARFORMAT}\\n"
+				elif [ "$daystokeep_choice" -lt 30 ] || [ "$daystokeep_choice" -gt 365 ]; then
+						printf "\\n${ERR}Please enter a number between 30 and 365${CLEARFORMAT}\\n"
+				else
+					daystokeep="$daystokeep_choice"
+					printf "\\n"
+					break
+				fi
+			done
+			
+			if [ "$exitmenu" != "exit" ]; then
+				sed -i 's/^DAYSTOKEEP.*$/DAYSTOKEEP='"$daystokeep"'/' "$SCRIPT_CONF"
+				return 0
+			else
+				printf "\\n"
+				return 1
+			fi
+		;;
+		check)
+			DAYSTOKEEP=$(grep "DAYSTOKEEP" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$DAYSTOKEEP"
+		;;
+	esac
+}
+
+LastXResults(){
+	case "$1" in
+		update)
+			lastxresults=10
+			exitmenu=""
+			ScriptHeader
+			while true; do
+				printf "\\n${BOLD}Please enter the desired number of results\\nto display in the WebUI (1-100):${CLEARFORMAT}  "
+				read -r lastx_choice
+				
+				if [ "$lastx_choice" = "e" ]; then
+					exitmenu="exit"
+					break
+				elif ! Validate_Number "$lastx_choice"; then
+					printf "\\n${ERR}Please enter a valid number (1-100)${CLEARFORMAT}\\n"
+				elif [ "$lastx_choice" -lt 1 ] || [ "$lastx_choice" -gt 100 ]; then
+						printf "\\n${ERR}Please enter a number between 1 and 100${CLEARFORMAT}\\n"
+				else
+					lastxresults="$lastx_choice"
+					printf "\\n"
+					break
+				fi
+			done
+			
+			if [ "$exitmenu" != "exit" ]; then
+				sed -i 's/^LASTXRESULTS.*$/LASTXRESULTS='"$lastxresults"'/' "$SCRIPT_CONF"
+				
+				IFACELIST=""
+				
+				while IFS='' read -r line || [ -n "$line" ]; do
+					IFACELIST="$IFACELIST $(echo "$line" | cut -f1 -d"#" | sed 's/ *$//')"
+				done < "$SCRIPT_INTERFACES_USER"
+				IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
+				
+				if [ "$IFACELIST" != "" ]; then
+					for IFACE_NAME in $IFACELIST; do
+						Generate_LastXResults "$IFACE_NAME"
+					done
+				fi
+				return 0
+			else
+				printf "\\n"
+				return 1
+			fi
+		;;
+		check)
+			LASTXRESULTS=$(grep "LASTXRESULTS" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$LASTXRESULTS"
 		;;
 	esac
 }
@@ -1092,20 +1181,26 @@ AutoBWConf(){
 	esac
 }
 
-WritePlainData_ToJS(){
-	inputfile="$1"
-	outputfile="$2"
-	shift;shift
-	i=0
-	for var in "$@"; do
-		i=$((i+1))
+#$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 outputfrequency $7 interfacename $8 sqlfile $9 timestamp
+WriteSql_ToFile(){
+	timenow="$9"
+	maxcount="$(echo "$3" "$4" | awk '{printf ((24*$2)/$1)}')"
+	
+	if ! echo "$5" | grep -q "day"; then
 		{
-			echo "var $var;"
-			echo "$var = [];"
-			echo "${var}.unshift('$(awk -v i=$i '{printf t $i} {t=","}' "$inputfile" | sed "s~,~\\',\\'~g")');"
-			echo
-		} >> "$outputfile"
-	done
+			echo ".mode csv"
+			echo ".headers off"
+			echo ".output ${5}_${6}_${7}.tmp"
+			echo "SELECT '$1' Metric,Min(strftime('%s',datetime(strftime('%Y-%m-%d %H:00:00',datetime([Timestamp],'unixepoch'))))) Time,IFNULL(printf('%f',Avg($1)),'NaN') Value FROM $2 WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$maxcount hour'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch')),strftime('%d',datetime([Timestamp],'unixepoch')),strftime('%H',datetime([Timestamp],'unixepoch')) ORDER BY [Timestamp] DESC;"
+		} > "$8"
+	else
+		{
+			echo ".mode csv"
+			echo ".headers off"
+			echo ".output ${5}_${6}_${7}.tmp"
+			echo "SELECT '$1' Metric,Max(strftime('%s',datetime([Timestamp],'unixepoch','localtime','start of day','utc'))) Time,IFNULL(printf('%f',Avg($1)),'NaN') Value FROM $2 WHERE ([Timestamp] > strftime('%s',datetime($timenow,'unixepoch','localtime','start of day','utc','+1 day','-$maxcount day'))) GROUP BY strftime('%m',datetime([Timestamp],'unixepoch','localtime')),strftime('%d',datetime([Timestamp],'unixepoch','localtime')) ORDER BY [Timestamp] DESC;"
+		} > "$8"
+	fi
 }
 
 WriteStats_ToJS(){
@@ -1116,34 +1211,6 @@ WriteStats_ToJS(){
 	done < "$1"
 	html="$html"'"'
 	printf "%s\\r\\n}\\r\\n" "$html" >> "$2"
-}
-
-#$1 fieldname $2 tablename $3 frequency (hours) $4 length (days) $5 outputfile $6 outputfrequency $7 interfacename $8 sqlfile $9 timestamp
-WriteSql_ToFile(){
-	timenow="$9"
-	maxcount="$(echo "$3" "$4" | awk '{printf ((24*$2)/$1)}')"
-	multiplier="$(echo "$3" | awk '{printf (60*60*$1)}')"
-	{
-		echo ".mode csv"
-		echo ".headers off"
-		echo ".output ${5}${6}_${7}.tmp"
-	} >> "$8"
-	
-	echo "SELECT '$1' Metric, Min([Timestamp]) Time, IFNULL(Avg([$1]),'NaN') Value FROM $2 WHERE ([Timestamp] >= $timenow - ($multiplier*$maxcount)) GROUP BY ([Timestamp]/($multiplier));" >> "$8"
-}
-
-#$1 iface name
-Generate_LastXResults(){
-	{
-		echo ".mode csv"
-		echo ".output /tmp/spd-lastx.csv"
-	} > /tmp/spd-lastx.sql
-	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL]FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT 10;" >> /tmp/spd-lastx.sql
-	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
-	sed -i 's/,,/,null,/g;s/,/ /g;s/"//g;' /tmp/spd-lastx.csv
-	WritePlainData_ToJS /tmp/spd-lastx.csv "$SCRIPT_STORAGE_DIR/spdjs.js" "DataTimestamp_$1" "DataDownload_$1" "DataUpload_$1" "DataLatency_$1" "DataJitter_$1" "DataPktLoss_$1" "DataDataDownload_$1" "DataDataUpload_$1" "DataResultURL_$1"
-	rm -f /tmp/spd-lastx.sql
-	rm -f /tmp/spd-lastx.csv
 }
 
 GenerateServerList(){
@@ -1175,9 +1242,9 @@ GenerateServerList(){
 	printf "\\ne)  Go back\\n"
 	
 	while true; do
-		printf "\\n\\e[1mPlease select a server from the list above (1-%s):\\e[0m\\n" "$servercount"
-		printf "\\n\\e[1mOr press c to enter a known server ID\\e[0m\\n"
-		printf "\\e[1mEnter answer:\\e[0m  "
+		printf "\\n${BOLD}Please select a server from the list above (1-%s):${CLEARFORMAT}\\n" "$servercount"
+		printf "\\n${BOLD}Or press c to enter a known server ID${CLEARFORMAT}\\n"
+		printf "${BOLD}Enter answer:${CLEARFORMAT}  "
 		read -r server
 		
 		if [ "$server" = "e" ]; then
@@ -1185,35 +1252,35 @@ GenerateServerList(){
 			break
 		elif [ "$server" = "c" ]; then
 				while true; do
-					printf "\\n\\e[1mPlease enter server ID (WARNING: this is not validated) or e to go back\\e[0m  "
+					printf "\\n${BOLD}Please enter server ID (WARNING: this is not validated) or e to go back${CLEARFORMAT}  "
 					read -r customserver
 					if [ "$customserver" = "e" ]; then
 						break
 					elif ! Validate_Number "$customserver"; then
-						printf "\\n\\e[31mPlease enter a valid number\\e[0m\\n"
+						printf "\\n\\e[31mPlease enter a valid number${CLEARFORMAT}\\n"
 					else
 						serverno="$customserver"
 						if [ "$promptforservername" != "no" ]; then
 							while true; do
-								printf "\\n\\e[1mWould you like to enter a name for this server? (default: Custom) (y/n)?\\e[0m  "
+								printf "\\n${BOLD}Would you like to enter a name for this server? (default: Custom) (y/n)?${CLEARFORMAT}  "
 								read -r servername_select
 								
 								if [ "$servername_select" = "n" ] || [ "$servername_select" = "N" ]; then
 									servername="Custom"
 									break
 								elif [ "$servername_select" = "y" ] || [ "$servername_select" = "Y" ]; then
-									printf "\\n\\e[1mPlease enter the name for this server:\\e[0m  "
+									printf "\\n${BOLD}Please enter the name for this server:${CLEARFORMAT}  "
 									read -r servername
-									printf "\\n\\e[1m%s\\e[0m\\n" "$servername"
-									printf "\\n\\e[1mIs that correct (y/n)?\\e[0m  "
+									printf "\\n${BOLD}%s${CLEARFORMAT}\\n" "$servername"
+									printf "\\n${BOLD}Is that correct (y/n)?${CLEARFORMAT}  "
 									read -r servername_confirm
 									if [ "$servername_confirm" = "y" ] || [ "$servername_confirm" = "Y" ]; then
 										break
 									else
-										printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
+										printf "\\n\\e[31mPlease enter y or n${CLEARFORMAT}\\n"
 									fi
 								else
-									printf "\\n\\e[31mPlease enter y or n\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter y or n${CLEARFORMAT}\\n"
 								fi
 							done
 						else
@@ -1225,10 +1292,10 @@ GenerateServerList(){
 					fi
 				done
 		elif ! Validate_Number "$server"; then
-			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$servercount"
+			printf "\\n\\e[31mPlease enter a valid number (1-%s)${CLEARFORMAT}\\n" "$servercount"
 		else
 			if [ "$server" -lt 1 ] || [ "$server" -gt "$servercount" ]; then
-				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$servercount"
+				printf "\\n\\e[31mPlease enter a number between 1 and %s${CLEARFORMAT}\\n" "$servercount"
 			else
 				serverno="$(echo "$serverlist" | jq -r --argjson index "$((server-1))" '.servers[$index] | .id')"
 				servername="$(echo "$serverlist" | jq -r --argjson index "$((server-1))" '.servers[$index] | .name + " (" + .location + ", " + .country + ")"')"
@@ -1240,15 +1307,16 @@ GenerateServerList(){
 }
 
 GenerateServerList_WebUI(){
-	if [ ! -f /opt/bin/jq ]; then
-		opkg update
-		opkg install jq
-	fi
 	serverlistfile="$2"
 	rm -f "/tmp/$serverlistfile.txt"
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
 	
 	spdifacename="$1"
+	
+	if [ ! -f /opt/bin/jq ]; then
+		opkg update
+		opkg install jq
+	fi
 	
 	if [ "$spdifacename" = "ALL" ]; then
 		while IFS='' read -r line || [ -n "$line" ]; do
@@ -1339,7 +1407,8 @@ Run_Speedtest(){
 	
 	tmpfile=/tmp/spd-stats.txt
 	resultfile=/tmp/spd-result.txt
-	printf "" > "$resultfile"
+	rm -f "$resultfile"
+	rm -f "$tmpfile"
 	
 	if [ -n "$(pidof speedtest)" ]; then
 		killall speedtest
@@ -1506,17 +1575,20 @@ Run_Speedtest(){
 					timenow=$(date +"%s")
 					timenowfriendly=$(date +"%c")
 					
-					download="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
-					upload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
-					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $2}')"
-					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $4}' | tr -d '(')"
-					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}' | tr -d '%')"
-					resulturl="$(grep 'Result URL' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $3}')"
-					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
-					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print $6}')"
+					download="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					upload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $4}' | tr -d '(')"
+					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $3}' | tr -d '%')"
+					resulturl="$(grep 'Result URL' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $3}')"
+					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $6}')"
+					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $6}')"
 					
-					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print substr($7,1,length($7)-1)}')"
-					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk 'BEGIN{FS=" "}{print substr($7,1,length($7)-1)}')"
+					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
+					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
+					
+					servername="$(grep Server "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | cut -f1 -d'(' | cut -f2 -d':' | awk '{$1=$1;print}')"
+					serverid="$(grep Server "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | cut -f2 -d'(' | awk '{print $3}' | tr -d ')')"
 					
 					! Validate_Bandwidth "$download" && download=0;
 					! Validate_Bandwidth "$upload" && upload=0;
@@ -1534,20 +1606,25 @@ Run_Speedtest(){
 						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)}')"
 					fi
 					
-					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
+					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL,[ServerID] TEXT,[ServerName] TEXT);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
 					STORERESULTURL="$(StoreResultURL check)"
 					
 					if [ "$STORERESULTURL" = "true" ]; then
-						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'$resulturl',$datadownload,$dataupload);" > /tmp/spd-stats.sql
+						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload],[ServerID],[ServerName]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'$resulturl',$datadownload,$dataupload,$serverid,'$servername');" > /tmp/spd-stats.sql
 					elif [ "$STORERESULTURL" = "false" ]; then
-						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'',$datadownload,$dataupload);" > /tmp/spd-stats.sql
+						echo "INSERT INTO spdstats_$IFACE_NAME ([Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[ResultURL],[DataDownload],[DataUpload],[ServerID],[ServerName]) values($timenow,$download,$upload,$latency,$jitter,$pktloss,'',$datadownload,$dataupload,$serverid,'$servername');" > /tmp/spd-stats.sql
 					fi
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
-					echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < ($timenow - (86400*30));" > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+					{
+						echo "DELETE FROM [spdstats_$IFACE_NAME] WHERE [Timestamp] < strftime('%s',datetime($timenow,'unixepoch','-$(DaysToKeep check) day'));"
+						echo "PRAGMA analysis_limit=0;"
+						echo "PRAGMA cache_size=-20000;"
+						echo "ANALYZE spdstats_$IFACE_NAME;"
+					} > /tmp/spd-stats.sql
+					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
 					rm -f /tmp/spd-stats.sql
 					
 					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
@@ -1589,20 +1666,22 @@ Run_Speedtest(){
 				fi
 			fi
 			
+			echo 'var spdteststatus = "GenerateCSV";' > /tmp/detect_spdtest.js
+			Print_Output true "Retrieving data for WebUI charts" "$PASS"
 			Generate_CSVs
 			
 			echo "Stats last updated: $timenowfriendly" > /tmp/spdstatstitle.txt
 			rm -f "$SCRIPT_STORAGE_DIR/spdtitletext.js"
 			WriteStats_ToJS /tmp/spdstatstitle.txt "$SCRIPT_STORAGE_DIR/spdtitletext.js" SetSPDStatsTitle statstitle
 			
-			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
+			if [ "$applyautobw" = "true" ]; then
+				Menu_AutoBW_Update
+			fi
 			
 			rm -f "$tmpfile"
 			rm -f /tmp/spdstatstitle.txt
 			
-			if [ "$applyautobw" = "true" ]; then
-				Menu_AutoBW_Update
-			fi
+			echo 'var spdteststatus = "Done";' > /tmp/detect_spdtest.js
 			
 			Clear_Lock
 		else
@@ -1654,6 +1733,8 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
+	rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
+	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
 		{
 			echo 'function SetSPDStatsTitle(){';
@@ -1669,18 +1750,92 @@ Process_Upgrade(){
 		fi
 	fi
 	
-	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
-	
 	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
 	for IFACE_NAME in $FULL_IFACELIST; do
-		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL, [Timestamp] NUMERIC NOT NULL, [Download] REAL NOT NULL,[Upload] REAL NOT NULL, [Latency] REAL, [Jitter] REAL, [PktLoss] REAL, [ResultURL] TEXT, [DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL);" > /tmp/spd-stats.sql
-		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+		echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL,[ServerID] TEXT,[ServerName] TEXT);" > /tmp/spdstats-upgrade.sql
+		"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 	done
-	rm -f /tmp/spd-stats.sql
+	
+	if [ ! -f "$SCRIPT_STORAGE_DIR/.databaseupgraded" ]; then
+		renice 15 $$
+		Print_Output true "Upgrading database..." "$PASS"
+		FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+		for IFACE_NAME in $FULL_IFACELIST; do
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_download ON spdstats_${IFACE_NAME} (Timestamp,Download);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_upload ON spdstats_${IFACE_NAME} (Timestamp,Upload);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_latency ON spdstats_${IFACE_NAME} (Timestamp,Latency);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_jitter ON spdstats_${IFACE_NAME} (Timestamp,Jitter);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_pktloss ON spdstats_${IFACE_NAME} (Timestamp,PktLoss);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_resulturl ON spdstats_${IFACE_NAME} (Timestamp,ResultURL collate nocase);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_datadownload ON spdstats_${IFACE_NAME} (Timestamp,DataDownload);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_datadownload ON spdstats_${IFACE_NAME} (Timestamp,DataUpload);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerID] TEXT" > /tmp/spdstats-upgrade.sql
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1
+			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerName] TEXT" > /tmp/spdstats-upgrade.sql
+			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_serverid ON spdstats_${IFACE_NAME} (Timestamp,ServerID);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_servername ON spdstats_${IFACE_NAME} (Timestamp,ServerName collate nocase);" > /tmp/spdstats-upgrade.sql
+			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
+				sleep 1
+			done
+			Generate_LastXResults "$IFACE_NAME"
+		done
+		touch "$SCRIPT_STORAGE_DIR/.databaseupgraded"
+		Generate_CSVs
+		Print_Output true "Database ready, continuing..." "$PASS"
+		renice 0 $$
+	fi
+	rm -f /tmp/spdstats-upgrade.sql
+}
+
+#$1 iface name
+Generate_LastXResults(){
+	FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
+	for IFACE_NAME in $FULL_IFACELIST; do
+		rm -f "$SCRIPT_STORAGE_DIR/lastx_${IFACE_NAME}.htm"
+	done
+	{
+		echo ".mode csv"
+		echo ".output /tmp/spd-lastx.csv"
+	} > /tmp/spd-lastx.sql
+	echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss],[DataDownload],[DataUpload],[ResultURL],[ServerID],[ServerName] FROM spdstats_$1 ORDER BY [Timestamp] DESC LIMIT $(LastXResults check);" >> /tmp/spd-lastx.sql
+	"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-lastx.sql
+	rm -f /tmp/spd-lastx.sql
+	sed -i 's/,,/,null,/g;s/"//g;' /tmp/spd-lastx.csv
+	mv /tmp/spd-lastx.csv "$SCRIPT_STORAGE_DIR/lastx_$1.csv"
 }
 
 Generate_CSVs(){
-	OUTPUTDATAMODE="$(OutputDataMode check)"
+	Process_Upgrade
+	renice 15 $$
+	
 	OUTPUTTIMEMODE="$(OutputTimeMode check)"
 	STORERESULTURL="$(StoreResultURL check)"
 	IFACELIST=""
@@ -1691,8 +1846,6 @@ Generate_CSVs(){
 	IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 	
 	if [ "$IFACELIST" != "" ]; then
-		rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
-		
 		for IFACE_NAME in $IFACELIST; do
 			IFACE="$(Get_Interface_From_Name "$IFACE_NAME")"
 				
@@ -1702,62 +1855,78 @@ Generate_CSVs(){
 			timenow=$(date +"%s")
 			timenowfriendly=$(date +"%c")
 			
-			metriclist="Download Upload Latency Jitter PktLoss DataDownload DataUpload"
+			metriclist="Download Upload Latency Jitter PktLoss" # DataDownload DataUpload"
 			
 			for metric in $metriclist; do
 				{
 					echo ".mode csv"
 					echo ".headers off"
-					echo ".output $CSV_OUTPUT_DIR/${metric}daily_$IFACE_NAME.tmp"
-					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400);"
+					echo ".output $CSV_OUTPUT_DIR/${metric}_raw_daily_$IFACE_NAME.tmp"
+					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-1 day'))) ORDER BY [Timestamp] DESC;"
 				} > /tmp/spd-stats.sql
 				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-				rm -f /tmp/spd-stats.sql
 				
-				if [ "$OUTPUTDATAMODE" = "raw" ]; then
-					{
-						echo ".mode csv"
-						echo ".headers off"
-						echo ".output $CSV_OUTPUT_DIR/${metric}weekly_$IFACE_NAME.tmp"
-						echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*7);"
-					} > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-					
-					{
-						echo ".mode csv"
-						echo ".headers off"
-						echo ".output $CSV_OUTPUT_DIR/${metric}monthly_$IFACE_NAME.tmp"
-						echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30);"
-					} > /tmp/spd-stats.sql
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-				elif [ "$OUTPUTDATAMODE" = "average" ]; then
-					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/$metric" weekly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-					
-					WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 3 30 "$CSV_OUTPUT_DIR/$metric" monthly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
-					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
-					rm -f /tmp/spd-stats.sql
-				fi
+				{
+					echo ".mode csv"
+					echo ".headers off"
+					echo ".output $CSV_OUTPUT_DIR/${metric}_raw_weekly_$IFACE_NAME.tmp"
+					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-7 day'))) ORDER BY [Timestamp] DESC;"
+				} > /tmp/spd-stats.sql
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				{
+					echo ".mode csv"
+					echo ".headers off"
+					echo ".output $CSV_OUTPUT_DIR/${metric}_raw_monthly_$IFACE_NAME.tmp"
+					echo "SELECT '$metric' Metric,[Timestamp] Time,[$metric] Value FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-30 day'))) ORDER BY [Timestamp] DESC;"
+				} > /tmp/spd-stats.sql
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 1 "$CSV_OUTPUT_DIR/${metric}_hour" daily "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 7 "$CSV_OUTPUT_DIR/${metric}_hour" weekly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 1 30 "$CSV_OUTPUT_DIR/${metric}_hour" monthly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 24 1 "$CSV_OUTPUT_DIR/${metric}_day" daily "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 24 7 "$CSV_OUTPUT_DIR/${metric}_day" weekly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
+				
+				WriteSql_ToFile "$metric" "spdstats_$IFACE_NAME" 24 30 "$CSV_OUTPUT_DIR/${metric}_day" monthly "$IFACE_NAME" /tmp/spd-stats.sql "$timenow"
+				"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 			done
 			
-			cat "$CSV_OUTPUT_DIR/Downloaddaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploaddaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combineddaily_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Downloadweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploadweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combinedweekly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Downloadmonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Uploadmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Combinedmonthly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Latencydaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jitterdaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossdaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualitydaily_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Latencyweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jitterweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualityweekly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/Latencymonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/Jittermonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/PktLossmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/Qualitymonthly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/DataDownloaddaily_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploaddaily_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsagedaily_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/DataDownloadweekly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploadweekly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsageweekly_$IFACE_NAME.htm" 2> /dev/null
-			cat "$CSV_OUTPUT_DIR/DataDownloadmonthly_$IFACE_NAME.tmp" "$CSV_OUTPUT_DIR/DataUploadmonthly_$IFACE_NAME.tmp" > "$CSV_OUTPUT_DIR/DataUsagemonthly_$IFACE_NAME.htm" 2> /dev/null
+			periodfilelist="raw hour day"
 			
-			csvlist="Combined Quality DataUsage"
+			for periodfile in $periodfilelist; do
+				cat "$CSV_OUTPUT_DIR/Download_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Upload_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Combined_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/Download_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Upload_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Combined_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/Download_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Upload_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Combined_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
+				
+				cat "$CSV_OUTPUT_DIR/Latency_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Jitter_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/PktLoss_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Quality_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/Latency_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Jitter_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/PktLoss_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Quality_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
+				cat "$CSV_OUTPUT_DIR/Latency_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/Jitter_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/PktLoss_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/Quality_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
+				
+				#cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_daily_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_daily_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_daily_${IFACE_NAME}.htm" 2> /dev/null
+				#cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_weekly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_weekly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_weekly_${IFACE_NAME}.htm" 2> /dev/null
+				#cat "$CSV_OUTPUT_DIR/DataDownload_${periodfile}_monthly_${IFACE_NAME}.tmp" "$CSV_OUTPUT_DIR/DataUpload_${periodfile}_monthly_${IFACE_NAME}.tmp" > "$CSV_OUTPUT_DIR/DataUsage_${periodfile}_monthly_${IFACE_NAME}.htm" 2> /dev/null
+			done
+				
+			csvlist="Combined Quality" # DataUsage"
 			for csvfile in $csvlist; do
-				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}daily_$IFACE_NAME.htm"
-				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}weekly_$IFACE_NAME.htm"
-				sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}monthly_$IFACE_NAME.htm"
+				rm -f "$CSV_OUTPUT_DIR/${csvfile}daily_${IFACE_NAME}.htm"
+				rm -f "$CSV_OUTPUT_DIR/${csvfile}weekly_${IFACE_NAME}.htm"
+				rm -f "$CSV_OUTPUT_DIR/${csvfile}monthly_${IFACE_NAME}.htm"
+				for periodfile in $periodfilelist; do
+					sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}_${periodfile}_daily_${IFACE_NAME}.htm"
+					sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}_${periodfile}_weekly_${IFACE_NAME}.htm"
+					sed -i '1i Metric,Time,Value' "$CSV_OUTPUT_DIR/${csvfile}_${periodfile}_monthly_${IFACE_NAME}.htm"
+				done
 			done
 			
 			INCLUDEURL=""
@@ -1768,8 +1937,8 @@ Generate_CSVs(){
 			{
 				echo ".mode csv"
 				echo ".headers on"
-				echo ".output $CSV_OUTPUT_DIR/CompleteResults_$IFACE_NAME.htm"
-				echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload] FROM spdstats_$IFACE_NAME WHERE [Timestamp] >= ($timenow - 86400*30) ORDER BY [Timestamp] DESC;"
+				echo ".output $CSV_OUTPUT_DIR/CompleteResults_${IFACE_NAME}.htm"
+				echo "SELECT [Timestamp],[Download],[Upload],[Latency],[Jitter],[PktLoss]$INCLUDEURL,[DataDownload],[DataUpload],[ServerID],[ServerName] FROM spdstats_$IFACE_NAME WHERE ([Timestamp] >= strftime('%s',datetime($timenow,'unixepoch','-$(DaysToKeep check) day'))) ORDER BY [Timestamp] DESC;"
 			} > /tmp/spd-complete.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-complete.sql
 			rm -f /tmp/spd-complete.sql
@@ -1811,13 +1980,13 @@ Generate_CSVs(){
 		mv "/tmp/${SCRIPT_NAME_LOWER}data.zip" "$CSV_OUTPUT_DIR"
 		rm -rf "$tmpoutputdir"
 	fi
+	renice 0 $$
 }
 
-# shellcheck disable=SC2012
 Reset_DB(){
 	SIZEAVAIL="$(df -P -k "$SCRIPT_STORAGE_DIR" | awk '{print $4}' | tail -n 1)"
 	SIZEDB="$(ls -l "$SCRIPT_STORAGE_DIR/spdstats.db" | awk '{print $5}')"
-	if [ "$SIZEDB" -gt "$SIZEAVAIL" ]; then
+	if [ "$SIZEDB" -gt "$((SIZEAVAIL*1024))" ]; then
 		Print_Output true "Database size exceeds available space. $(ls -lh "$SCRIPT_STORAGE_DIR/spdstats.db" | awk '{print $5}')B is required to create backup." "$ERR"
 		return 1
 	else
@@ -1836,7 +2005,6 @@ Reset_DB(){
 		Print_Output true "Database reset complete" "$WARN"
 	fi
 }
-
 
 Shortcut_Script(){
 	case $1 in
@@ -1871,21 +2039,21 @@ ScriptHeader(){
 	clear
 	
 	printf "\\n"
-	printf "\\e[1m####################################################################\\e[0m\\n"
-	printf "\\e[1m##                       _  __  __              _  _              ##\\e[0m\\n"
-	printf "\\e[1m##                      | ||  \/  |            | |(_)             ##\\e[0m\\n"
-	printf "\\e[1m##       ___  _ __    __| || \  / |  ___  _ __ | | _  _ __        ##\\e[0m\\n"
-	printf "\\e[1m##      / __|| '_ \  / _  || |\/| | / _ \| '__|| || || '_ \       ##\\e[0m\\n"
-	printf "\\e[1m##      \__ \| |_) || (_| || |  | ||  __/| |   | || || | | |      ##\\e[0m\\n"
-	printf "\\e[1m##      |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_|      ##\\e[0m\\n"
-	printf "\\e[1m##          | |                                                   ##\\e[0m\\n"
-	printf "\\e[1m##          |_|                                                   ##\\e[0m\\n"
-	printf "\\e[1m##                                                                ##\\e[0m\\n"
-	printf "\\e[1m##                       %s on %-11s                    ##\\e[0m\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
-	printf "\\e[1m##                                                                ##\\e[0m\\n"
-	printf "\\e[1m##              https://github.com/jackyaz/spdMerlin              ##\\e[0m\\n"
-	printf "\\e[1m##                                                                ##\\e[0m\\n"
-	printf "\\e[1m####################################################################\\e[0m\\n"
+	printf "${BOLD}####################################################################${CLEARFORMAT}\\n"
+	printf "${BOLD}##                       _  __  __              _  _              ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##                      | ||  \/  |            | |(_)             ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##       ___  _ __    __| || \  / |  ___  _ __ | | _  _ __        ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##      / __|| '_ \  / _  || |\/| | / _ \| '__|| || || '_ \       ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##      \__ \| |_) || (_| || |  | ||  __/| |   | || || | | |      ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##      |___/| .__/  \__,_||_|  |_| \___||_|   |_||_||_| |_|      ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##          | |                                                   ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##          |_|                                                   ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##                                                                ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##                       %s on %-11s                    ##${CLEARFORMAT}\\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
+	printf "${BOLD}##                                                                ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##              https://github.com/jackyaz/spdMerlin              ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##                                                                ##${CLEARFORMAT}\\n"
+	printf "${BOLD}####################################################################${CLEARFORMAT}\\n"
 	printf "\\n"
 }
 
@@ -1901,7 +2069,7 @@ MainMenu(){
 	else
 		TEST_SCHEDULE_MENU="Hours: $(echo "$TEST_SCHEDULE" | cut -f2 -d'|')    -    Minutes: $(echo "$TEST_SCHEDULE" | cut -f3 -d'|')"
 	fi
-
+	
 	if [ "$(echo "$TEST_SCHEDULE" | cut -f1 -d'|')" = "*" ]; then
 		TEST_SCHEDULE_MENU2="Days of week: All"
 	else
@@ -1914,20 +2082,21 @@ MainMenu(){
 		STORERESULTURL_MENU="Disabled"
 	fi
 	
-	printf "WebUI for %s is available at:\\n${SETTING}%s\\e[0m\\n\\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
+	printf "WebUI for %s is available at:\\n${SETTING}%s${CLEARFORMAT}\\n\\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
 	if [ "$(ExcludeFromQoS check)" = "true" ]; then EXCLUDEFROMQOS_MENU="excluded from"; else EXCLUDEFROMQOS_MENU="included in"; fi
 	
 	printf "1.    Run a speedtest now\\n\\n"
 	printf "2.    Choose a preferred server for an interface\\n\\n"
-	printf "3.    Toggle automatic speedtests\\n      Currently: \\e[1m${AUTOMATIC_ENABLED}%s\\e[0m\\n\\n"
-	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s\\e[0m\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
-	printf "5.    Toggle data output mode\\n      Currently ${SETTING}%s\\e[0m values will be used for weekly and monthly charts\\n\\n" "$(OutputDataMode check)"
-	printf "6.    Toggle time output mode\\n      Currently ${SETTING}%s\\e[0m time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
-	printf "7.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$STORERESULTURL_MENU"
+	printf "3.    Toggle automatic speedtests\\n      Currently: ${BOLD}${AUTOMATIC_ENABLED}%s${CLEARFORMAT}\\n\\n"
+	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s${CLEARFORMAT}\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
+	printf "5.    Toggle time output mode\\n      Currently ${SETTING}%s${CLEARFORMAT} time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
+	printf "6.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
+	printf "7.    Set number of speedtest results to show in WebUI\\n      Currently: ${SETTING}%s results will be shown${CLEARFORMAT}\\n\\n" "$(LastXResults check)"
+	printf "8.    Set number of days data to keep in database\\n      Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\\n\\n" "$(DaysToKeep check)"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
-	printf "s.    Toggle storage location for stats and config\\n      Current location is ${SETTING}%s\\e[0m \\n\\n" "$(ScriptStorageLocation check)"
-	printf "q.    Toggle exclusion of %s speedtests from QoS\\n      Currently %s speedtests are ${SETTING}%s\\e[0m QoS\\n\\n" "$SCRIPT_NAME" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
+	printf "s.    Toggle storage location for stats and config\\n      Current location is ${SETTING}%s${CLEARFORMAT} \\n\\n" "$(ScriptStorageLocation check)"
+	printf "q.    Toggle exclusion of %s speedtests from QoS\\n      Currently %s speedtests are ${SETTING}%s${CLEARFORMAT} QoS\\n\\n" "$SCRIPT_NAME" "$SCRIPT_NAME" "$EXCLUDEFROMQOS_MENU"
 	printf "a.    AutoBW\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
@@ -1935,7 +2104,7 @@ MainMenu(){
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
 	printf "z.    Uninstall %s\\n" "$SCRIPT_NAME"
 	printf "\\n"
-	printf "\\e[1m####################################################################\\e[0m\\n"
+	printf "${BOLD}####################################################################${CLEARFORMAT}\\n"
 	printf "\\n"
 	
 	while true; do
@@ -1971,15 +2140,6 @@ MainMenu(){
 			;;
 			5)
 				printf "\\n"
-				if [ "$(OutputDataMode check)" = "raw" ]; then
-					OutputDataMode average
-				elif [ "$(OutputDataMode check)" = "average" ]; then
-					OutputDataMode raw
-				fi
-				break
-			;;
-			6)
-				printf "\\n"
 				if [ "$(OutputTimeMode check)" = "unix" ]; then
 					OutputTimeMode non-unix
 				elif [ "$(OutputTimeMode check)" = "non-unix" ]; then
@@ -1987,13 +2147,25 @@ MainMenu(){
 				fi
 				break
 			;;
-			7)
+			6)
 				printf "\\n"
 				if [ "$(StoreResultURL check)" = "true" ]; then
 					StoreResultURL disable
 				elif [ "$(StoreResultURL check)" = "false" ]; then
 					StoreResultURL enable
 				fi
+				break
+			;;
+			7)
+				printf "\\n"
+				LastXResults update
+				PressEnter
+				break
+			;;
+			8)
+				printf "\\n"
+				DaysToKeep update
+				PressEnter
 				break
 			;;
 			c)
@@ -2069,12 +2241,12 @@ MainMenu(){
 			;;
 			e)
 				ScriptHeader
-				printf "\\n\\e[1mThanks for using %s!\\e[0m\\n\\n\\n" "$SCRIPT_NAME"
+				printf "\\n${BOLD}Thanks for using %s!${CLEARFORMAT}\\n\\n\\n" "$SCRIPT_NAME"
 				exit 0
 			;;
 			z)
 				while true; do
-					printf "\\n\\e[1mAre you sure you want to uninstall %s? (y/n)\\e[0m  " "$SCRIPT_NAME"
+					printf "\\n${BOLD}Are you sure you want to uninstall %s? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
 					read -r confirm
 					case "$confirm" in
 						y|Y)
@@ -2107,23 +2279,23 @@ Check_Requirements(){
 	fi
 	
 	if ! Check_Swap; then
-		Print_Output true "No Swap file detected!" "$ERR"
+		Print_Output false "No Swap file detected!" "$ERR"
 		CHECKSFAILED="true"
 	fi
 	
 	if [ ! -f /opt/bin/opkg ]; then
-		Print_Output true "Entware not detected!" "$ERR"
+		Print_Output false "Entware not detected!" "$ERR"
 		CHECKSFAILED="true"
 	fi
 	
 	if ! Firmware_Version_Check; then
-		Print_Output true "Unsupported firmware version detected" "$ERR"
-		Print_Output true "$SCRIPT_NAME requires Merlin 384.15/384.13_4 or Fork 43E5 (or later)" "$ERR"
+		Print_Output false "Unsupported firmware version detected" "$ERR"
+		Print_Output false "$SCRIPT_NAME requires Merlin 384.15/384.13_4 or Fork 43E5 (or later)" "$ERR"
 		CHECKSFAILED="true"
 	fi
 	
 	if [ "$CHECKSFAILED" = "false" ]; then
-		Print_Output true "Installing required packages from Entware" "$PASS"
+		Print_Output false "Installing required packages from Entware" "$PASS"
 		opkg update
 		opkg install sqlite3-cli
 		opkg install jq
@@ -2136,6 +2308,7 @@ Check_Requirements(){
 }
 
 Menu_Install(){
+	ScriptHeader
 	Print_Output true "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
 	sleep 1
 	
@@ -2174,6 +2347,9 @@ Menu_Install(){
 	License_Acceptance accept
 	
 	Clear_Lock
+	
+	ScriptHeader
+	MainMenu
 }
 
 Menu_Startup(){
@@ -2234,11 +2410,11 @@ Menu_RunSpeedtest(){
 			exitmenu="exit"
 			break
 		elif ! Validate_Number "$iface_choice"; then
-			printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$((COUNTER-1))"
+			printf "\\n\\e[31mPlease enter a valid number (1-%s)${CLEARFORMAT}\\n" "$((COUNTER-1))"
 			validselection="false"
 		else
 			if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$((COUNTER-1))" ]; then
-				printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$((COUNTER-1))"
+				printf "\\n\\e[31mPlease enter a number between 1 and %s${CLEARFORMAT}\\n" "$((COUNTER-1))"
 				validselection="false"
 			else
 				if [ "$iface_choice" -gt "1" ]; then
@@ -2265,11 +2441,11 @@ Menu_RunSpeedtest(){
 					exitmenu="exit"
 					break
 				elif ! Validate_Number "$usepref_choice"; then
-					printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$COUNTER"
+					printf "\\n\\e[31mPlease enter a valid number (1-%s)${CLEARFORMAT}\\n" "$COUNTER"
 					validselection="false"
 				else
 					if [ "$usepref_choice" -lt 0 ] || [ "$usepref_choice" -gt "3" ]; then
-						printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$COUNTER"
+						printf "\\n\\e[31mPlease enter a number between 1 and %s${CLEARFORMAT}\\n" "$COUNTER"
 						validselection="false"
 					else
 						case "$usepref_choice" in
@@ -2336,10 +2512,10 @@ Menu_ConfigurePreferred(){
 				exitmenu="exit"
 				break
 			elif ! Validate_Number "$iface_choice"; then
-				printf "\\n\\e[31mPlease enter a valid number (1-%s)\\e[0m\\n" "$((COUNTER-1))"
+				printf "\\n\\e[31mPlease enter a valid number (1-%s)${CLEARFORMAT}\\n" "$((COUNTER-1))"
 			else
 				if [ "$iface_choice" -lt 1 ] || [ "$iface_choice" -gt "$((COUNTER-1))" ]; then
-					printf "\\n\\e[31mPlease enter a number between 1 and %s\\e[0m\\n" "$((COUNTER-1))"
+					printf "\\n\\e[31mPlease enter a number between 1 and %s${CLEARFORMAT}\\n" "$((COUNTER-1))"
 				else
 					if [ "$iface_choice" -gt "1" ]; then
 						prefiface="$(grep -v "interface not up" "$SCRIPT_INTERFACES_USER" | sed -n $((iface_choice-1))p | cut -f1 -d"#" | sed 's/ *$//')"
@@ -2366,10 +2542,10 @@ Menu_ConfigurePreferred(){
 					if [ "$usepref_choice" = "e" ]; then
 						break
 					elif ! Validate_Number "$usepref_choice"; then
-						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
+						printf "\\n\\e[31mPlease enter a valid number (1-2)${CLEARFORMAT}\\n"
 					else
 						if [ "$usepref_choice" -lt 1 ] || [ "$usepref_choice" -gt 2 ]; then
-							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
+							printf "\\n\\e[31mPlease enter a number between 1 and 2${CLEARFORMAT}\\n\\n"
 						else
 							prefenabledisable=""
 							if [ "$usepref_choice" -eq 1 ]; then
@@ -2400,10 +2576,10 @@ Menu_ConfigurePreferred(){
 					if [ "$ifpref_choice" = "e" ]; then
 						break
 					elif ! Validate_Number "$ifpref_choice"; then
-						printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n"
+						printf "\\n\\e[31mPlease enter a valid number (1-2)${CLEARFORMAT}\\n"
 					else
 						if [ "$ifpref_choice" -lt 1 ] || [ "$ifpref_choice" -gt 2 ]; then
-							printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a number between 1 and 2${CLEARFORMAT}\\n"
 						else
 							if [ "$ifpref_choice" -eq 1 ]; then
 								printf "\\n"
@@ -2448,7 +2624,7 @@ Menu_EditSchedule(){
 	crumins=""
 	
 	while true; do
-		printf "\\n\\e[1mPlease choose which day(s) to run speedtest (0-6 - 0 = Sunday, * for every day, or comma separated days):\\e[0m  "
+		printf "\\n${BOLD}Please choose which day(s) to run speedtest (0-6 - 0 = Sunday, * for every day, or comma separated days):${CLEARFORMAT}  "
 		read -r day_choice
 		
 		if [ "$day_choice" = "e" ]; then
@@ -2459,36 +2635,36 @@ Menu_EditSchedule(){
 			printf "\\n"
 			break
 		elif [ -z "$day_choice" ]; then
-			printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values\\e[0m\\n"
+			printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values${CLEARFORMAT}\\n"
 		else
 			crudaystmp="$(echo "$day_choice" | sed "s/,/ /g")"
 			crudaysvalidated="true"
 			for i in $crudaystmp; do
 				if echo "$i" | grep -q "-"; then
 					if [ "$i" = "-" ]; then
-						printf "\\n\\e[31mPlease enter a valid number (0-6)\\e[0m\\n"
+						printf "\\n\\e[31mPlease enter a valid number (0-6)${CLEARFORMAT}\\n"
 						crudaysvalidated="false"
 						break
 					fi
 					crudaystmp2="$(echo "$i" | sed "s/-/ /")"
 					for i2 in $crudaystmp2; do
 						if ! Validate_Number "$i2"; then
-							printf "\\n\\e[31mPlease enter a valid number (0-6)\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a valid number (0-6)${CLEARFORMAT}\\n"
 							crudaysvalidated="false"
 							break
 						elif [ "$i2" -lt 0 ] || [ "$i2" -gt 6 ]; then
-							printf "\\n\\e[31mPlease enter a number between 0 and 6\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a number between 0 and 6${CLEARFORMAT}\\n"
 							crudaysvalidated="false"
 							break
 						fi
 					done
 				elif ! Validate_Number "$i"; then
-					printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values\\e[0m\\n"
+					printf "\\n\\e[31mPlease enter a valid number (0-6) or comma separated values${CLEARFORMAT}\\n"
 					crudaysvalidated="false"
 					break
 				else
 					if [ "$i" -lt 0 ] || [ "$i" -gt 6 ]; then
-						printf "\\n\\e[31mPlease enter a number between 0 and 6 or comma separated values\\e[0m\\n"
+						printf "\\n\\e[31mPlease enter a number between 0 and 6 or comma separated values${CLEARFORMAT}\\n"
 						crudaysvalidated="false"
 						break
 					fi
@@ -2504,7 +2680,7 @@ Menu_EditSchedule(){
 	
 	if [ "$exitmenu" != "exit" ]; then
 		while true; do
-			printf "\\n\\e[1mPlease choose the format to specify the hour/minute(s) to run speedtest:\\e[0m\\n"
+			printf "\\n${BOLD}Please choose the format to specify the hour/minute(s) to run speedtest:${CLEARFORMAT}\\n"
 			printf "    1. Every X hours/minutes\\n"
 			printf "    2. Custom\\n\\n"
 			printf "Choose an option:  "
@@ -2526,7 +2702,7 @@ Menu_EditSchedule(){
 					break
 				;;
 				*)
-					printf "\\n\\e[31mPlease enter a valid choice (1-2)\\e[0m\\n"
+					printf "\\n\\e[31mPlease enter a valid choice (1-2)${CLEARFORMAT}\\n"
 				;;
 			esac
 		done
@@ -2535,7 +2711,7 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		if [ "$formattype" = "everyx" ]; then
 			while true; do
-				printf "\\n\\e[1mPlease choose whether to specify every X hours or every X minutes to run speedtest:\\e[0m\\n"
+				printf "\\n${BOLD}Please choose whether to specify every X hours or every X minutes to run speedtest:${CLEARFORMAT}\\n"
 				printf "    1. Hours\\n"
 				printf "    2. Minutes\\n\\n"
 				printf "Choose an option:  "
@@ -2557,7 +2733,7 @@ Menu_EditSchedule(){
 						break
 					;;
 					*)
-						printf "\\n\\e[31mPlease enter a valid choice (1-2)\\e[0m\\n"
+						printf "\\n\\e[31mPlease enter a valid choice (1-2)${CLEARFORMAT}\\n"
 					;;
 				esac
 			done
@@ -2567,16 +2743,16 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		if [ "$formattype" = "hours" ]; then
 			while true; do
-				printf "\\n\\e[1mPlease choose how often to run speedtest (every X hours, where X is 1-24):\\e[0m  "
+				printf "\\n${BOLD}Please choose how often to run speedtest (every X hours, where X is 1-24):${CLEARFORMAT}  "
 				read -r hour_choice
 				
 				if [ "$hour_choice" = "e" ]; then
 					exitmenu="exit"
 					break
 				elif ! Validate_Number "$hour_choice"; then
-						printf "\\n\\e[31mPlease enter a valid number (1-24)\\e[0m\\n"
+						printf "\\n\\e[31mPlease enter a valid number (1-24)${CLEARFORMAT}\\n"
 				elif [ "$hour_choice" -lt 1 ] || [ "$hour_choice" -gt 24 ]; then
-					printf "\\n\\e[31mPlease enter a number between 1 and 24\\e[0m\\n"
+					printf "\\n\\e[31mPlease enter a number between 1 and 24${CLEARFORMAT}\\n"
 				elif [ "$hour_choice" -eq 24 ]; then
 					cruhours=0
 					crumins=0
@@ -2591,16 +2767,16 @@ Menu_EditSchedule(){
 			done
 		elif [ "$formattype" = "mins" ]; then
 			while true; do
-				printf "\\n\\e[1mPlease choose how often to run speedtest (every X minutes, where X is 1-30):\\e[0m  "
+				printf "\\n${BOLD}Please choose how often to run speedtest (every X minutes, where X is 1-30):${CLEARFORMAT}  "
 				read -r min_choice
 				
 				if [ "$min_choice" = "e" ]; then
 					exitmenu="exit"
 					break
 				elif ! Validate_Number "$min_choice"; then
-						printf "\\n\\e[31mPlease enter a valid number (1-30)\\e[0m\\n"
+						printf "\\n\\e[31mPlease enter a valid number (1-30)${CLEARFORMAT}\\n"
 				elif [ "$min_choice" -lt 1 ] || [ "$min_choice" -gt 30 ]; then
-					printf "\\n\\e[31mPlease enter a number between 1 and 30\\e[0m\\n"
+					printf "\\n\\e[31mPlease enter a number between 1 and 30${CLEARFORMAT}\\n"
 				else
 					crumins="*/$min_choice"
 					cruhours="*"
@@ -2614,7 +2790,7 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		if [ "$formattype" = "custom" ]; then
 			while true; do
-				printf "\\n\\e[1mPlease choose which hour(s) to run speedtest (0-23, * for every hour, or comma separated hours):\\e[0m  "
+				printf "\\n${BOLD}Please choose which hour(s) to run speedtest (0-23, * for every hour, or comma separated hours):${CLEARFORMAT}  "
 				read -r hour_choice
 				
 				if [ "$hour_choice" = "e" ]; then
@@ -2630,18 +2806,18 @@ Menu_EditSchedule(){
 					for i in $cruhourstmp; do
 						if echo "$i" | grep -q "-"; then
 							if [ "$i" = "-" ]; then
-								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a valid number (0-23)${CLEARFORMAT}\\n"
 								cruhoursvalidated="false"
 								break
 							fi
 							cruhourstmp2="$(echo "$i" | sed "s/-/ /")"
 							for i2 in $cruhourstmp2; do
 								if ! Validate_Number "$i2"; then
-									printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter a valid number (0-23)${CLEARFORMAT}\\n"
 									cruhoursvalidated="false"
 									break
 								elif [ "$i2" -lt 0 ] || [ "$i2" -gt 23 ]; then
-									printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter a number between 0 and 23${CLEARFORMAT}\\n"
 									cruhoursvalidated="false"
 									break
 								fi
@@ -2649,20 +2825,20 @@ Menu_EditSchedule(){
 						elif echo "$i" | grep -q "/"; then
 							cruhourstmp3="$(echo "$i" | sed "s/\*\///")"
 							if ! Validate_Number "$cruhourstmp3"; then
-								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a valid number (0-23)${CLEARFORMAT}\\n"
 								cruhoursvalidated="false"
 								break
 							elif [ "$cruhourstmp3" -lt 0 ] || [ "$cruhourstmp3" -gt 23 ]; then
-								printf "\\n\\e[31mPlease enter a number between 0 and 23\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a number between 0 and 23${CLEARFORMAT}\\n"
 								cruhoursvalidated="false"
 								break
 							fi
 						elif ! Validate_Number "$i"; then
-							printf "\\n\\e[31mPlease enter a valid number (0-23) or comma separated values\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a valid number (0-23) or comma separated values${CLEARFORMAT}\\n"
 							cruhoursvalidated="false"
 							break
 						elif [ "$i" -lt 0 ] || [ "$i" -gt 23 ]; then
-							printf "\\n\\e[31mPlease enter a number between 0 and 23 or comma separated values\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a number between 0 and 23 or comma separated values${CLEARFORMAT}\\n"
 							cruhoursvalidated="false"
 							break
 						fi
@@ -2690,7 +2866,7 @@ Menu_EditSchedule(){
 	if [ "$exitmenu" != "exit" ]; then
 		if [ "$formattype" = "custom" ]; then
 			while true; do
-				printf "\\n\\e[1mPlease choose which minutes(s) to run speedtest (0-59, * for every minute, or comma separated minutes):\\e[0m  "
+				printf "\\n${BOLD}Please choose which minutes(s) to run speedtest (0-59, * for every minute, or comma separated minutes):${CLEARFORMAT}  "
 				read -r min_choice
 				
 				if [ "$min_choice" = "e" ]; then
@@ -2706,18 +2882,18 @@ Menu_EditSchedule(){
 					for i in $cruminstmp; do
 						if echo "$i" | grep -q "-"; then
 							if [ "$i" = "-" ]; then
-								printf "\\n\\e[31mPlease enter a valid number (0-23)\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a valid number (0-23)${CLEARFORMAT}\\n"
 								cruminsvalidated="false"
 								break
 							fi
 							cruminstmp2="$(echo "$i" | sed "s/-/ /")"
 							for i2 in $cruminstmp2; do
 								if ! Validate_Number "$i2"; then
-									printf "\\n\\e[31mPlease enter a valid number (0-59)\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter a valid number (0-59)${CLEARFORMAT}\\n"
 									cruminsvalidated="false"
 									break
 								elif [ "$i2" -lt 0 ] || [ "$i2" -gt 59 ]; then
-									printf "\\n\\e[31mPlease enter a number between 0 and 59\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter a number between 0 and 59${CLEARFORMAT}\\n"
 									cruminsvalidated="false"
 									break
 								fi
@@ -2725,20 +2901,20 @@ Menu_EditSchedule(){
 						elif echo "$i" | grep -q "/"; then
 							cruminstmp3="$(echo "$i" | sed "s/\*\///")"
 							if ! Validate_Number "$cruminstmp3"; then
-								printf "\\n\\e[31mPlease enter a valid number (0-30)\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a valid number (0-30)${CLEARFORMAT}\\n"
 								cruminsvalidated="false"
 								break
 							elif [ "$cruminstmp3" -lt 0 ] || [ "$cruminstmp3" -gt 30 ]; then
-								printf "\\n\\e[31mPlease enter a number between 0 and 30\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a number between 0 and 30${CLEARFORMAT}\\n"
 								cruminsvalidated="false"
 								break
 							fi
 						elif ! Validate_Number "$i"; then
-							printf "\\n\\e[31mPlease enter a valid number (0-59) or comma separated values\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a valid number (0-59) or comma separated values${CLEARFORMAT}\\n"
 							cruminsvalidated="false"
 							break
 						elif [ "$i" -lt 0 ] || [ "$i" -gt 59 ]; then
-							printf "\\n\\e[31mPlease enter a number between 0 and 59 or comma separated values\\e[0m\\n"
+							printf "\\n\\e[31mPlease enter a number between 0 and 59 or comma separated values${CLEARFORMAT}\\n"
 							cruminsvalidated="false"
 							break
 						fi
@@ -2773,9 +2949,9 @@ Menu_EditSchedule(){
 }
 
 Menu_ResetDB(){
-	printf "\\e[1m\\e[33mWARNING: This will reset the %s database by deleting all database records.\\n" "$SCRIPT_NAME"
-	printf "A backup of the database will be created if you change your mind.\\e[0m\\n"
-	printf "\\n\\e[1mDo you want to continue? (y/n)\\e[0m  "
+	printf "${BOLD}\\e[33mWARNING: This will reset the %s database by deleting all database records.\\n" "$SCRIPT_NAME"
+	printf "A backup of the database will be created if you change your mind.${CLEARFORMAT}\\n"
+	printf "\\n${BOLD}Do you want to continue? (y/n)${CLEARFORMAT}  "
 	read -r confirm
 	case "$confirm" in
 		y|Y)
@@ -2783,7 +2959,7 @@ Menu_ResetDB(){
 			Reset_DB
 		;;
 		*)
-			printf "\\n\\e[1m\\e[33mDatabase reset cancelled\\e[0m\\n\\n"
+			printf "\\n${BOLD}\\e[33mDatabase reset cancelled${CLEARFORMAT}\\n\\n"
 		;;
 	esac
 }
@@ -2801,13 +2977,13 @@ Menu_AutoBW(){
 		fi
 		
 		printf "1.    Update QoS bandwidth values now\\n\\n"
-		printf "2.    Configure number of speedtests used to calculate average bandwidth\\n      Currently bandwidth is calculated using the avergae of the last ${SETTING}%s\\e[0m speedtest(s)\\n\\n" "$(AutoBWConf check AVERAGE CALC)"
-		printf "3.    Configure scale factor\\n      Download: ${SETTING}%s%%\\e[0m  -  Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
-		printf "4.    Configure bandwidth limits\\n      Upper Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n      Lower Limit    Download: ${SETTING}%s Mbps\\e[0m  -  Upload: ${SETTING}%s Mbps\\e[0m\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
-		printf "5.    Configure threshold for updating QoS bandwidth values\\n      Download: ${SETTING}%s%%\\e[0m - Upload: ${SETTING}%s%%\\e[0m\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
-		printf "6.    Toggle AutoBW on/off\\n      Currently: ${SETTING}%s\\e[0m\\n\\n" "$AUTOBW_MENU"
+		printf "2.    Configure number of speedtests used to calculate average bandwidth\\n      Currently bandwidth is calculated using the avergae of the last ${SETTING}%s${CLEARFORMAT} speedtest(s)\\n\\n" "$(AutoBWConf check AVERAGE CALC)"
+		printf "3.    Configure scale factor\\n      Download: ${SETTING}%s%%${CLEARFORMAT}  -  Upload: ${SETTING}%s%%${CLEARFORMAT}\\n\\n" "$(AutoBWConf check SF DOWN)" "$(AutoBWConf check SF UP)"
+		printf "4.    Configure bandwidth limits\\n      Upper Limit    Download: ${SETTING}%s Mbps${CLEARFORMAT}  -  Upload: ${SETTING}%s Mbps${CLEARFORMAT}\\n      Lower Limit    Download: ${SETTING}%s Mbps${CLEARFORMAT}  -  Upload: ${SETTING}%s Mbps${CLEARFORMAT}\\n\\n" "$(AutoBWConf check ULIMIT DOWN)" "$(AutoBWConf check ULIMIT UP)" "$(AutoBWConf check LLIMIT DOWN)" "$(AutoBWConf check LLIMIT UP)"
+		printf "5.    Configure threshold for updating QoS bandwidth values\\n      Download: ${SETTING}%s%%${CLEARFORMAT} - Upload: ${SETTING}%s%%${CLEARFORMAT}\\n\\n" "$(AutoBWConf check THRESHOLD DOWN)" "$(AutoBWConf check THRESHOLD UP)"
+		printf "6.    Toggle AutoBW on/off\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$AUTOBW_MENU"
 		printf "e.    Go back\\n\\n"
-		printf "\\e[1m####################################################################\\e[0m\\n"
+		printf "${BOLD}####################################################################${CLEARFORMAT}\\n"
 		printf "\\n"
 		
 		printf "Choose an option:  "
@@ -2831,10 +3007,10 @@ Menu_AutoBW(){
 								exitmenu="exit"
 								break
 							elif ! Validate_Number "$avgnumvalue"; then
-								printf "\\n\\e[31mPlease enter a valid number (1-30)\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a valid number (1-30)${CLEARFORMAT}\\n"
 							else
 								if [ "$avgnumvalue" -lt 1 ] || [ "$avgnumvalue" -gt 30 ]; then
-									printf "\\n\\e[31mPlease enter a number between 1 and 30\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter a number between 1 and 30${CLEARFORMAT}\\n"
 								else
 									avgnum="$avgnumvalue"
 									break
@@ -2869,10 +3045,10 @@ Menu_AutoBW(){
 							exitmenu="exit"
 							break
 						elif ! Validate_Number "$autobwsfchoice"; then
-							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
+							printf "\\n\\e[31mPlease enter a valid number (1-2)${CLEARFORMAT}\\n\\n"
 						else
 							if [ "$autobwsfchoice" -lt 1 ] || [ "$autobwsfchoice" -gt 2 ]; then
-								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
+								printf "\\n\\e[31mPlease enter a number between 1 and 2${CLEARFORMAT}\\n\\n"
 							else
 								if [ "$autobwsfchoice" -eq 1 ]; then
 									updown="DOWN"
@@ -2893,10 +3069,10 @@ Menu_AutoBW(){
 									exitmenu="exit"
 									break
 								elif ! Validate_Number "$autobwsfvalue"; then
-									printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter a valid number (1-100)${CLEARFORMAT}\\n"
 								else
 									if [ "$autobwsfvalue" -lt 1 ] || [ "$autobwsfvalue" -gt 100 ]; then
-										printf "\\n\\e[31mPlease enter a number between 1 and 100\\e[0m\\n"
+										printf "\\n\\e[31mPlease enter a number between 1 and 100${CLEARFORMAT}\\n"
 									else
 										sfvalue="$autobwsfvalue"
 										break
@@ -2935,10 +3111,10 @@ Menu_AutoBW(){
 							exitmenu="exit"
 							break
 						elif ! Validate_Number "$autobwchoice"; then
-							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
+							printf "\\n\\e[31mPlease enter a valid number (1-2)${CLEARFORMAT}\\n\\n"
 						else
 							if [ "$autobwchoice" -lt 1 ] || [ "$autobwchoice" -gt 2 ]; then
-								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
+								printf "\\n\\e[31mPlease enter a number between 1 and 2${CLEARFORMAT}\\n\\n"
 							else
 								if [ "$autobwchoice" -eq 1 ]; then
 									updown="DOWN"
@@ -2962,10 +3138,10 @@ Menu_AutoBW(){
 									exitmenu="exit"
 									break
 								elif ! Validate_Number "$autobwlimit"; then
-									printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter a valid number (1-100)${CLEARFORMAT}\\n"
 								else
 									if [ "$autobwlimit" -lt 1 ] || [ "$autobwlimit" -gt 100 ]; then
-										printf "\\n\\e[31mPlease enter a number between 1 and 100\\e[0m\\n"
+										printf "\\n\\e[31mPlease enter a number between 1 and 100${CLEARFORMAT}\\n"
 									else
 										if [ "$autobwlimit" -eq 1 ]; then
 											limithighlow="ULIMIT"
@@ -2984,7 +3160,7 @@ Menu_AutoBW(){
 											exitmenu="exit"
 											break
 										elif ! Validate_Number "$autobwlimvalue"; then
-											printf "\\n\\e[31mPlease enter a valid number (1-100)\\e[0m\\n"
+											printf "\\n\\e[31mPlease enter a valid number (1-100)${CLEARFORMAT}\\n"
 										else
 											limitvalue="$autobwlimvalue"
 											break
@@ -3023,10 +3199,10 @@ Menu_AutoBW(){
 							exitmenu="exit"
 							break
 						elif ! Validate_Number "$autobwthchoice"; then
-							printf "\\n\\e[31mPlease enter a valid number (1-2)\\e[0m\\n\\n"
+							printf "\\n\\e[31mPlease enter a valid number (1-2)${CLEARFORMAT}\\n\\n"
 						else
 							if [ "$autobwthchoice" -lt 1 ] || [ "$autobwthchoice" -gt 2 ]; then
-								printf "\\n\\e[31mPlease enter a number between 1 and 2\\e[0m\\n\\n"
+								printf "\\n\\e[31mPlease enter a number between 1 and 2${CLEARFORMAT}\\n\\n"
 							else
 								if [ "$autobwthchoice" -eq 1 ]; then
 									updown="DOWN"
@@ -3048,10 +3224,10 @@ Menu_AutoBW(){
 								exitmenu="exit"
 								break
 							elif ! Validate_Number "$autobwthvalue"; then
-								printf "\\n\\e[31mPlease enter a valid number (0-100)\\e[0m\\n"
+								printf "\\n\\e[31mPlease enter a valid number (0-100)${CLEARFORMAT}\\n"
 							else
 								if [ "$autobwthvalue" -lt 0 ] || [ "$autobwthvalue" -gt 100 ]; then
-									printf "\\n\\e[31mPlease enter a number between 0 and 100\\e[0m\\n"
+									printf "\\n\\e[31mPlease enter a number between 0 and 100${CLEARFORMAT}\\n"
 								else
 									thvalue="$autobwthvalue"
 									break
@@ -3123,6 +3299,12 @@ Menu_AutoBW_Update(){
 	}
 	done
 	
+	autobwoutfile="$SCRIPT_STORAGE_DIR/.autobwoutfile"
+	TZ=$(cat /etc/TZ)
+	export TZ
+	
+	printf "AutoBW report - %s\\n\\n" "$(date +"%c")" > "$autobwoutfile"
+	
 	dspdkbps="$(echo "$(awk '{printf (1024*$1)}' /tmp/spdbwDownload)" "$dsf" | awk '{printf int($1*$2)}')"
 	uspdkbps="$(echo "$(awk '{printf (1024*$1)}' /tmp/spdbwUpload)" "$usf" | awk '{printf int($1*$2)}')"
 	
@@ -3130,18 +3312,18 @@ Menu_AutoBW_Update(){
 	rm -f /tmp/spdbwUpload
 	
 	if [ "$dspdkbps" -lt "$dlimitlow" ]; then
-		Print_Output true "Download speed ($dspdkbps Kbps) < lower limit ($dlimitlow Kbps)" "$WARN"
+		Print_Output true "Download speed ($dspdkbps Kbps) < lower limit ($dlimitlow Kbps)" "$WARN" | tee -a "$autobwoutfile"
 		dspdkbps="$dlimitlow"
 	elif [ "$dspdkbps" -gt "$dlimithigh" ] && [ "$dlimithigh" -gt 0 ]; then
-		Print_Output true "Download speed ($dspdkbps Kbps) > upper limit ($dlimithigh Kbps)" "$WARN"
+		Print_Output true "Download speed ($dspdkbps Kbps) > upper limit ($dlimithigh Kbps)" "$WARN" | tee -a "$autobwoutfile"
 		dspdkbps="$dlimithigh"
 	fi
 	
 	if [ "$uspdkbps" -lt "$ulimitlow" ]; then
-		Print_Output true "Upload speed ($uspdkbps Kbps) < lower limit ($ulimitlow Kbps)" "$WARN"
+		Print_Output true "Upload speed ($uspdkbps Kbps) < lower limit ($ulimitlow Kbps)" "$WARN" | tee -a "$autobwoutfile"
 		uspdkbps="$ulimitlow"
 	elif [ "$uspdkbps" -gt "$ulimithigh" ] && [ "$ulimithigh" -gt 0 ]; then
-		Print_Output true "Upload speed ($uspdkbps Kbps) > upper limit ($ulimithigh Kbps)" "$WARN"
+		Print_Output true "Upload speed ($uspdkbps Kbps) > upper limit ($ulimithigh Kbps)" "$WARN" | tee -a "$autobwoutfile"
 		uspdkbps="$ulimithigh"
 	fi
 	
@@ -3155,9 +3337,9 @@ Menu_AutoBW_Update(){
 	if [ "$dspdkbps" -gt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$dspdkbps" -lt "$(echo "$old_dspdkbps" "$dbw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
 		bw_changed="true"
 		nvram set qos_ibw="$(echo $dspdkbps | cut -d'.' -f1)"
-		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS"
+		Print_Output true "Setting QoS Download Speed to $dspdkbps Kbps (was $old_dspdkbps Kbps)" "$PASS" | tee -a "$autobwoutfile"
 	else
-		Print_Output true "Calculated Download speed ($dspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD DOWN)% threshold of existing value ($old_dspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Download speed ($dspdkbps Kbps) does not exceed $(AutoBWConf check THRESHOLD DOWN)% threshold of existing value ($old_dspdkbps Kbps)" "$WARN" | tee -a "$autobwoutfile"
 	fi
 	
 	ubw_threshold="$(AutoBWConf check THRESHOLD UP | awk '{printf ($1/100)}')"
@@ -3165,20 +3347,33 @@ Menu_AutoBW_Update(){
 	if [ "$uspdkbps" -gt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1+$1*$2)}')" ] || [ "$uspdkbps" -lt "$(echo "$old_uspdkbps" "$ubw_threshold" | awk '{printf int($1-$1*$2)}')" ]; then
 		bw_changed="true"
 		nvram set qos_obw="$(echo $uspdkbps | cut -d'.' -f1)"
-		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS"
+		Print_Output true "Setting QoS Upload Speed to $uspdkbps Kbps (was $old_uspdkbps Kbps)" "$PASS" | tee -a "$autobwoutfile"
 	else
-		Print_Output true "Calculated Upload speed ($uspdkbps) Kbps does not exceed $(AutoBWConf check THRESHOLD UP)% threshold of existing value ($old_uspdkbps Kbps)" "$WARN"
+		Print_Output true "Calculated Upload speed ($uspdkbps Kbps) does not exceed $(AutoBWConf check THRESHOLD UP)% threshold of existing value ($old_uspdkbps Kbps)" "$WARN" | tee -a "$autobwoutfile"
 	fi
 	
 	if [ "$bw_changed" = "true" ]; then
 		nvram commit
 		service "restart_qos;restart_firewall" >/dev/null 2>&1
+		printf "AutoBW made changes to QoS bandwidth, QoS will be restarted" >> "$autobwoutfile"
+	else
+		printf "No changes made to QoS by AutoBW" >> "$autobwoutfile"
 	fi
+	
+	sed -i 's/[^a-zA-Z0-9():%<>-]/ /g;s/  1m//g;s/  33m//g;s/  0m//g' "$autobwoutfile"
 	
 	Clear_Lock
 }
 
 Menu_Uninstall(){
+	if [ -n "$PPID" ]; then
+		ps | grep -v grep | grep -v $$ | grep -v "$PPID" | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+	else
+		ps | grep -v grep | grep -v $$ | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
+	fi
+	if [ -n "$(pidof speedtest)" ]; then
+		killall speedtest
+	fi
 	Print_Output true "Removing $SCRIPT_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
 	Auto_Cron delete 2>/dev/null
@@ -3190,11 +3385,12 @@ Menu_Uninstall(){
 		umount /www/require/modules/menuTree.js
 		mount -o bind /tmp/menuTree.js /www/require/modules/menuTree.js
 		rm -f "$SCRIPT_WEBPAGE_DIR/$MyPage"
+		rm -f "$SCRIPT_WEBPAGE_DIR/$(echo $MyPage | cut -f1 -d'.').title"
 	fi
 	
 	rm -f "$SCRIPT_DIR/spdstats_www.asp" 2>/dev/null
 	
-	printf "\\n\\e[1mDo you want to delete %s stats and config? (y/n)\\e[0m  " "$SCRIPT_NAME"
+	printf "\\n${BOLD}Do you want to delete %s stats and config? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
 	read -r confirm
 	case "$confirm" in
 		y|Y)
@@ -3240,7 +3436,7 @@ Entware_Ready(){
 	if [ ! -f "/opt/bin/opkg" ]; then
 		Check_Lock
 		sleepcount=1
-		while [ ! -f "/opt/bin/opkg" ] && [ "$sleepcount" -le 10 ]; do
+		while [ ! -f /opt/bin/opkg ] && [ "$sleepcount" -le 10 ]; do
 			Print_Output true "Entware not found, sleeping for 10s (attempt $sleepcount of 10)" "$ERR"
 			sleepcount="$((sleepcount + 1))"
 			sleep 10
@@ -3357,7 +3553,10 @@ case "$1" in
 	service_event)
 		if [ "$2" = "start" ] && echo "$3" | grep -q "${SCRIPT_NAME_LOWER}spdtest"; then
 			rm -f /tmp/detect_spdtest.js
+			rm -f /tmp/spd-result.txt
+			rm -f /tmp/spd-stats.txt
 			Check_Lock webui
+			sleep 3
 			Run_Speedtest_WebUI "$3"
 			Clear_Lock
 			exit 0
@@ -3425,7 +3624,6 @@ case "$1" in
 		exit 0
 	;;
 	uninstall)
-		Check_Lock
 		Menu_Uninstall
 		exit 0
 	;;

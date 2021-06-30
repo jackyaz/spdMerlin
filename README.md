@@ -2,20 +2,18 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 ![Shellcheck](https://github.com/jackyaz/spdMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v4.2.1
-### Updated on 2021-04-07
+## v4.3.0
+### Updated on 2021-07-01
 ## About
 spdMerlin is an internet speedtest and monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries. It tracks download/upload bandwidth as well as latency, jitter and packet loss.
 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
-spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli)
-
-spdMerlin includes the required licenses, which must be accepted on first run of Speedtest CLI.
-
-This script began as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
+spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli) and includes the required licenses, which must be accepted on first run of Speedtest CLI.
 
 A swap file is required, you can set one up easily by using amtm, which is built into the router.
+
+This script began as a user-friendly installer for a personal project developed by [JGrana](https://www.snbforums.com/members/jgrana.20663/)
 
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
@@ -51,9 +49,9 @@ If this does not work, you will need to use the full path:
 
 ## Screenshots
 
-![WebUI](https://puu.sh/HvYnR/d248031bb2.png)
+![WebUI](https://puu.sh/HSYTU/ed2d2157eb.png)
 
-![CLI](https://puu.sh/HvYrX/d7b6ee5840.png)
+![CLI](https://puu.sh/HSYRK/aca960d9fb.png)
 
 ## Help
 Please post about any issues and problems here: [spdMerlin on SNBForums](https://www.snbforums.com/forums/asuswrt-merlin-addons.60/?prefix_id=19)
