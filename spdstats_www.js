@@ -8,27 +8,21 @@ var interfacescomplete = [];
 var interfacesdisabled = [];
 
 var arraysortlistlinesWAN = [];
-var sortfieldWAN = 'Time';
 var sortnameWAN = 'Time';
 var sortdirWAN = 'desc';
 var arraysortlistlinesVPNC1 = [];
-var sortfieldVPNC1 = 'Time';
 var sortnameVPNC1 = 'Time';
 var sortdirVPNC1 = 'desc';
 var arraysortlistlinesVPNC2 = [];
-var sortfieldVPNC2 = 'Time';
 var sortnameVPNC2 = 'Time';
 var sortdirVPNC2 = 'desc';
 var arraysortlistlinesVPNC3 = [];
-var sortfieldVPNC3 = 'Time';
 var sortnameVPNC3 = 'Time';
 var sortdirVPNC3 = 'desc';
 var arraysortlistlinesVPNC4 = [];
-var sortfieldVPNC4 = 'Time';
 var sortnameVPNC4 = 'Time';
 var sortdirVPNC4 = 'desc';
 var arraysortlistlinesVPNC5 = [];
-var sortfieldVPNC5 = 'Time';
 var sortnameVPNC5 = 'Time';
 var sortdirVPNC5 = 'desc';
 
