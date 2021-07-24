@@ -313,72 +313,6 @@ Validate_Number(){
 	fi
 }
 
-License_Acceptance(){
-	case "$1" in
-		check)
-			if [ -f "$HOME_DIR/.config/ookla/speedtest-cli.json" ]; then
-				return 0
-			else
-				return 1
-			fi
-		;;
-		accept)
-			while true; do
-				printf "\\n\\n==============================================================================\\n"
-				printf "\\nYou may only use this Speedtest software and information generated\\n"
-				printf "from it for personal, non-commercial use, through a command line\\n"
-				printf "interface on a personal computer. Your use of this software is subject\\n"
-				printf "to the End User License Agreement, Terms of Use and Privacy Policy at\\n"
-				printf "these URLs:\\n"
-				printf "\\n    https://www.speedtest.net/about/eula\\n"
-				printf "    https://www.speedtest.net/about/terms\\n"
-				printf "    https://www.speedtest.net/about/privacy\\n\\n"
-				printf "==============================================================================\\n\\n"
-				printf "Ookla collects certain data through Speedtest that may be considered\\n"
-				printf "personally identifiable, such as your IP address, unique device\\n"
-				printf "identifiers or location. Ookla believes it has a legitimate interest\\n"
-				printf "to share this data with internet providers, hardware manufacturers and\\n"
-				printf "industry regulators to help them understand and create a better and\\n"
-				printf "faster internet. For further information including how the data may be\\n"
-				printf "shared, where the data may be transferred and Ookla's contact details,\\n"
-				printf "please see our Privacy Policy at:\\n"
-				printf "\\n    http://www.speedtest.net/privacy\\n"
-				printf "\\n==============================================================================\\n\\n"
-				
-				printf "\\n${BOLD}You must accept the license agreements for Speedtest CLI to use %s. Do you want to continue? (y/n)${CLEARFORMAT}\\n" "$SCRIPT_NAME"
-				printf "${BOLD}Note: This will require an initial speedtest to run, please be patient${CLEARFORMAT}\\n"
-				printf "${BOLD}Enter answer:${CLEARFORMAT}  "
-				read -r confirm
-				case "$confirm" in
-					y|Y)
-						Run_Speedtest "auto" "All"
-						License_Acceptance save
-						return 0
-					;;
-					*)
-						Print_Output true "Licenses not accepted, stopping" "$ERR"
-						return 1
-					;;
-				esac
-			done
-		;;
-		save)
-			if [ ! -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
-				cp "$HOME_DIR/.config/ookla/speedtest-cli.json" "$OOKLA_LICENSE_DIR/speedtest-cli.json"
-				Print_Output true "Licenses accepted and saved to persistent storage" "$PASS"
-			fi
-		;;
-		load)
-			if [ -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
-				cp "$OOKLA_LICENSE_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
-				return 0
-			else
-				Print_Output true "Licenses haven't been accepted previously, nothing to load" "$ERR"
-				return 1
-			fi
-		;;
-	esac
-}
 
 Create_Dirs(){
 	if [ ! -d "$SCRIPT_DIR" ]; then
@@ -1396,7 +1330,6 @@ Run_Speedtest(){
 	Shortcut_Script create
 	ScriptStorageLocation load
 	Create_Symlinks
-	License_Acceptance load
 	
 	mode="$1"
 	specificiface="$2"
@@ -1415,22 +1348,6 @@ Run_Speedtest(){
 	fi
 	
 	if Check_Swap ; then
-		if [ "$(echo "$mode" | grep -c "webui")" -eq 0 ]; then
-			if ! License_Acceptance check ; then
-				if [ "$mode" != "schedule" ]; then
-					if ! License_Acceptance accept; then
-						echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
-						Clear_Lock
-						return 1
-					fi
-				else
-					echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
-					Print_Output true "Licenses not accepted, please run spdmerlin at the command line / SSH to accept them" "$ERR"
-					return 1
-				fi
-			fi
-		fi
-		
 		IFACELIST=""
 		if [ -z "$specificiface" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
@@ -2312,6 +2229,22 @@ Menu_Install(){
 	Print_Output true "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
 	sleep 1
 	
+	Print_Output true "By installing $SCRIPT_NAME you are agreeing to Ookla's license: $SCRIPT_REPO/speedtest-cli-license" "$WARN"
+	
+	printf "\\n${BOLD}Do you wish to continue? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
+	read -r confirm
+	case "$confirm" in
+		y|Y)
+			:
+		;;
+		*)
+			Print_Output true "You did not agree to Ookla's license, removing $SCRIPT_NAME" "$CRIT"
+			Clear_Lock
+			rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
+			exit 1
+		;;
+	esac
+	
 	Print_Output true "Checking your router meets the requirements for $SCRIPT_NAME"
 	
 	if ! Check_Requirements; then
@@ -2344,7 +2277,7 @@ Menu_Install(){
 	
 	Process_Upgrade
 	
-	License_Acceptance accept
+	Run_Speedtest auto WAN
 	
 	Clear_Lock
 	
@@ -2381,7 +2314,6 @@ Menu_Startup(){
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
-	License_Acceptance load
 	Mount_WebUI
 	
 	Clear_Lock
@@ -3526,11 +3458,6 @@ if [ -z "$1" ]; then
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
-	if ! License_Acceptance load; then
-		if ! License_Acceptance accept; then
-			exit 1
-		fi
-	fi
 	ScriptHeader
 	MainMenu
 	exit 0
@@ -3619,7 +3546,6 @@ case "$1" in
 		if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 		Auto_ServiceEvent create 2>/dev/null
 		Shortcut_Script create
-		License_Acceptance load
 		Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 	;;
