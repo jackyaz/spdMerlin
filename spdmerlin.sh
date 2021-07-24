@@ -1360,9 +1360,11 @@ Run_Speedtest(){
 	
 	CONFIG_STRING=""
 	LICENSE_STRING="--accept-license --accept-gdpr"
+	PROC_NAME="speedtest"
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
 		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
 		LICENSE_STRING=""
+		PROC_NAME="ookla"
 	fi
 	
 	echo 'var spdteststatus = "InProgress";' > /tmp/detect_spdtest.js
@@ -1372,8 +1374,8 @@ Run_Speedtest(){
 	rm -f "$resultfile"
 	rm -f "$tmpfile"
 	
-	if [ -n "$(pidof speedtest)" ]; then
-		killall speedtest
+	if [ -n "$(pidof "$PROC_NAME")" ]; then
+		killall "$PROC_NAME" 2>/dev/null
 	fi
 	
 	if Check_Swap ; then
@@ -1469,13 +1471,13 @@ Run_Speedtest(){
 						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
 						speedtestcount=0
-						while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+						while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 							speedtestcount="$((speedtestcount + 1))"
 							sleep 1
 						done
 						if [ "$speedtestcount" -ge 120 ]; then
 							Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-							killall speedtest
+							killall "$PROC_NAME" 2>/dev/null
 							continue
 						fi
 					else
@@ -1483,26 +1485,26 @@ Run_Speedtest(){
 							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
 							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
 							speedtestcount=0
-							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+							while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
 								sleep 1
 							done
 							if [ "$speedtestcount" -ge 120 ]; then
 								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-								killall speedtest
+								killall "$PROC_NAME" 2>/dev/null
 								continue
 							fi
 						else
 							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
 							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
 							speedtestcount=0
-							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+							while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
 								sleep 1
 							done
 							if [ "$speedtestcount" -ge 120 ]; then
 								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-								killall speedtest
+								killall "$PROC_NAME" 2>/dev/null
 								continue
 							fi
 						fi
@@ -3339,8 +3341,12 @@ Menu_Uninstall(){
 	else
 		ps | grep -v grep | grep -v $$ | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
 	fi
-	if [ -n "$(pidof speedtest)" ]; then
-		killall speedtest
+	PROC_NAME="speedtest"
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		PROC_NAME="ookla"
+	fi
+	if [ -n "$(pidof "$PROC_NAME")" ]; then
+		killall "$PROC_NAME" 2>/dev/null
 	fi
 	Print_Output true "Removing $SCRIPT_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
