@@ -1164,10 +1164,12 @@ GenerateServerList(){
 	promptforservername="$2"
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
 	CONFIG_STRING=""
+	LICENSE_STRING="--accept-license --accept-gdpr"
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
 		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+		LICENSE_STRING=""
 	fi
-	serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$1")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+	serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$1")" --servers --format="json" $LICENSE_STRING)" 2>/dev/null
 	if [ -z "$serverlist" ]; then
 		Print_Output true "Error retrieving server list for for $1" "$CRIT"
 		serverno="exit"
@@ -1259,8 +1261,10 @@ GenerateServerList_WebUI(){
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
 	
 	CONFIG_STRING=""
+	LICENSE_STRING="--accept-license --accept-gdpr"
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
 		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+		LICENSE_STRING=""
 	fi
 	
 	spdifacename="$1"
@@ -1279,7 +1283,7 @@ GenerateServerList_WebUI(){
 		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		
 		for IFACE_NAME in $IFACELIST; do
-			serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+			serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json" $LICENSE_STRING)" 2>/dev/null
 			servercount="$(echo "$serverlist" | jq '.servers | length')"
 			COUNTER=1
 			until [ $COUNTER -gt "$servercount" ]; do
@@ -1289,7 +1293,7 @@ GenerateServerList_WebUI(){
 			printf "-----\\n" >> "/tmp/$serverlistfile.tmp"
 		done
 	else
-		serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+		serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json" $LICENSE_STRING)" 2>/dev/null
 		servercount="$(echo "$serverlist" | jq '.servers | length')"
 		COUNTER=1
 		until [ $COUNTER -gt "$servercount" ]; do
@@ -1355,8 +1359,10 @@ Run_Speedtest(){
 	speedtestservername=""
 	
 	CONFIG_STRING=""
+	LICENSE_STRING="--accept-license --accept-gdpr"
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
 		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+		LICENSE_STRING=""
 	fi
 	
 	echo 'var spdteststatus = "InProgress";' > /tmp/detect_spdtest.js
@@ -1461,7 +1467,7 @@ Run_Speedtest(){
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
-						"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+						"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
 						speedtestcount=0
 						while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
 							speedtestcount="$((speedtestcount + 1))"
@@ -1475,7 +1481,7 @@ Run_Speedtest(){
 					else
 						if [ "$speedtestserverno" -ne 0 ]; then
 							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
 							speedtestcount=0
 							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
@@ -1488,7 +1494,7 @@ Run_Speedtest(){
 							fi
 						else
 							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
-							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
 							speedtestcount=0
 							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
