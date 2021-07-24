@@ -3526,7 +3526,11 @@ if [ -z "$1" ]; then
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
-	License_Acceptance load
+	if ! License_Acceptance load; then
+		if ! License_Acceptance accept; then
+			exit 1
+		fi
+	fi
 	ScriptHeader
 	MainMenu
 	exit 0
