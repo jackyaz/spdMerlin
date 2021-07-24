@@ -47,6 +47,8 @@ readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
+[ -f /usr/sbin/ookla ] && SPEEDTEST_BINARY=/usr/sbin/ookla || SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+
 [ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
 ### End of script variables ###
 
@@ -197,7 +199,9 @@ Update_Version(){
 				y|Y)
 					printf "\\n"
 					Update_File shared-jy.tar.gz
-					Update_File "$ARCH.tar.gz"
+					if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
+						Update_File "$ARCH.tar.gz"
+					fi
 					Update_File spdstats_www.asp
 					
 					/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
@@ -226,7 +230,9 @@ Update_Version(){
 		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 		Update_File shared-jy.tar.gz
-		Update_File "$ARCH.tar.gz"
+		if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
+			Update_File "$ARCH.tar.gz"
+		fi
 		Update_File spdstats_www.asp
 		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
 		chmod 0755 "/jffs/scripts/$SCRIPT_NAME_LOWER"
@@ -327,16 +333,18 @@ Create_Dirs(){
 		mkdir -p "$CSV_OUTPUT_DIR"
 	fi
 	
-	if [ ! -d "$OOKLA_DIR" ]; then
-		mkdir -p "$OOKLA_DIR"
-	fi
-	
-	if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
-		mkdir -p "$OOKLA_LICENSE_DIR"
-	fi
-	
-	if [ ! -d "$OOKLA_HOME_DIR" ]; then
-		mkdir -p "$OOKLA_HOME_DIR"
+	if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
+		if [ ! -d "$OOKLA_DIR" ]; then
+			mkdir -p "$OOKLA_DIR"
+		fi
+		
+		if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
+			mkdir -p "$OOKLA_LICENSE_DIR"
+		fi
+		
+		if [ ! -d "$OOKLA_HOME_DIR" ]; then
+			mkdir -p "$OOKLA_HOME_DIR"
+		fi
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
@@ -1154,7 +1162,11 @@ GenerateServerList(){
 	fi
 	promptforservername="$2"
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
-	serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$1")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+	CONFIG_STRING=""
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+	fi
+	serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$1")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
 	if [ -z "$serverlist" ]; then
 		Print_Output true "Error retrieving server list for for $1" "$CRIT"
 		serverno="exit"
@@ -1245,6 +1257,11 @@ GenerateServerList_WebUI(){
 	rm -f "/tmp/$serverlistfile.txt"
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
 	
+	CONFIG_STRING=""
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+	fi
+	
 	spdifacename="$1"
 	
 	if [ ! -f /opt/bin/jq ]; then
@@ -1261,7 +1278,7 @@ GenerateServerList_WebUI(){
 		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		
 		for IFACE_NAME in $IFACELIST; do
-			serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+			serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
 			servercount="$(echo "$serverlist" | jq '.servers | length')"
 			COUNTER=1
 			until [ $COUNTER -gt "$servercount" ]; do
@@ -1271,7 +1288,7 @@ GenerateServerList_WebUI(){
 			printf "-----\\n" >> "/tmp/$serverlistfile.tmp"
 		done
 	else
-		serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+		serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
 		servercount="$(echo "$serverlist" | jq '.servers | length')"
 		COUNTER=1
 		until [ $COUNTER -gt "$servercount" ]; do
@@ -1335,6 +1352,11 @@ Run_Speedtest(){
 	specificiface="$2"
 	speedtestserverno=""
 	speedtestservername=""
+	
+	CONFIG_STRING=""
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+	fi
 	
 	echo 'var spdteststatus = "InProgress";' > /tmp/detect_spdtest.js
 	
@@ -1438,7 +1460,7 @@ Run_Speedtest(){
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
-						"$OOKLA_DIR/speedtest" --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+						"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
 						speedtestcount=0
 						while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
 							speedtestcount="$((speedtestcount + 1))"
@@ -1452,7 +1474,7 @@ Run_Speedtest(){
 					else
 						if [ "$speedtestserverno" -ne 0 ]; then
 							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR/speedtest" --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
 							speedtestcount=0
 							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
@@ -1465,7 +1487,7 @@ Run_Speedtest(){
 							fi
 						else
 							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR/speedtest" --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
 							speedtestcount=0
 							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
@@ -1650,6 +1672,11 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		rm -rf "$SCRIPT_DIR/ookla"
+		rm -rf "$SCRIPT_DIR/ooklalicense"
+		rm -rf "$HOME_DIR/.config/ookla"
+	fi
 	rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
 	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
@@ -2262,10 +2289,12 @@ Menu_Install(){
 	ScriptStorageLocation load
 	Create_Symlinks
 	
-	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
-	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
-	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
-	chmod 0755 "$OOKLA_DIR/speedtest"
+	if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
+		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
+		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
+		chmod 0755 "$OOKLA_DIR/speedtest"
+	fi
 	
 	Update_File spdstats_www.asp
 	Update_File shared-jy.tar.gz
