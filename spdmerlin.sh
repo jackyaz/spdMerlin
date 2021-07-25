@@ -1375,7 +1375,7 @@ Run_Speedtest(){
 	rm -f "$tmpfile"
 	
 	if [ -n "$(pidof "$PROC_NAME")" ]; then
-		killall "$PROC_NAME" 2>/dev/null
+		killall -q "$PROC_NAME"
 	fi
 	
 	if Check_Swap ; then
@@ -1478,7 +1478,7 @@ Run_Speedtest(){
 						done
 						if [ "$speedtestcount" -ge 120 ]; then
 							Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-							killall "$PROC_NAME" 2>/dev/null
+							killall -q "$PROC_NAME"
 							continue
 						fi
 					else
@@ -1493,7 +1493,7 @@ Run_Speedtest(){
 							done
 							if [ "$speedtestcount" -ge 120 ]; then
 								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-								killall "$PROC_NAME" 2>/dev/null
+								killall -q "$PROC_NAME"
 								continue
 							fi
 						else
@@ -1507,7 +1507,7 @@ Run_Speedtest(){
 							done
 							if [ "$speedtestcount" -ge 120 ]; then
 								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-								killall "$PROC_NAME" 2>/dev/null
+								killall -q "$PROC_NAME"
 								continue
 							fi
 						fi
@@ -3349,7 +3349,7 @@ Menu_Uninstall(){
 		PROC_NAME="ookla"
 	fi
 	if [ -n "$(pidof "$PROC_NAME")" ]; then
-		killall "$PROC_NAME" 2>/dev/null
+		killall -q "$PROC_NAME"
 	fi
 	Print_Output true "Removing $SCRIPT_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
