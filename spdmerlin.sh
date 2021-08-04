@@ -1470,7 +1470,7 @@ Run_Speedtest(){
 					if [ "$mode" = "auto" ]; then
 						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
 						"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
-						sleep 3
+						sleep 2
 						speedtestcount=0
 						while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 							speedtestcount="$((speedtestcount + 1))"
@@ -1485,7 +1485,7 @@ Run_Speedtest(){
 						if [ "$speedtestserverno" -ne 0 ]; then
 							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
 							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
-							sleep 3
+							sleep 2
 							speedtestcount=0
 							while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
@@ -1499,7 +1499,7 @@ Run_Speedtest(){
 						else
 							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
 							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
-							sleep 3
+							sleep 2
 							speedtestcount=0
 							while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
