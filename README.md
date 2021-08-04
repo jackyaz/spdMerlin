@@ -2,14 +2,15 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 ![Shellcheck](https://github.com/jackyaz/spdMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v4.3.0
-### Updated on 2021-07-01
+## v4.4.0
+### Updated on 2021-07-25
 ## About
 spdMerlin is an internet speedtest and monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries. It tracks download/upload bandwidth as well as latency, jitter and packet loss.
 
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
 spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli) and includes the required licenses, which must be accepted on first run of Speedtest CLI.
+As of spdMerlin v4.4.0 the Asus built-in Ookla speedtest binary is used to run the speedtests.
 
 A swap file is required, you can set one up easily by using amtm, which is built into the router.
 

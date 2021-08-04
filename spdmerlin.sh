@@ -23,6 +23,7 @@
 # shellcheck disable=SC2028
 # shellcheck disable=SC2039
 # shellcheck disable=SC2059
+# shellcheck disable=SC2086
 # shellcheck disable=SC2155
 # shellcheck disable=SC3045
 ##############################################################
@@ -30,7 +31,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="spdMerlin"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v4.3.0"
+readonly SCRIPT_VERSION="v4.4.0"
 SCRIPT_BRANCH="master"
 SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -47,6 +48,8 @@ readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
+[ -f /usr/sbin/ookla ] && SPEEDTEST_BINARY=/usr/sbin/ookla || SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+
 [ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
 ### End of script variables ###
 
@@ -197,7 +200,9 @@ Update_Version(){
 				y|Y)
 					printf "\\n"
 					Update_File shared-jy.tar.gz
-					Update_File "$ARCH.tar.gz"
+					if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
+						Update_File "$ARCH.tar.gz"
+					fi
 					Update_File spdstats_www.asp
 					
 					/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
@@ -226,7 +231,9 @@ Update_Version(){
 		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 		Update_File shared-jy.tar.gz
-		Update_File "$ARCH.tar.gz"
+		if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
+			Update_File "$ARCH.tar.gz"
+		fi
 		Update_File spdstats_www.asp
 		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
 		chmod 0755 "/jffs/scripts/$SCRIPT_NAME_LOWER"
@@ -313,72 +320,6 @@ Validate_Number(){
 	fi
 }
 
-License_Acceptance(){
-	case "$1" in
-		check)
-			if [ -f "$HOME_DIR/.config/ookla/speedtest-cli.json" ]; then
-				return 0
-			else
-				return 1
-			fi
-		;;
-		accept)
-			while true; do
-				printf "\\n\\n==============================================================================\\n"
-				printf "\\nYou may only use this Speedtest software and information generated\\n"
-				printf "from it for personal, non-commercial use, through a command line\\n"
-				printf "interface on a personal computer. Your use of this software is subject\\n"
-				printf "to the End User License Agreement, Terms of Use and Privacy Policy at\\n"
-				printf "these URLs:\\n"
-				printf "\\n    https://www.speedtest.net/about/eula\\n"
-				printf "    https://www.speedtest.net/about/terms\\n"
-				printf "    https://www.speedtest.net/about/privacy\\n\\n"
-				printf "==============================================================================\\n\\n"
-				printf "Ookla collects certain data through Speedtest that may be considered\\n"
-				printf "personally identifiable, such as your IP address, unique device\\n"
-				printf "identifiers or location. Ookla believes it has a legitimate interest\\n"
-				printf "to share this data with internet providers, hardware manufacturers and\\n"
-				printf "industry regulators to help them understand and create a better and\\n"
-				printf "faster internet. For further information including how the data may be\\n"
-				printf "shared, where the data may be transferred and Ookla's contact details,\\n"
-				printf "please see our Privacy Policy at:\\n"
-				printf "\\n    http://www.speedtest.net/privacy\\n"
-				printf "\\n==============================================================================\\n\\n"
-				
-				printf "\\n${BOLD}You must accept the license agreements for Speedtest CLI to use %s. Do you want to continue? (y/n)${CLEARFORMAT}\\n" "$SCRIPT_NAME"
-				printf "${BOLD}Note: This will require an initial speedtest to run, please be patient${CLEARFORMAT}\\n"
-				printf "${BOLD}Enter answer:${CLEARFORMAT}  "
-				read -r confirm
-				case "$confirm" in
-					y|Y)
-						Run_Speedtest "auto" "All"
-						License_Acceptance save
-						return 0
-					;;
-					*)
-						Print_Output true "Licenses not accepted, stopping" "$ERR"
-						return 1
-					;;
-				esac
-			done
-		;;
-		save)
-			if [ ! -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
-				cp "$HOME_DIR/.config/ookla/speedtest-cli.json" "$OOKLA_LICENSE_DIR/speedtest-cli.json"
-				Print_Output true "Licenses accepted and saved to persistent storage" "$PASS"
-			fi
-		;;
-		load)
-			if [ -f "$OOKLA_LICENSE_DIR/speedtest-cli.json" ]; then
-				cp "$OOKLA_LICENSE_DIR/speedtest-cli.json" "$HOME_DIR/.config/ookla/speedtest-cli.json"
-				return 0
-			else
-				Print_Output true "Licenses haven't been accepted previously, nothing to load" "$ERR"
-				return 1
-			fi
-		;;
-	esac
-}
 
 Create_Dirs(){
 	if [ ! -d "$SCRIPT_DIR" ]; then
@@ -393,16 +334,18 @@ Create_Dirs(){
 		mkdir -p "$CSV_OUTPUT_DIR"
 	fi
 	
-	if [ ! -d "$OOKLA_DIR" ]; then
-		mkdir -p "$OOKLA_DIR"
-	fi
-	
-	if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
-		mkdir -p "$OOKLA_LICENSE_DIR"
-	fi
-	
-	if [ ! -d "$OOKLA_HOME_DIR" ]; then
-		mkdir -p "$OOKLA_HOME_DIR"
+	if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
+		if [ ! -d "$OOKLA_DIR" ]; then
+			mkdir -p "$OOKLA_DIR"
+		fi
+		
+		if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
+			mkdir -p "$OOKLA_LICENSE_DIR"
+		fi
+		
+		if [ ! -d "$OOKLA_HOME_DIR" ]; then
+			mkdir -p "$OOKLA_HOME_DIR"
+		fi
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
@@ -635,19 +578,19 @@ Auto_ServiceEvent(){
 		create)
 			if [ -f /jffs/scripts/service-event ]; then
 				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/service-event)
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" /jffs/scripts/service-event)
+				STARTUPLINECOUNTEX=$(grep -cx 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME_LOWER"'"; then { /jffs/scripts/'"$SCRIPT_NAME_LOWER"' service_event "$@" & }; fi # '"$SCRIPT_NAME" /jffs/scripts/service-event)
 				
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/service-event
 				fi
 				
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
-					echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
+					echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME_LOWER"'"; then { /jffs/scripts/'"$SCRIPT_NAME_LOWER"' service_event "$@" & }; fi # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event
 				echo "" >> /jffs/scripts/service-event
-				echo "/jffs/scripts/$SCRIPT_NAME_LOWER service_event"' "$@" & # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
+				echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME_LOWER"'"; then { /jffs/scripts/'"$SCRIPT_NAME_LOWER"' service_event "$@" & }; fi # '"$SCRIPT_NAME" >> /jffs/scripts/service-event
 				chmod 0755 /jffs/scripts/service-event
 			fi
 		;;
@@ -1220,7 +1163,13 @@ GenerateServerList(){
 	fi
 	promptforservername="$2"
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
-	serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$1")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+	CONFIG_STRING=""
+	LICENSE_STRING="--accept-license --accept-gdpr"
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+		LICENSE_STRING=""
+	fi
+	serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$1")" --servers --format="json" $LICENSE_STRING)" 2>/dev/null
 	if [ -z "$serverlist" ]; then
 		Print_Output true "Error retrieving server list for for $1" "$CRIT"
 		serverno="exit"
@@ -1311,6 +1260,13 @@ GenerateServerList_WebUI(){
 	rm -f "/tmp/$serverlistfile.txt"
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
 	
+	CONFIG_STRING=""
+	LICENSE_STRING="--accept-license --accept-gdpr"
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+		LICENSE_STRING=""
+	fi
+	
 	spdifacename="$1"
 	
 	if [ ! -f /opt/bin/jq ]; then
@@ -1327,7 +1283,7 @@ GenerateServerList_WebUI(){
 		IFACELIST="$(echo "$IFACELIST" | cut -c2-)"
 		
 		for IFACE_NAME in $IFACELIST; do
-			serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+			serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$IFACE_NAME")" --servers --format="json" $LICENSE_STRING)" 2>/dev/null
 			servercount="$(echo "$serverlist" | jq '.servers | length')"
 			COUNTER=1
 			until [ $COUNTER -gt "$servercount" ]; do
@@ -1337,7 +1293,7 @@ GenerateServerList_WebUI(){
 			printf "-----\\n" >> "/tmp/$serverlistfile.tmp"
 		done
 	else
-		serverlist="$("$OOKLA_DIR/speedtest" --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json" --accept-license --accept-gdpr)" 2>/dev/null
+		serverlist="$("$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$(Get_Interface_From_Name "$spdifacename")" --servers --format="json" $LICENSE_STRING)" 2>/dev/null
 		servercount="$(echo "$serverlist" | jq '.servers | length')"
 		COUNTER=1
 		until [ $COUNTER -gt "$servercount" ]; do
@@ -1396,12 +1352,20 @@ Run_Speedtest(){
 	Shortcut_Script create
 	ScriptStorageLocation load
 	Create_Symlinks
-	License_Acceptance load
 	
 	mode="$1"
 	specificiface="$2"
 	speedtestserverno=""
 	speedtestservername=""
+	
+	CONFIG_STRING=""
+	LICENSE_STRING="--accept-license --accept-gdpr"
+	PROC_NAME="speedtest"
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
+		LICENSE_STRING=""
+		PROC_NAME="ookla"
+	fi
 	
 	echo 'var spdteststatus = "InProgress";' > /tmp/detect_spdtest.js
 	
@@ -1410,27 +1374,11 @@ Run_Speedtest(){
 	rm -f "$resultfile"
 	rm -f "$tmpfile"
 	
-	if [ -n "$(pidof speedtest)" ]; then
-		killall speedtest
+	if [ -n "$(pidof "$PROC_NAME")" ]; then
+		killall -q "$PROC_NAME"
 	fi
 	
 	if Check_Swap ; then
-		if [ "$(echo "$mode" | grep -c "webui")" -eq 0 ]; then
-			if ! License_Acceptance check ; then
-				if [ "$mode" != "schedule" ]; then
-					if ! License_Acceptance accept; then
-						echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
-						Clear_Lock
-						return 1
-					fi
-				else
-					echo 'var spdteststatus = "NoLicense";' > /tmp/detect_spdtest.js
-					Print_Output true "Licenses not accepted, please run spdmerlin at the command line / SSH to accept them" "$ERR"
-					return 1
-				fi
-			fi
-		fi
-		
 		IFACELIST=""
 		if [ -z "$specificiface" ]; then
 			while IFS='' read -r line || [ -n "$line" ]; do
@@ -1521,42 +1469,45 @@ Run_Speedtest(){
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
-						"$OOKLA_DIR/speedtest" --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+						"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
+						sleep 2
 						speedtestcount=0
-						while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+						while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 							speedtestcount="$((speedtestcount + 1))"
 							sleep 1
 						done
 						if [ "$speedtestcount" -ge 120 ]; then
 							Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-							killall speedtest
+							killall -q "$PROC_NAME"
 							continue
 						fi
 					else
 						if [ "$speedtestserverno" -ne 0 ]; then
 							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR/speedtest" --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
+							sleep 2
 							speedtestcount=0
-							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+							while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
 								sleep 1
 							done
 							if [ "$speedtestcount" -ge 120 ]; then
 								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-								killall speedtest
+								killall -q "$PROC_NAME"
 								continue
 							fi
 						else
 							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
-							"$OOKLA_DIR/speedtest" --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" --accept-license --accept-gdpr | tee "$tmpfile" &
+							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
+							sleep 2
 							speedtestcount=0
-							while [ -n "$(pidof speedtest)" ] && [ "$speedtestcount" -lt 120 ]; do
+							while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
 								speedtestcount="$((speedtestcount + 1))"
 								sleep 1
 							done
 							if [ "$speedtestcount" -ge 120 ]; then
 								Print_Output true "Speedtest for $IFACE_NAME hung (> 2 mins), killing process" "$CRIT"
-								killall speedtest
+								killall -q "$PROC_NAME"
 								continue
 							fi
 						fi
@@ -1733,6 +1684,11 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		rm -rf "$SCRIPT_DIR/ookla"
+		rm -rf "$SCRIPT_DIR/ooklalicense"
+		rm -rf "$HOME_DIR/.config/ookla"
+	fi
 	rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
 	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
 	if [ ! -f "$SCRIPT_STORAGE_DIR/spdtitletext.js" ]; then
@@ -2312,6 +2268,22 @@ Menu_Install(){
 	Print_Output true "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
 	sleep 1
 	
+	Print_Output true "By installing $SCRIPT_NAME you are agreeing to Ookla's license: $SCRIPT_REPO/speedtest-cli-license" "$WARN"
+	
+	printf "\\n${BOLD}Do you wish to continue? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
+	read -r confirm
+	case "$confirm" in
+		y|Y)
+			:
+		;;
+		*)
+			Print_Output true "You did not agree to Ookla's license, removing $SCRIPT_NAME" "$CRIT"
+			Clear_Lock
+			rm -f "/jffs/scripts/$SCRIPT_NAME_LOWER" 2>/dev/null
+			exit 1
+		;;
+	esac
+	
 	Print_Output true "Checking your router meets the requirements for $SCRIPT_NAME"
 	
 	if ! Check_Requirements; then
@@ -2329,10 +2301,12 @@ Menu_Install(){
 	ScriptStorageLocation load
 	Create_Symlinks
 	
-	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
-	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
-	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
-	chmod 0755 "$OOKLA_DIR/speedtest"
+	if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
+		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
+		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
+		chmod 0755 "$OOKLA_DIR/speedtest"
+	fi
 	
 	Update_File spdstats_www.asp
 	Update_File shared-jy.tar.gz
@@ -2344,7 +2318,7 @@ Menu_Install(){
 	
 	Process_Upgrade
 	
-	License_Acceptance accept
+	Run_Speedtest auto WAN
 	
 	Clear_Lock
 	
@@ -2381,7 +2355,6 @@ Menu_Startup(){
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
-	License_Acceptance load
 	Mount_WebUI
 	
 	Clear_Lock
@@ -3371,8 +3344,12 @@ Menu_Uninstall(){
 	else
 		ps | grep -v grep | grep -v $$ | grep -i "$SCRIPT_NAME_LOWER" | grep generate | awk '{print $1}' | xargs kill -9 >/dev/null 2>&1
 	fi
-	if [ -n "$(pidof speedtest)" ]; then
-		killall speedtest
+	PROC_NAME="speedtest"
+	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
+		PROC_NAME="ookla"
+	fi
+	if [ -n "$(pidof "$PROC_NAME")" ]; then
+		killall -q "$PROC_NAME"
 	fi
 	Print_Output true "Removing $SCRIPT_NAME..." "$PASS"
 	Auto_Startup delete 2>/dev/null
@@ -3526,7 +3503,6 @@ if [ -z "$1" ]; then
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
 	Shortcut_Script create
-	License_Acceptance load
 	ScriptHeader
 	MainMenu
 	exit 0
@@ -3615,7 +3591,6 @@ case "$1" in
 		if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 		Auto_ServiceEvent create 2>/dev/null
 		Shortcut_Script create
-		License_Acceptance load
 		Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 		Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 	;;
