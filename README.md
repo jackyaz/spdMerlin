@@ -10,7 +10,7 @@ spdMerlin is an internet speedtest and monitoring tool for AsusWRT Merlin with c
 spdMerlin is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
 
 spdMerlin uses [Speedtest CLI](https://www.speedtest.net/apps/cli) and includes the required licenses, which must be accepted on first run of Speedtest CLI.
-As of spdMerlin v4.4.0 the Asus built-in Ookla speedtest binary is used to run the speedtests
+As of spdMerlin v4.4.0 the Asus built-in Ookla speedtest binary is used to run the speedtests.
 
 A swap file is required, you can set one up easily by using amtm, which is built into the router.
 
