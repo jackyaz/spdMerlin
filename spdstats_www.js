@@ -1138,7 +1138,7 @@ function get_spdtestresult_file(){
 		url: '/ext/spdmerlin/spd-result.htm',
 		dataType: 'text',
 		error: function(xhr){
-			setTimeout(get_spdtestresult_file,500);
+			setTimeout(get_spdtestresult_file,1000);
 		},
 		success: function(data){
 			var lines = data.trim().split('\n');
@@ -1278,7 +1278,7 @@ var myinterval;
 var intervalclear = false;
 function StartSpeedTestInterval(){
 	intervalclear = false;
-	myinterval = setInterval(update_spdtest,500);
+	myinterval = setInterval(update_spdtest,1000);
 }
 
 function SaveConfig(){
