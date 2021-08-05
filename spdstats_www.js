@@ -26,6 +26,8 @@ var arraysortlistlinesVPNC5 = [];
 var sortnameVPNC5 = 'Time';
 var sortdirVPNC5 = 'desc';
 
+var speedtestbinary = "built-in";
+
 var ShowLines = GetCookie('ShowLines','string');
 var ShowFill = GetCookie('ShowFill','string');
 if(ShowFill == ''){
@@ -863,6 +865,7 @@ function initial(){
 	show_menu();
 	$j('#Time_Format').val(GetCookie('Time_Format','number'));
 	ScriptUpdateLayout();
+	get_spdtestbinary_file();
 	get_statstitle_file();
 	get_interfaces_file();
 }
@@ -1138,13 +1141,31 @@ function get_spdtestresult_file(){
 		url: '/ext/spdmerlin/spd-result.htm',
 		dataType: 'text',
 		error: function(xhr){
-			setTimeout(get_spdtestresult_file,500);
+			setTimeout(get_spdtestresult_file,1000);
 		},
 		success: function(data){
 			var lines = data.trim().split('\n');
 			data = lines.join('\n');
 			$j('#spdtest_output').html(data);
 			PostSpeedTest();
+		}
+	});
+}
+
+function get_spdtestbinary_file(){
+	$j.ajax({
+		url: '/ext/spdmerlin/spd-binary.htm',
+		dataType: 'text',
+		error: function(xhr){
+			setTimeout(get_spdtestbinary_file,1000);
+		},
+		success: function(data){
+			if(data == "/usr/sbin/ookla"){
+				speedtestbinary = "built-in";
+			}
+			else{
+				speedtestbinary = "external";
+			}
 		}
 	});
 }
@@ -1160,6 +1181,10 @@ function get_spdtest_file(){
 			var lines = data.trim().split('\n');
 			var arrlastLine = lines.slice(-1)[0].split('%').filter(Boolean);
 			
+			if(speedtestbinary == "built-in"){
+				lines.unshift("");
+				lines.unshift("Speedtest by Ookla")
+			}
 			if(lines.length > 5){
 				$j('#spdtest_output').html(lines[0]+'\n'+lines[1]+'\n'+lines[2]+'\n'+lines[3]+'\n'+lines[4]+'\n'+arrlastLine[arrlastLine.length-1]+'%');
 			}
@@ -1278,7 +1303,7 @@ var myinterval;
 var intervalclear = false;
 function StartSpeedTestInterval(){
 	intervalclear = false;
-	myinterval = setInterval(update_spdtest,500);
+	myinterval = setInterval(update_spdtest,1000);
 }
 
 function SaveConfig(){

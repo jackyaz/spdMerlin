@@ -2,8 +2,8 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/1e0da6475e3047d59b35e258a18b78fc)](https://www.codacy.com/app/jackyaz/spdMerlin?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=jackyaz/spdMerlin&amp;utm_campaign=Badge_Grade)
 ![Shellcheck](https://github.com/jackyaz/spdMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v4.4.0
-### Updated on 2021-08-04
+## v4.4.1
+### Updated on 2021-08-05
 ## About
 spdMerlin is an internet speedtest and monitoring tool for AsusWRT Merlin with charts for daily, weekly and monthly summaries. It tracks download/upload bandwidth as well as latency, jitter and packet loss.
 

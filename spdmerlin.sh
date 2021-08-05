@@ -31,7 +31,7 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="spdMerlin"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v4.4.0"
+readonly SCRIPT_VERSION="v4.4.1"
 SCRIPT_BRANCH="master"
 SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -49,6 +49,7 @@ readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 [ -f /usr/sbin/ookla ] && SPEEDTEST_BINARY=/usr/sbin/ookla || SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+printf "%s" "$SPEEDTEST_BINARY" > /tmp/spdmerlin-binary
 
 [ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
 ### End of script variables ###
@@ -402,6 +403,7 @@ Create_Symlinks(){
 	ln -s /tmp/spd-stats.txt "$SCRIPT_WEB_DIR/spd-stats.htm" 2>/dev/null
 	ln -s /tmp/spd-result.txt "$SCRIPT_WEB_DIR/spd-result.htm" 2>/dev/null
 	ln -s /tmp/detect_spdtest.js "$SCRIPT_WEB_DIR/detect_spdtest.js" 2>/dev/null
+	ln -s /tmp/spdmerlin-binary "$SCRIPT_WEB_DIR/spd-binary.htm" 2>/dev/null
 	ln -s "$SCRIPT_STORAGE_DIR/.autobwoutfile" "$SCRIPT_WEB_DIR/autobwoutfile.htm" 2>/dev/null
 	
 	ln -s "$SCRIPT_CONF" "$SCRIPT_WEB_DIR/config.htm" 2>/dev/null
