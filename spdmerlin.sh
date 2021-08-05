@@ -49,7 +49,7 @@ readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 [ -f /usr/sbin/ookla ] && SPEEDTEST_BINARY=/usr/sbin/ookla || SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
-echo "$SPEEDTEST_BINARY" > /tmp/spdmerlin-binary
+printf "%s" "$SPEEDTEST_BINARY" > /tmp/spdmerlin-binary
 
 [ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
 ### End of script variables ###
