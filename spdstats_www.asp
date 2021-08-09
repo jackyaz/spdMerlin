@@ -2619,9 +2619,9 @@ function AddEventHandlers(){
 <td class="settingname">Speedtest binary to use<br/><span style="color:#FFCC00;background:#2F3A3E;">(either built-in Ookla or speedtest-cli)</span></td>
 <td class="settingvalue">
 <input type="radio" name="spdmerlin_speedtestbinary" id="spdmerlin_speedtestbinary_builtin" class="input" value="builtin" checked>
-<label for="spdmerlin_speedtestbinary_builtin-unix">Non-Unix</label>
+<label for="spdmerlin_speedtestbinary_builtin-unix">Built-in</label>
 <input type="radio" name="spdmerlin_speedtestbinary" id="spdmerlin_speedtestbinary_external" class="input" value="external">
-<label for="spdmerlin_speedtestbinary_external">Unix</label>
+<label for="spdmerlin_speedtestbinary_external">External</label>
 </td>
 </tr>
 <tr class="even" id="rowstoreresulturl">
