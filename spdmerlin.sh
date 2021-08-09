@@ -48,8 +48,6 @@ readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
-[ -f /usr/sbin/ookla ] && SPEEDTEST_BINARY=/usr/sbin/ookla || SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
-printf "%s" "$SPEEDTEST_BINARY" > /tmp/spdmerlin-binary
 
 [ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
 ### End of script variables ###
@@ -201,9 +199,7 @@ Update_Version(){
 				y|Y)
 					printf "\\n"
 					Update_File shared-jy.tar.gz
-					if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
-						Update_File "$ARCH.tar.gz"
-					fi
+					Update_File "$ARCH.tar.gz"
 					Update_File spdstats_www.asp
 					
 					/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
@@ -232,9 +228,7 @@ Update_Version(){
 		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 		Update_File shared-jy.tar.gz
-		if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
-			Update_File "$ARCH.tar.gz"
-		fi
+		Update_File "$ARCH.tar.gz"
 		Update_File spdstats_www.asp
 		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
 		chmod 0755 "/jffs/scripts/$SCRIPT_NAME_LOWER"
@@ -335,18 +329,16 @@ Create_Dirs(){
 		mkdir -p "$CSV_OUTPUT_DIR"
 	fi
 	
-	if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
-		if [ ! -d "$OOKLA_DIR" ]; then
-			mkdir -p "$OOKLA_DIR"
-		fi
-		
-		if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
-			mkdir -p "$OOKLA_LICENSE_DIR"
-		fi
-		
-		if [ ! -d "$OOKLA_HOME_DIR" ]; then
-			mkdir -p "$OOKLA_HOME_DIR"
-		fi
+	if [ ! -d "$OOKLA_DIR" ]; then
+		mkdir -p "$OOKLA_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
+		mkdir -p "$OOKLA_LICENSE_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_HOME_DIR" ]; then
+		mkdir -p "$OOKLA_HOME_DIR"
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
@@ -564,6 +556,13 @@ Conf_Exists(){
 		if ! grep -q "LASTXRESULTS" "$SCRIPT_CONF"; then
 			echo "LASTXRESULTS=10" >> "$SCRIPT_CONF"
 		fi
+		if ! grep -q "SPEEDTESTBINARY" "$SCRIPT_CONF"; then
+			if [ -f /usr/sbin/ookla ]; then
+				echo "SPEEDTESTBINARY=builtin" >> "$SCRIPT_CONF"
+			else
+				echo "SPEEDTESTBINARY=external" >> "$SCRIPT_CONF"
+			fi
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
@@ -571,6 +570,11 @@ Conf_Exists(){
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
 		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "AUTOBW_AVERAGE_CALC=10"; echo "STORERESULTURL=true"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42"; echo "DAYSTOKEEP=30"; echo "LASTXRESULTS=10";} >> "$SCRIPT_CONF"
+		if [ -f /usr/sbin/ookla ]; then
+			echo "SPEEDTESTBINARY=builtin" >> "$SCRIPT_CONF"
+		else
+			echo "SPEEDTESTBINARY=external" >> "$SCRIPT_CONF"
+		fi
 		return 1
 	fi
 }
@@ -979,6 +983,21 @@ OutputTimeMode(){
 	esac
 }
 
+SpeedtestBinary(){
+	case "$1" in
+		builtin)
+			sed -i 's/^SPEEDTESTBINARY.*$/SPEEDTESTBINARY=builtin/' "$SCRIPT_CONF"
+		;;
+		external)
+			sed -i 's/^SPEEDTESTBINARY.*$/SPEEDTESTBINARY=external/' "$SCRIPT_CONF"
+		;;
+		check)
+			SPEEDTESTBINARY=$(grep "SPEEDTESTBINARY" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$SPEEDTESTBINARY"
+		;;
+	esac
+}
+
 DaysToKeep(){
 	case "$1" in
 		update)
@@ -1167,6 +1186,12 @@ GenerateServerList(){
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
 	CONFIG_STRING=""
 	LICENSE_STRING="--accept-license --accept-gdpr"
+	SPEEDTEST_BINARY=""
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		SPEEDTEST_BINARY=/usr/sbin/ookla
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+	fi
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
 		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
 		LICENSE_STRING=""
@@ -1261,7 +1286,12 @@ GenerateServerList_WebUI(){
 	serverlistfile="$2"
 	rm -f "/tmp/$serverlistfile.txt"
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
-	
+	SPEEDTEST_BINARY=""
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		SPEEDTEST_BINARY=/usr/sbin/ookla
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+	fi
 	CONFIG_STRING=""
 	LICENSE_STRING="--accept-license --accept-gdpr"
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
@@ -1348,6 +1378,11 @@ Run_Speedtest(){
 	fi
 	Create_Dirs
 	Conf_Exists
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+	fi
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -1363,6 +1398,12 @@ Run_Speedtest(){
 	CONFIG_STRING=""
 	LICENSE_STRING="--accept-license --accept-gdpr"
 	PROC_NAME="speedtest"
+	SPEEDTEST_BINARY=""
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		SPEEDTEST_BINARY=/usr/sbin/ookla
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+	fi
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
 		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
 		LICENSE_STRING=""
@@ -1686,10 +1727,11 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
-	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
-		rm -rf "$SCRIPT_DIR/ookla"
-		rm -rf "$SCRIPT_DIR/ooklalicense"
-		rm -rf "$HOME_DIR/.config/ookla"
+	if [ ! -f "$OOKLA_DIR/speedtest" ]; then
+		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
+		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
+		chmod 0755 "$OOKLA_DIR/speedtest"
 	fi
 	rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
 	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
@@ -2051,6 +2093,7 @@ MainMenu(){
 	printf "6.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
 	printf "7.    Set number of speedtest results to show in WebUI\\n      Currently: ${SETTING}%s results will be shown${CLEARFORMAT}\\n\\n" "$(LastXResults check)"
 	printf "8.    Set number of days data to keep in database\\n      Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\\n\\n" "$(DaysToKeep check)"
+	printf "9.    Toggle between built-in Ookla speedtest and speedtest-cli\\n      Currently: ${SETTING}%s will be used for speedtests${CLEARFORMAT}\\n\\n" "$(SpeedtestBinary check)"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "s.    Toggle storage location for stats and config\\n      Current location is ${SETTING}%s${CLEARFORMAT} \\n\\n" "$(ScriptStorageLocation check)"
@@ -2124,6 +2167,15 @@ MainMenu(){
 				printf "\\n"
 				DaysToKeep update
 				PressEnter
+				break
+			;;
+			9)
+				printf "\\n"
+				if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+					SpeedtestBinary external
+				elif [ "$(SpeedtestBinary check)" = "external" ]; then
+					SpeedtestBinary builtin
+				fi
 				break
 			;;
 			c)
@@ -2298,17 +2350,20 @@ Menu_Install(){
 	
 	Create_Dirs
 	Conf_Exists
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+	fi
 	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 	Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 	ScriptStorageLocation load
 	Create_Symlinks
 	
-	if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
-		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
-		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
-		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
-		chmod 0755 "$OOKLA_DIR/speedtest"
-	fi
+	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
+	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
+	chmod 0755 "$OOKLA_DIR/speedtest"
 	
 	Update_File spdstats_www.asp
 	Update_File shared-jy.tar.gz
@@ -2351,6 +2406,11 @@ Menu_Startup(){
 	
 	Create_Dirs
 	Conf_Exists
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+	fi
 	ScriptStorageLocation load
 	Create_Symlinks
 	Auto_Startup create 2>/dev/null
@@ -3496,6 +3556,11 @@ if [ -z "$1" ]; then
 	
 	Create_Dirs
 	Conf_Exists
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+	fi
 	ScriptStorageLocation load
 	Create_Symlinks
 	
@@ -3586,6 +3651,11 @@ case "$1" in
 	postupdate)
 		Create_Dirs
 		Conf_Exists
+		if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+			printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+		elif [ "$(SpeedtestBinary check)" = "external" ]; then
+			printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+		fi
 		ScriptStorageLocation load
 		Create_Symlinks
 		Process_Upgrade
