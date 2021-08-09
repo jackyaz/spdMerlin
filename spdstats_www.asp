@@ -908,7 +908,6 @@ function initial(){
 	show_menu();
 	$j('#Time_Format').val(GetCookie('Time_Format','number'));
 	ScriptUpdateLayout();
-	get_spdtestbinary_file();
 	get_statstitle_file();
 	get_interfaces_file();
 }
