@@ -887,11 +887,11 @@ Mount_WebUI(){
 AutomaticMode(){
 	case "$1" in
 		enable)
-			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SCRIPT_CONF"
+			sed -i 's/^AUTOMATED=.*$/AUTOMATED=true/' "$SCRIPT_CONF"
 			Auto_Cron create 2>/dev/null
 		;;
 		disable)
-			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SCRIPT_CONF"
+			sed -i 's/^AUTOMATED=.*$/AUTOMATED=false/' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 		;;
 		check)
@@ -904,9 +904,9 @@ AutomaticMode(){
 TestSchedule(){
 	case "$1" in
 		update)
-			sed -i 's/^SCHDAYS.*$/SCHDAYS='"$(echo "$2" | sed 's/0/Sun/;s/1/Mon/;s/2/Tues/;s/3/Wed/;s/4/Thurs/;s/5/Fri/;s/6/Sat/;')"'/' "$SCRIPT_CONF"
-			sed -i 's~^SCHHOURS.*$~SCHHOURS='"$3"'~' "$SCRIPT_CONF"
-			sed -i 's~^SCHMINS.*$~SCHMINS='"$4"'~' "$SCRIPT_CONF"
+			sed -i 's/^SCHDAYS=.*$/SCHDAYS='"$(echo "$2" | sed 's/0/Sun/;s/1/Mon/;s/2/Tues/;s/3/Wed/;s/4/Thurs/;s/5/Fri/;s/6/Sat/;')"'/' "$SCRIPT_CONF"
+			sed -i 's~^SCHHOURS=.*$~SCHHOURS='"$3"'~' "$SCRIPT_CONF"
+			sed -i 's~^SCHMINS=.*$~SCHMINS='"$4"'~' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
@@ -922,7 +922,7 @@ TestSchedule(){
 ScriptStorageLocation(){
 	case "$1" in
 		usb)
-			sed -i 's/^STORAGELOCATION.*$/STORAGELOCATION=usb/' "$SCRIPT_CONF"
+			sed -i 's/^STORAGELOCATION=.*$/STORAGELOCATION=usb/' "$SCRIPT_CONF"
 			mkdir -p "/opt/share/$SCRIPT_NAME_LOWER.d/"
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/csv" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/.interfaces" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
@@ -935,7 +935,7 @@ ScriptStorageLocation(){
 			ScriptStorageLocation load
 		;;
 		jffs)
-			sed -i 's/^STORAGELOCATION.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
+			sed -i 's/^STORAGELOCATION=.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
 			mkdir -p "/jffs/addons/$SCRIPT_NAME_LOWER.d/"
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/csv" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/.interfaces" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
@@ -969,11 +969,11 @@ ScriptStorageLocation(){
 OutputTimeMode(){
 	case "$1" in
 		unix)
-			sed -i 's/^OUTPUTTIMEMODE.*$/OUTPUTTIMEMODE=unix/' "$SCRIPT_CONF"
+			sed -i 's/^OUTPUTTIMEMODE=.*$/OUTPUTTIMEMODE=unix/' "$SCRIPT_CONF"
 			Generate_CSVs
 		;;
 		non-unix)
-			sed -i 's/^OUTPUTTIMEMODE.*$/OUTPUTTIMEMODE=non-unix/' "$SCRIPT_CONF"
+			sed -i 's/^OUTPUTTIMEMODE=.*$/OUTPUTTIMEMODE=non-unix/' "$SCRIPT_CONF"
 			Generate_CSVs
 		;;
 		check)
@@ -986,10 +986,10 @@ OutputTimeMode(){
 SpeedtestBinary(){
 	case "$1" in
 		builtin)
-			sed -i 's/^SPEEDTESTBINARY.*$/SPEEDTESTBINARY=builtin/' "$SCRIPT_CONF"
+			sed -i 's/^SPEEDTESTBINARY=.*$/SPEEDTESTBINARY=builtin/' "$SCRIPT_CONF"
 		;;
 		external)
-			sed -i 's/^SPEEDTESTBINARY.*$/SPEEDTESTBINARY=external/' "$SCRIPT_CONF"
+			sed -i 's/^SPEEDTESTBINARY=.*$/SPEEDTESTBINARY=external/' "$SCRIPT_CONF"
 		;;
 		check)
 			SPEEDTESTBINARY=$(grep "SPEEDTESTBINARY" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1023,7 +1023,7 @@ DaysToKeep(){
 			done
 			
 			if [ "$exitmenu" != "exit" ]; then
-				sed -i 's/^DAYSTOKEEP.*$/DAYSTOKEEP='"$daystokeep"'/' "$SCRIPT_CONF"
+				sed -i 's/^DAYSTOKEEP=.*$/DAYSTOKEEP='"$daystokeep"'/' "$SCRIPT_CONF"
 				return 0
 			else
 				printf "\\n"
@@ -1062,7 +1062,7 @@ LastXResults(){
 			done
 			
 			if [ "$exitmenu" != "exit" ]; then
-				sed -i 's/^LASTXRESULTS.*$/LASTXRESULTS='"$lastxresults"'/' "$SCRIPT_CONF"
+				sed -i 's/^LASTXRESULTS=.*$/LASTXRESULTS='"$lastxresults"'/' "$SCRIPT_CONF"
 				
 				IFACELIST=""
 				
@@ -1092,10 +1092,10 @@ LastXResults(){
 StoreResultURL(){
 	case "$1" in
 	enable)
-		sed -i 's/^STORERESULTURL.*$/STORERESULTURL=true/' "$SCRIPT_CONF"
+		sed -i 's/^STORERESULTURL=.*$/STORERESULTURL=true/' "$SCRIPT_CONF"
 	;;
 	disable)
-		sed -i 's/^STORERESULTURL.*$/STORERESULTURL=false/' "$SCRIPT_CONF"
+		sed -i 's/^STORERESULTURL=.*$/STORERESULTURL=false/' "$SCRIPT_CONF"
 	;;
 	check)
 		STORERESULTURL=$(grep "STORERESULTURL" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1107,10 +1107,10 @@ StoreResultURL(){
 ExcludeFromQoS(){
 	case "$1" in
 	enable)
-		sed -i 's/^EXCLUDEFROMQOS.*$/EXCLUDEFROMQOS=true/' "$SCRIPT_CONF"
+		sed -i 's/^EXCLUDEFROMQOS=.*$/EXCLUDEFROMQOS=true/' "$SCRIPT_CONF"
 	;;
 	disable)
-		sed -i 's/^EXCLUDEFROMQOS.*$/EXCLUDEFROMQOS=false/' "$SCRIPT_CONF"
+		sed -i 's/^EXCLUDEFROMQOS=.*$/EXCLUDEFROMQOS=false/' "$SCRIPT_CONF"
 	;;
 	check)
 		EXCLUDEFROMQOS=$(grep "EXCLUDEFROMQOS" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1122,10 +1122,10 @@ ExcludeFromQoS(){
 AutoBWEnable(){
 	case "$1" in
 	enable)
-		sed -i 's/^AUTOBW_ENABLED.*$/AUTOBW_ENABLED=true/' "$SCRIPT_CONF"
+		sed -i 's/^AUTOBW_ENABLED=.*$/AUTOBW_ENABLED=true/' "$SCRIPT_CONF"
 	;;
 	disable)
-		sed -i 's/^AUTOBW_ENABLED.*$/AUTOBW_ENABLED=false/' "$SCRIPT_CONF"
+		sed -i 's/^AUTOBW_ENABLED=.*$/AUTOBW_ENABLED=false/' "$SCRIPT_CONF"
 	;;
 	check)
 		AUTOBW_ENABLED=$(grep "AUTOBW_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1137,7 +1137,7 @@ AutoBWEnable(){
 AutoBWConf(){
 	case "$1" in
 		update)
-			sed -i 's/^AUTOBW_'"$2"'_'"$3"'.*$/AUTOBW_'"$2"'_'"$3"'='"$4"'/' "$SCRIPT_CONF"
+			sed -i 's/^AUTOBW_'"$2"'_'"$3"'=.*$/AUTOBW_'"$2"'_'"$3"'='"$4"'/' "$SCRIPT_CONF"
 		;;
 		check)
 			grep "AUTOBW_${2}_$3" "$SCRIPT_CONF" | cut -f2 -d"="
@@ -1343,16 +1343,16 @@ PreferredServer(){
 		update)
 			GenerateServerList "$2"
 			if [ "$serverno" != "exit" ]; then
-				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno|$servername"'/' "$SCRIPT_CONF"
+				sed -i 's/^PREFERREDSERVER_'"$2"'=.*$/PREFERREDSERVER_'"$2"'='"$serverno|$servername"'/' "$SCRIPT_CONF"
 			else
 				return 1
 			fi
 		;;
 		enable)
-			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=true/' "$SCRIPT_CONF"
+			sed -i 's/^USEPREFERRED_'"$2"'=.*$/USEPREFERRED_'"$2"'=true/' "$SCRIPT_CONF"
 		;;
 		disable)
-			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=false/' "$SCRIPT_CONF"
+			sed -i 's/^USEPREFERRED_'"$2"'=.*$/USEPREFERRED_'"$2"'=false/' "$SCRIPT_CONF"
 		;;
 		check)
 			USEPREFERRED=$(grep "USEPREFERRED_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1713,12 +1713,12 @@ Run_Speedtest_WebUI(){
 			COUNT=1
 			for IFACE_NAME in $IFACELIST; do
 				spdtestserver="$(grep -m1 "$(echo "$spdtestserverlist" | cut -f"$COUNT" -d'+')" /tmp/spdmerlin_manual_serverlist.txt)"
-				sed -i 's/^PREFERREDSERVER_'"$IFACE_NAME"'.*$/PREFERREDSERVER_'"$IFACE_NAME"'='"$spdtestserver"'/' "$SCRIPT_CONF"
+				sed -i 's/^PREFERREDSERVER_'"$IFACE_NAME"'=.*$/PREFERREDSERVER_'"$IFACE_NAME"'='"$spdtestserver"'/' "$SCRIPT_CONF"
 				COUNT=$((COUNT+1))
 			done
 		else
 			spdtestserver="$(grep -m1 "$spdtestserverlist" /tmp/spdmerlin_manual_serverlist.txt)"
-			sed -i 's/^PREFERREDSERVER_'"$spdifacename"'.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
+			sed -i 's/^PREFERREDSERVER_'"$spdifacename"'=.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
 		fi
 	fi
 	
