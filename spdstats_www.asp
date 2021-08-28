@@ -2042,6 +2042,22 @@ function EveryXToggle(forminput){
 	Validate_ScheduleValue($j('[name=everyxvalue]')[0]);
 }
 
+function ResultURLEnableDisable(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	if(inputvalue == 'builtin'){
+		showhide('spanresulturl',true);
+		$j('input[name^=spdmerlin_storeresulturl]').addClass('disabled');
+		$j('input[name^=spdmerlin_storeresulturl]').prop('disabled',true);
+	}
+	else if(inputvalue == 'external'){
+		showhide('spanresulturl',false);
+		$j('input[name^=spdmerlin_storeresulturl]').removeClass('disabled');
+		$j('input[name^=spdmerlin_storeresulturl]').prop('disabled',false);
+	}
+}
+
 function AutoBWEnableDisable(forminput){
 	var inputname = forminput.name;
 	var inputvalue = forminput.value;
@@ -2617,14 +2633,14 @@ function AddEventHandlers(){
 <tr class="even" id="rowspeedtestbinary">
 <td class="settingname">Speedtest binary to use<br/><span style="color:#FFCC00;background:#2F3A3E;">(either built-in Ookla or speedtest-cli)</span></td>
 <td class="settingvalue">
-<input type="radio" name="spdmerlin_speedtestbinary" id="spdmerlin_speedtestbinary_builtin" class="input" value="builtin" checked>
+<input type="radio" name="spdmerlin_speedtestbinary" id="spdmerlin_speedtestbinary_builtin" class="input" value="builtin" onchange="ResultURLEnableDisable(this)" checked>
 <label for="spdmerlin_speedtestbinary_builtin-unix">Built-in</label>
-<input type="radio" name="spdmerlin_speedtestbinary" id="spdmerlin_speedtestbinary_external" class="input" value="external">
+<input type="radio" name="spdmerlin_speedtestbinary" id="spdmerlin_speedtestbinary_external" class="input" value="external" onchange="ResultURLEnableDisable(this)">
 <label for="spdmerlin_speedtestbinary_external">External</label>
 </td>
 </tr>
 <tr class="even" id="rowstoreresulturl">
-<td class="settingname">Save speedtest URLs to database</td>
+<td class="settingname">Save speedtest URLs to database<br /><span id="spanresulturl" style="color:#FFCC00;background:#2F3A3E;">URLs are unavailable when using builtin binary</span></td>
 <td class="settingvalue">
 <input type="radio" name="spdmerlin_storeresulturl" id="spdmerlin_store_true" class="input" value="true">
 <label for="spdmerlin_store_true">Yes</label>
