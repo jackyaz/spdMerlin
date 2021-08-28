@@ -2090,7 +2090,7 @@ MainMenu(){
 	printf "3.    Toggle automatic speedtests\\n      Currently: ${BOLD}${AUTOMATIC_ENABLED}%s${CLEARFORMAT}\\n\\n"
 	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s${CLEARFORMAT}\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
 	printf "5.    Toggle time output mode\\n      Currently ${SETTING}%s${CLEARFORMAT} time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
-	printf "6.    Toggle storage of speedtest result URLs (URLs are unavailable when using the built-in binary, option 9)\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
+	printf "6.    Toggle storage of speedtest result URLs\\n      (URLs are unavailable when using the built-in binary, option 9)\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
 	printf "7.    Set number of speedtest results to show in WebUI\\n      Currently: ${SETTING}%s results will be shown${CLEARFORMAT}\\n\\n" "$(LastXResults check)"
 	printf "8.    Set number of days data to keep in database\\n      Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\\n\\n" "$(DaysToKeep check)"
 	printf "9.    Toggle between built-in Ookla speedtest and speedtest-cli\\n      Currently: ${SETTING}%s${CLEARFORMAT} will be used for speedtests${CLEARFORMAT}\\n\\n" "$(SpeedtestBinary check)"
