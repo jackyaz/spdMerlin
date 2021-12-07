@@ -30,7 +30,7 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="spdMerlin"
-readonly SCRIPT_NAME_LOWER=$(echo "$SCRIPT_NAME" | tr 'A-Z' 'a-z')
+readonly SCRIPT_NAME_LOWER="$(echo "$SCRIPT_NAME" | tr 'A-Z' 'a-z')"
 readonly SCRIPT_VERSION="v4.4.2"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
