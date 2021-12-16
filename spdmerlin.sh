@@ -30,8 +30,8 @@
 
 ### Start of script variables ###
 readonly SCRIPT_NAME="spdMerlin"
-readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z')
-readonly SCRIPT_VERSION="v4.4.1"
+readonly SCRIPT_NAME_LOWER="$(echo "$SCRIPT_NAME" | tr 'A-Z' 'a-z')"
+readonly SCRIPT_VERSION="v4.4.2"
 SCRIPT_BRANCH="master"
 SCRIPT_REPO="https://raw.githubusercontent.com/jackyaz/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
@@ -48,8 +48,6 @@ readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
-[ -f /usr/sbin/ookla ] && SPEEDTEST_BINARY=/usr/sbin/ookla || SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
-printf "%s" "$SPEEDTEST_BINARY" > /tmp/spdmerlin-binary
 
 [ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
 ### End of script variables ###
@@ -201,9 +199,7 @@ Update_Version(){
 				y|Y)
 					printf "\\n"
 					Update_File shared-jy.tar.gz
-					if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
-						Update_File "$ARCH.tar.gz"
-					fi
+					Update_File "$ARCH.tar.gz"
 					Update_File spdstats_www.asp
 					
 					/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
@@ -232,9 +228,7 @@ Update_Version(){
 		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 		Update_File shared-jy.tar.gz
-		if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
-			Update_File "$ARCH.tar.gz"
-		fi
+		Update_File "$ARCH.tar.gz"
 		Update_File spdstats_www.asp
 		/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME_LOWER.sh" -o "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
 		chmod 0755 "/jffs/scripts/$SCRIPT_NAME_LOWER"
@@ -335,18 +329,16 @@ Create_Dirs(){
 		mkdir -p "$CSV_OUTPUT_DIR"
 	fi
 	
-	if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
-		if [ ! -d "$OOKLA_DIR" ]; then
-			mkdir -p "$OOKLA_DIR"
-		fi
-		
-		if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
-			mkdir -p "$OOKLA_LICENSE_DIR"
-		fi
-		
-		if [ ! -d "$OOKLA_HOME_DIR" ]; then
-			mkdir -p "$OOKLA_HOME_DIR"
-		fi
+	if [ ! -d "$OOKLA_DIR" ]; then
+		mkdir -p "$OOKLA_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_LICENSE_DIR" ]; then
+		mkdir -p "$OOKLA_LICENSE_DIR"
+	fi
+	
+	if [ ! -d "$OOKLA_HOME_DIR" ]; then
+		mkdir -p "$OOKLA_HOME_DIR"
 	fi
 	
 	if [ ! -d "$SHARED_DIR" ]; then
@@ -564,6 +556,13 @@ Conf_Exists(){
 		if ! grep -q "LASTXRESULTS" "$SCRIPT_CONF"; then
 			echo "LASTXRESULTS=10" >> "$SCRIPT_CONF"
 		fi
+		if ! grep -q "SPEEDTESTBINARY" "$SCRIPT_CONF"; then
+			if [ -f /usr/sbin/ookla ]; then
+				echo "SPEEDTESTBINARY=builtin" >> "$SCRIPT_CONF"
+			else
+				echo "SPEEDTESTBINARY=external" >> "$SCRIPT_CONF"
+			fi
+		fi
 		return 0
 	else
 		{ echo "PREFERREDSERVER_WAN=0|None configured"; echo "USEPREFERRED_WAN=false"; echo "AUTOMATED=true" ; echo "OUTPUTTIMEMODE=unix"; echo "STORAGELOCATION=jffs"; } >> "$SCRIPT_CONF"
@@ -571,6 +570,11 @@ Conf_Exists(){
 			{ echo "PREFERREDSERVER_VPNC$index=0|None configured"; echo "USEPREFERRED_VPNC$index=false"; } >> "$SCRIPT_CONF"
 		done
 		{ echo "AUTOBW_ENABLED=false"; echo "AUTOBW_SF_DOWN=95"; echo "AUTOBW_SF_UP=95"; echo "AUTOBW_ULIMIT_DOWN=0"; echo "AUTOBW_LLIMIT_DOWN=0"; echo "AUTOBW_ULIMIT_UP=0"; echo "AUTOBW_LLIMIT_UP=0"; echo "AUTOBW_THRESHOLD_UP=10"; echo "AUTOBW_THRESHOLD_DOWN=10"; echo "AUTOBW_AVERAGE_CALC=10"; echo "STORERESULTURL=true"; echo "EXCLUDEFROMQOS=true"; echo "SCHDAYS=*"; echo "SCHHOURS=*"; echo "SCHMINS=12,42"; echo "DAYSTOKEEP=30"; echo "LASTXRESULTS=10";} >> "$SCRIPT_CONF"
+		if [ -f /usr/sbin/ookla ]; then
+			echo "SPEEDTESTBINARY=builtin" >> "$SCRIPT_CONF"
+		else
+			echo "SPEEDTESTBINARY=external" >> "$SCRIPT_CONF"
+		fi
 		return 1
 	fi
 }
@@ -883,11 +887,11 @@ Mount_WebUI(){
 AutomaticMode(){
 	case "$1" in
 		enable)
-			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SCRIPT_CONF"
+			sed -i 's/^AUTOMATED=.*$/AUTOMATED=true/' "$SCRIPT_CONF"
 			Auto_Cron create 2>/dev/null
 		;;
 		disable)
-			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SCRIPT_CONF"
+			sed -i 's/^AUTOMATED=.*$/AUTOMATED=false/' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 		;;
 		check)
@@ -900,9 +904,9 @@ AutomaticMode(){
 TestSchedule(){
 	case "$1" in
 		update)
-			sed -i 's/^SCHDAYS.*$/SCHDAYS='"$(echo "$2" | sed 's/0/Sun/;s/1/Mon/;s/2/Tues/;s/3/Wed/;s/4/Thurs/;s/5/Fri/;s/6/Sat/;')"'/' "$SCRIPT_CONF"
-			sed -i 's~^SCHHOURS.*$~SCHHOURS='"$3"'~' "$SCRIPT_CONF"
-			sed -i 's~^SCHMINS.*$~SCHMINS='"$4"'~' "$SCRIPT_CONF"
+			sed -i 's/^SCHDAYS=.*$/SCHDAYS='"$(echo "$2" | sed 's/0/Sun/;s/1/Mon/;s/2/Tues/;s/3/Wed/;s/4/Thurs/;s/5/Fri/;s/6/Sat/;')"'/' "$SCRIPT_CONF"
+			sed -i 's~^SCHHOURS=.*$~SCHHOURS='"$3"'~' "$SCRIPT_CONF"
+			sed -i 's~^SCHMINS=.*$~SCHMINS='"$4"'~' "$SCRIPT_CONF"
 			Auto_Cron delete 2>/dev/null
 			Auto_Cron create 2>/dev/null
 		;;
@@ -918,7 +922,7 @@ TestSchedule(){
 ScriptStorageLocation(){
 	case "$1" in
 		usb)
-			sed -i 's/^STORAGELOCATION.*$/STORAGELOCATION=usb/' "$SCRIPT_CONF"
+			sed -i 's/^STORAGELOCATION=.*$/STORAGELOCATION=usb/' "$SCRIPT_CONF"
 			mkdir -p "/opt/share/$SCRIPT_NAME_LOWER.d/"
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/csv" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/jffs/addons/$SCRIPT_NAME_LOWER.d/.interfaces" "/opt/share/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
@@ -931,7 +935,7 @@ ScriptStorageLocation(){
 			ScriptStorageLocation load
 		;;
 		jffs)
-			sed -i 's/^STORAGELOCATION.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
+			sed -i 's/^STORAGELOCATION=.*$/STORAGELOCATION=jffs/' "$SCRIPT_CONF"
 			mkdir -p "/jffs/addons/$SCRIPT_NAME_LOWER.d/"
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/csv" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
 			mv "/opt/share/$SCRIPT_NAME_LOWER.d/.interfaces" "/jffs/addons/$SCRIPT_NAME_LOWER.d/" 2>/dev/null
@@ -965,16 +969,31 @@ ScriptStorageLocation(){
 OutputTimeMode(){
 	case "$1" in
 		unix)
-			sed -i 's/^OUTPUTTIMEMODE.*$/OUTPUTTIMEMODE=unix/' "$SCRIPT_CONF"
+			sed -i 's/^OUTPUTTIMEMODE=.*$/OUTPUTTIMEMODE=unix/' "$SCRIPT_CONF"
 			Generate_CSVs
 		;;
 		non-unix)
-			sed -i 's/^OUTPUTTIMEMODE.*$/OUTPUTTIMEMODE=non-unix/' "$SCRIPT_CONF"
+			sed -i 's/^OUTPUTTIMEMODE=.*$/OUTPUTTIMEMODE=non-unix/' "$SCRIPT_CONF"
 			Generate_CSVs
 		;;
 		check)
 			OUTPUTTIMEMODE=$(grep "OUTPUTTIMEMODE" "$SCRIPT_CONF" | cut -f2 -d"=")
 			echo "$OUTPUTTIMEMODE"
+		;;
+	esac
+}
+
+SpeedtestBinary(){
+	case "$1" in
+		builtin)
+			sed -i 's/^SPEEDTESTBINARY=.*$/SPEEDTESTBINARY=builtin/' "$SCRIPT_CONF"
+		;;
+		external)
+			sed -i 's/^SPEEDTESTBINARY=.*$/SPEEDTESTBINARY=external/' "$SCRIPT_CONF"
+		;;
+		check)
+			SPEEDTESTBINARY=$(grep "SPEEDTESTBINARY" "$SCRIPT_CONF" | cut -f2 -d"=")
+			echo "$SPEEDTESTBINARY"
 		;;
 	esac
 }
@@ -1004,7 +1023,7 @@ DaysToKeep(){
 			done
 			
 			if [ "$exitmenu" != "exit" ]; then
-				sed -i 's/^DAYSTOKEEP.*$/DAYSTOKEEP='"$daystokeep"'/' "$SCRIPT_CONF"
+				sed -i 's/^DAYSTOKEEP=.*$/DAYSTOKEEP='"$daystokeep"'/' "$SCRIPT_CONF"
 				return 0
 			else
 				printf "\\n"
@@ -1043,7 +1062,7 @@ LastXResults(){
 			done
 			
 			if [ "$exitmenu" != "exit" ]; then
-				sed -i 's/^LASTXRESULTS.*$/LASTXRESULTS='"$lastxresults"'/' "$SCRIPT_CONF"
+				sed -i 's/^LASTXRESULTS=.*$/LASTXRESULTS='"$lastxresults"'/' "$SCRIPT_CONF"
 				
 				IFACELIST=""
 				
@@ -1073,10 +1092,10 @@ LastXResults(){
 StoreResultURL(){
 	case "$1" in
 	enable)
-		sed -i 's/^STORERESULTURL.*$/STORERESULTURL=true/' "$SCRIPT_CONF"
+		sed -i 's/^STORERESULTURL=.*$/STORERESULTURL=true/' "$SCRIPT_CONF"
 	;;
 	disable)
-		sed -i 's/^STORERESULTURL.*$/STORERESULTURL=false/' "$SCRIPT_CONF"
+		sed -i 's/^STORERESULTURL=.*$/STORERESULTURL=false/' "$SCRIPT_CONF"
 	;;
 	check)
 		STORERESULTURL=$(grep "STORERESULTURL" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1088,10 +1107,10 @@ StoreResultURL(){
 ExcludeFromQoS(){
 	case "$1" in
 	enable)
-		sed -i 's/^EXCLUDEFROMQOS.*$/EXCLUDEFROMQOS=true/' "$SCRIPT_CONF"
+		sed -i 's/^EXCLUDEFROMQOS=.*$/EXCLUDEFROMQOS=true/' "$SCRIPT_CONF"
 	;;
 	disable)
-		sed -i 's/^EXCLUDEFROMQOS.*$/EXCLUDEFROMQOS=false/' "$SCRIPT_CONF"
+		sed -i 's/^EXCLUDEFROMQOS=.*$/EXCLUDEFROMQOS=false/' "$SCRIPT_CONF"
 	;;
 	check)
 		EXCLUDEFROMQOS=$(grep "EXCLUDEFROMQOS" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1103,10 +1122,10 @@ ExcludeFromQoS(){
 AutoBWEnable(){
 	case "$1" in
 	enable)
-		sed -i 's/^AUTOBW_ENABLED.*$/AUTOBW_ENABLED=true/' "$SCRIPT_CONF"
+		sed -i 's/^AUTOBW_ENABLED=.*$/AUTOBW_ENABLED=true/' "$SCRIPT_CONF"
 	;;
 	disable)
-		sed -i 's/^AUTOBW_ENABLED.*$/AUTOBW_ENABLED=false/' "$SCRIPT_CONF"
+		sed -i 's/^AUTOBW_ENABLED=.*$/AUTOBW_ENABLED=false/' "$SCRIPT_CONF"
 	;;
 	check)
 		AUTOBW_ENABLED=$(grep "AUTOBW_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1118,7 +1137,7 @@ AutoBWEnable(){
 AutoBWConf(){
 	case "$1" in
 		update)
-			sed -i 's/^AUTOBW_'"$2"'_'"$3"'.*$/AUTOBW_'"$2"'_'"$3"'='"$4"'/' "$SCRIPT_CONF"
+			sed -i 's/^AUTOBW_'"$2"'_'"$3"'=.*$/AUTOBW_'"$2"'_'"$3"'='"$4"'/' "$SCRIPT_CONF"
 		;;
 		check)
 			grep "AUTOBW_${2}_$3" "$SCRIPT_CONF" | cut -f2 -d"="
@@ -1167,6 +1186,12 @@ GenerateServerList(){
 	printf "Generating list of closest servers for %s...\\n\\n" "$1"
 	CONFIG_STRING=""
 	LICENSE_STRING="--accept-license --accept-gdpr"
+	SPEEDTEST_BINARY=""
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		SPEEDTEST_BINARY=/usr/sbin/ookla
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+	fi
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
 		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
 		LICENSE_STRING=""
@@ -1261,7 +1286,12 @@ GenerateServerList_WebUI(){
 	serverlistfile="$2"
 	rm -f "/tmp/$serverlistfile.txt"
 	rm -f "$SCRIPT_WEB_DIR/$serverlistfile.htm"
-	
+	SPEEDTEST_BINARY=""
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		SPEEDTEST_BINARY=/usr/sbin/ookla
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+	fi
 	CONFIG_STRING=""
 	LICENSE_STRING="--accept-license --accept-gdpr"
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
@@ -1313,16 +1343,16 @@ PreferredServer(){
 		update)
 			GenerateServerList "$2"
 			if [ "$serverno" != "exit" ]; then
-				sed -i 's/^PREFERREDSERVER_'"$2"'.*$/PREFERREDSERVER_'"$2"'='"$serverno|$servername"'/' "$SCRIPT_CONF"
+				sed -i 's/^PREFERREDSERVER_'"$2"'=.*$/PREFERREDSERVER_'"$2"'='"$serverno|$servername"'/' "$SCRIPT_CONF"
 			else
 				return 1
 			fi
 		;;
 		enable)
-			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=true/' "$SCRIPT_CONF"
+			sed -i 's/^USEPREFERRED_'"$2"'=.*$/USEPREFERRED_'"$2"'=true/' "$SCRIPT_CONF"
 		;;
 		disable)
-			sed -i 's/^USEPREFERRED_'"$2"'.*$/USEPREFERRED_'"$2"'=false/' "$SCRIPT_CONF"
+			sed -i 's/^USEPREFERRED_'"$2"'=.*$/USEPREFERRED_'"$2"'=false/' "$SCRIPT_CONF"
 		;;
 		check)
 			USEPREFERRED=$(grep "USEPREFERRED_$2" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1348,6 +1378,11 @@ Run_Speedtest(){
 	fi
 	Create_Dirs
 	Conf_Exists
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+	fi
 	Auto_Startup create 2>/dev/null
 	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
 	Auto_ServiceEvent create 2>/dev/null
@@ -1363,6 +1398,12 @@ Run_Speedtest(){
 	CONFIG_STRING=""
 	LICENSE_STRING="--accept-license --accept-gdpr"
 	PROC_NAME="speedtest"
+	SPEEDTEST_BINARY=""
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		SPEEDTEST_BINARY=/usr/sbin/ookla
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		SPEEDTEST_BINARY="$OOKLA_DIR/speedtest"
+	fi
 	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
 		CONFIG_STRING="-c http://www.speedtest.net/api/embed/vz0azjarf5enop8a/config"
 		LICENSE_STRING=""
@@ -1471,7 +1512,7 @@ Run_Speedtest(){
 					
 					if [ "$mode" = "auto" ]; then
 						Print_Output true "Starting speedtest using auto-selected server for $IFACE_NAME interface" "$PASS"
-						"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
+						"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" -p $LICENSE_STRING | tee "$tmpfile" &
 						sleep 2
 						speedtestcount=0
 						while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
@@ -1486,7 +1527,7 @@ Run_Speedtest(){
 					else
 						if [ "$speedtestserverno" -ne 0 ]; then
 							Print_Output true "Starting speedtest using $speedtestservername for $IFACE_NAME interface" "$PASS"
-							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
+							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --server-id="$speedtestserverno" --format="human-readable" --unit="Mbps" -p $LICENSE_STRING | tee "$tmpfile" &
 							sleep 2
 							speedtestcount=0
 							while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
@@ -1500,7 +1541,7 @@ Run_Speedtest(){
 							fi
 						else
 							Print_Output true "Starting speedtest using using auto-selected server for $IFACE_NAME interface" "$PASS"
-							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" --progress="yes" $LICENSE_STRING | tee "$tmpfile" &
+							"$SPEEDTEST_BINARY" $CONFIG_STRING --interface="$IFACE" --format="human-readable" --unit="Mbps" -p $LICENSE_STRING | tee "$tmpfile" &
 							sleep 2
 							speedtestcount=0
 							while [ -n "$(pidof "$PROC_NAME")" ] && [ "$speedtestcount" -lt 120 ]; do
@@ -1528,20 +1569,20 @@ Run_Speedtest(){
 					timenow=$(date +"%s")
 					timenowfriendly=$(date +"%c")
 					
-					download="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
-					upload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
-					latency="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
-					jitter="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $4}' | tr -d '(')"
-					pktloss="$(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $3}' | tr -d '%')"
-					resulturl="$(grep 'Result URL' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $3}')"
-					datadownload="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $6}')"
-					dataupload="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $6}')"
+					download="$(grep "Download:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					upload="$(grep "Upload:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					latency="$(grep "Latency:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $2}')"
+					jitter="$(grep "Latency:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $4}' | tr -d '(')"
+					pktloss="$(grep "Packet Loss:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $3}' | tr -d '%')"
+					resulturl="$(grep "Result URL:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $3}')"
+					datadownload="$(grep "Download:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $6}')"
+					dataupload="$(grep "Upload:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print $6}')"
 					
-					datadownloadunit="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
-					datauploadunit="$(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
+					datadownloadunit="$(grep "Download:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
+					datauploadunit="$(grep "Upload:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{print substr($7,1,length($7)-1)}')"
 					
-					servername="$(grep Server "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | cut -f1 -d'(' | cut -f2 -d':' | awk '{$1=$1;print}')"
-					serverid="$(grep Server "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | cut -f2 -d'(' | awk '{print $3}' | tr -d ')')"
+					servername="$(grep "Server:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | cut -f1 -d'(' | cut -f2 -d':' | awk '{$1=$1;print}')"
+					serverid="$(grep "Server:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | cut -f2 -d'(' | awk '{print $3}' | tr -d ')')"
 					
 					! Validate_Bandwidth "$download" && download=0;
 					! Validate_Bandwidth "$upload" && upload=0;
@@ -1580,8 +1621,8 @@ Run_Speedtest(){
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql >/dev/null 2>&1
 					rm -f /tmp/spd-stats.sql
 					
-					spdtestresult="$(grep Download "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep Upload "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
-					spdtestresult2="$(grep Latency "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep 'Packet Loss' "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1')"
+					spdtestresult="$(grep "Download:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1') - $(grep "Upload:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};'| awk '{$1=$1};1')"
+					spdtestresult2="$(grep "Latency:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1') - $(grep "Packet Loss:" "$tmpfile" | awk 'BEGIN { FS = "\r" } ;{print $NF};' | awk '{$1=$1};1')"
 					
 					printf "\\n"
 					Print_Output true "Speedtest results - $spdtestresult" "$PASS"
@@ -1672,12 +1713,12 @@ Run_Speedtest_WebUI(){
 			COUNT=1
 			for IFACE_NAME in $IFACELIST; do
 				spdtestserver="$(grep -m1 "$(echo "$spdtestserverlist" | cut -f"$COUNT" -d'+')" /tmp/spdmerlin_manual_serverlist.txt)"
-				sed -i 's/^PREFERREDSERVER_'"$IFACE_NAME"'.*$/PREFERREDSERVER_'"$IFACE_NAME"'='"$spdtestserver"'/' "$SCRIPT_CONF"
+				sed -i 's/^PREFERREDSERVER_'"$IFACE_NAME"'=.*$/PREFERREDSERVER_'"$IFACE_NAME"'='"$spdtestserver"'/' "$SCRIPT_CONF"
 				COUNT=$((COUNT+1))
 			done
 		else
 			spdtestserver="$(grep -m1 "$spdtestserverlist" /tmp/spdmerlin_manual_serverlist.txt)"
-			sed -i 's/^PREFERREDSERVER_'"$spdifacename"'.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
+			sed -i 's/^PREFERREDSERVER_'"$spdifacename"'=.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
 		fi
 	fi
 	
@@ -1686,10 +1727,11 @@ Run_Speedtest_WebUI(){
 }
 
 Process_Upgrade(){
-	if [ "$SPEEDTEST_BINARY" = /usr/sbin/ookla ]; then
-		rm -rf "$SCRIPT_DIR/ookla"
-		rm -rf "$SCRIPT_DIR/ooklalicense"
-		rm -rf "$HOME_DIR/.config/ookla"
+	if [ ! -f "$OOKLA_DIR/speedtest" ]; then
+		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
+		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
+		chmod 0755 "$OOKLA_DIR/speedtest"
 	fi
 	rm -f "$SCRIPT_STORAGE_DIR/spdjs.js"
 	rm -f "$SCRIPT_STORAGE_DIR/.tableupgraded"*
@@ -1720,49 +1762,29 @@ Process_Upgrade(){
 		FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
 		for IFACE_NAME in $FULL_IFACELIST; do
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_download ON spdstats_${IFACE_NAME} (Timestamp,Download);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_upload ON spdstats_${IFACE_NAME} (Timestamp,Upload);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_latency ON spdstats_${IFACE_NAME} (Timestamp,Latency);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_jitter ON spdstats_${IFACE_NAME} (Timestamp,Jitter);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_pktloss ON spdstats_${IFACE_NAME} (Timestamp,PktLoss);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_resulturl ON spdstats_${IFACE_NAME} (Timestamp,ResultURL collate nocase);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_datadownload ON spdstats_${IFACE_NAME} (Timestamp,DataDownload);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_datadownload ON spdstats_${IFACE_NAME} (Timestamp,DataUpload);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerID] TEXT" > /tmp/spdstats-upgrade.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1
 			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerName] TEXT" > /tmp/spdstats-upgrade.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_serverid ON spdstats_${IFACE_NAME} (Timestamp,ServerID);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_servername ON spdstats_${IFACE_NAME} (Timestamp,ServerName collate nocase);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			Generate_LastXResults "$IFACE_NAME"
 		done
 		touch "$SCRIPT_STORAGE_DIR/.databaseupgraded"
@@ -2048,9 +2070,10 @@ MainMenu(){
 	printf "3.    Toggle automatic speedtests\\n      Currently: ${BOLD}${AUTOMATIC_ENABLED}%s${CLEARFORMAT}\\n\\n"
 	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s${CLEARFORMAT}\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
 	printf "5.    Toggle time output mode\\n      Currently ${SETTING}%s${CLEARFORMAT} time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
-	printf "6.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
+	printf "6.    Toggle storage of speedtest result URLs\\n      (URLs are unavailable when using the built-in binary, option 9)\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
 	printf "7.    Set number of speedtest results to show in WebUI\\n      Currently: ${SETTING}%s results will be shown${CLEARFORMAT}\\n\\n" "$(LastXResults check)"
 	printf "8.    Set number of days data to keep in database\\n      Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\\n\\n" "$(DaysToKeep check)"
+	printf "9.    Toggle between built-in Ookla speedtest and speedtest-cli\\n      Currently: ${SETTING}%s${CLEARFORMAT} will be used for speedtests${CLEARFORMAT}\\n\\n" "$(SpeedtestBinary check)"
 	printf "c.    Customise list of interfaces for automatic speedtests\\n"
 	printf "r.    Reset list of interfaces for automatic speedtests to default\\n\\n"
 	printf "s.    Toggle storage location for stats and config\\n      Current location is ${SETTING}%s${CLEARFORMAT} \\n\\n" "$(ScriptStorageLocation check)"
@@ -2124,6 +2147,15 @@ MainMenu(){
 				printf "\\n"
 				DaysToKeep update
 				PressEnter
+				break
+			;;
+			9)
+				printf "\\n"
+				if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+					SpeedtestBinary external
+				elif [ "$(SpeedtestBinary check)" = "external" ]; then
+					SpeedtestBinary builtin
+				fi
 				break
 			;;
 			c)
@@ -2298,17 +2330,20 @@ Menu_Install(){
 	
 	Create_Dirs
 	Conf_Exists
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+	fi
 	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 	Set_Version_Custom_Settings server "$SCRIPT_VERSION"
 	ScriptStorageLocation load
 	Create_Symlinks
 	
-	if [ "$SPEEDTEST_BINARY" != /usr/sbin/ookla ]; then
-		Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
-		tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
-		rm -f "$OOKLA_DIR/$ARCH.tar.gz"
-		chmod 0755 "$OOKLA_DIR/speedtest"
-	fi
+	Download_File "$SCRIPT_REPO/$ARCH.tar.gz" "$OOKLA_DIR/$ARCH.tar.gz"
+	tar -xzf "$OOKLA_DIR/$ARCH.tar.gz" -C "$OOKLA_DIR"
+	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
+	chmod 0755 "$OOKLA_DIR/speedtest"
 	
 	Update_File spdstats_www.asp
 	Update_File shared-jy.tar.gz
@@ -2351,6 +2386,11 @@ Menu_Startup(){
 	
 	Create_Dirs
 	Conf_Exists
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+	fi
 	ScriptStorageLocation load
 	Create_Symlinks
 	Auto_Startup create 2>/dev/null
@@ -3496,6 +3536,11 @@ if [ -z "$1" ]; then
 	
 	Create_Dirs
 	Conf_Exists
+	if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+		printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+	elif [ "$(SpeedtestBinary check)" = "external" ]; then
+		printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+	fi
 	ScriptStorageLocation load
 	Create_Symlinks
 	
@@ -3586,6 +3631,11 @@ case "$1" in
 	postupdate)
 		Create_Dirs
 		Conf_Exists
+		if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+			printf "/usr/sbin/ookla" > /tmp/spdmerlin-binary
+		elif [ "$(SpeedtestBinary check)" = "external" ]; then
+			printf "%s" "$OOKLA_DIR/speedtest" > /tmp/spdmerlin-binary
+		fi
 		ScriptStorageLocation load
 		Create_Symlinks
 		Process_Upgrade
