@@ -1762,49 +1762,29 @@ Process_Upgrade(){
 		FULL_IFACELIST="WAN VPNC1 VPNC2 VPNC3 VPNC4 VPNC5"
 		for IFACE_NAME in $FULL_IFACELIST; do
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_download ON spdstats_${IFACE_NAME} (Timestamp,Download);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_upload ON spdstats_${IFACE_NAME} (Timestamp,Upload);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_latency ON spdstats_${IFACE_NAME} (Timestamp,Latency);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_jitter ON spdstats_${IFACE_NAME} (Timestamp,Jitter);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_pktloss ON spdstats_${IFACE_NAME} (Timestamp,PktLoss);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_resulturl ON spdstats_${IFACE_NAME} (Timestamp,ResultURL collate nocase);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_datadownload ON spdstats_${IFACE_NAME} (Timestamp,DataDownload);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_datadownload ON spdstats_${IFACE_NAME} (Timestamp,DataUpload);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerID] TEXT" > /tmp/spdstats-upgrade.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1
 			echo "ALTER TABLE spdstats_${IFACE_NAME} ADD COLUMN [ServerName] TEXT" > /tmp/spdstats-upgrade.sql
 			"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_serverid ON spdstats_${IFACE_NAME} (Timestamp,ServerID);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			echo "PRAGMA cache_size=-20000; CREATE INDEX IF NOT EXISTS idx_${IFACE_NAME}_servername ON spdstats_${IFACE_NAME} (Timestamp,ServerName collate nocase);" > /tmp/spdstats-upgrade.sql
-			while ! "$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql >/dev/null 2>&1; do
-				sleep 1
-			done
+			"$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spdstats-upgrade.sql
 			Generate_LastXResults "$IFACE_NAME"
 		done
 		touch "$SCRIPT_STORAGE_DIR/.databaseupgraded"
