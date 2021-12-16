@@ -26,7 +26,7 @@ var arraysortlistlinesVPNC5 = [];
 var sortnameVPNC5 = 'Time';
 var sortdirVPNC5 = 'desc';
 
-var speedtestbinary = "built-in";
+var speedtestbinary = "builtin";
 
 var ShowLines = GetCookie('ShowLines','string');
 var ShowFill = GetCookie('ShowFill','string');
@@ -865,7 +865,6 @@ function initial(){
 	show_menu();
 	$j('#Time_Format').val(GetCookie('Time_Format','number'));
 	ScriptUpdateLayout();
-	get_spdtestbinary_file();
 	get_statstitle_file();
 	get_interfaces_file();
 }
@@ -1152,24 +1151,6 @@ function get_spdtestresult_file(){
 	});
 }
 
-function get_spdtestbinary_file(){
-	$j.ajax({
-		url: '/ext/spdmerlin/spd-binary.htm',
-		dataType: 'text',
-		error: function(xhr){
-			setTimeout(get_spdtestbinary_file,1000);
-		},
-		success: function(data){
-			if(data == "/usr/sbin/ookla"){
-				speedtestbinary = "built-in";
-			}
-			else{
-				speedtestbinary = "external";
-			}
-		}
-	});
-}
-
 function get_spdtest_file(){
 	$j.ajax({
 		url: '/ext/spdmerlin/spd-stats.htm',
@@ -1181,7 +1162,7 @@ function get_spdtest_file(){
 			var lines = data.trim().split('\n');
 			var arrlastLine = lines.slice(-1)[0].split('%').filter(Boolean);
 			
-			if(speedtestbinary == "built-in"){
+			if(speedtestbinary == "builtin"){
 				lines.unshift("");
 				lines.unshift("Speedtest by Ookla")
 			}
@@ -1423,6 +1404,10 @@ function get_conf_file(){
 				
 				if(configdata[i].indexOf('AUTOBW') != -1){
 					AutoBWEnableDisable($j('#spdmerlin_autobw_'+document.form.spdmerlin_autobw_enabled.value)[0]);
+				}
+				
+				if(configdata[i].indexOf('SPEEDTESTBINARY') != -1){
+					speedtestbinary = settingvalue;
 				}
 			}
 			if($j('[name=spdmerlin_schhours]').val().indexOf('/') != -1 && $j('[name=spdmerlin_schmins]').val() == 0){
@@ -2012,6 +1997,22 @@ function EveryXToggle(forminput){
 	}
 	
 	Validate_ScheduleValue($j('[name=everyxvalue]')[0]);
+}
+
+function ResultURLEnableDisable(forminput){
+	var inputname = forminput.name;
+	var inputvalue = forminput.value;
+	
+	if(inputvalue == 'builtin'){
+		showhide('spanresulturl',true);
+		$j('input[name^=spdmerlin_storeresulturl]').addClass('disabled');
+		$j('input[name^=spdmerlin_storeresulturl]').prop('disabled',true);
+	}
+	else if(inputvalue == 'external'){
+		showhide('spanresulturl',false);
+		$j('input[name^=spdmerlin_storeresulturl]').removeClass('disabled');
+		$j('input[name^=spdmerlin_storeresulturl]').prop('disabled',false);
+	}
 }
 
 function AutoBWEnableDisable(forminput){
