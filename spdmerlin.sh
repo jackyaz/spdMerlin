@@ -1600,6 +1600,32 @@ Run_Speedtest(){
 						dataupload="$(echo "$dataupload" | awk '{printf ($1*1024)}')"
 					fi
 					
+					if [ "$(SpeedtestBinary check)" = "builtin" ]; then
+						curllatency="$latency"
+						if [ "$curllatency" = "null" ]; then
+							curllatency=0
+						fi
+						
+						curlresult=$(curl -fsL -d "recommendedserverid=$serverid" \
+-d "ping=$(echo "$curllatency" | awk '{printf("%.0f\n", $1);}')" \
+-d "screenresolution=" \
+-d "promo=" \
+-d "download=$(echo "$download" | awk '{printf("%.0f\n", $1*1000);}')" \
+-d "screendpi=" \
+-d "upload=$(echo "$upload" | awk '{printf("%.0f\n", $1*1000);}')" \
+-d "testmethod=http" \
+-d "hash=$(printf "$(echo "$curllatency" | awk '{printf("%.0f\n", $1);}')-$(echo "$upload" | awk '{printf("%.0f\n", $1*1000);}')-$(echo "$download" | awk '{printf("%.0f\n", $1*1000);}')-297aae72" | md5sum | cut -f1 -d' ')" \
+-d "touchscreen=none" \
+-d "startmode=pingselect" \
+-d "accuracy=1" \
+-d "bytesreceived=$(echo "$datadownload" | awk '{printf("%.0f\n", $1*1024);}')" \
+-d "bytessent=$(echo "$dataupload" | awk '{printf("%.0f\n", $1*1024);}')" \
+-d "serverid=$serverid" \
+-H "Referer: http://c.speedtest.net/flash/speedtest.swf" https://www.speedtest.net/api/api.php)
+					
+						resulturl="https://www.speedtest.net/result/$(echo "$curlresult" | cut -f2 -d'&' | cut -f2 -d'=')"
+					fi
+					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL,[ServerID] TEXT,[ServerName] TEXT);" > /tmp/spd-stats.sql
 					"$SQLITE3_PATH" "$SCRIPT_STORAGE_DIR/spdstats.db" < /tmp/spd-stats.sql
 					
@@ -2070,7 +2096,7 @@ MainMenu(){
 	printf "3.    Toggle automatic speedtests\\n      Currently: ${BOLD}${AUTOMATIC_ENABLED}%s${CLEARFORMAT}\\n\\n"
 	printf "4.    Configure schedule for automatic speedtests\\n      ${SETTING}%s\\n      %s${CLEARFORMAT}\\n\\n" "$TEST_SCHEDULE_MENU" "$TEST_SCHEDULE_MENU2"
 	printf "5.    Toggle time output mode\\n      Currently ${SETTING}%s${CLEARFORMAT} time values will be used for CSV exports\\n\\n" "$(OutputTimeMode check)"
-	printf "6.    Toggle storage of speedtest result URLs\\n      (URLs are unavailable when using the built-in binary, option 9)\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
+	printf "6.    Toggle storage of speedtest result URLs\\n      Currently: ${SETTING}%s${CLEARFORMAT}\\n\\n" "$STORERESULTURL_MENU"
 	printf "7.    Set number of speedtest results to show in WebUI\\n      Currently: ${SETTING}%s results will be shown${CLEARFORMAT}\\n\\n" "$(LastXResults check)"
 	printf "8.    Set number of days data to keep in database\\n      Currently: ${SETTING}%s days data will be kept${CLEARFORMAT}\\n\\n" "$(DaysToKeep check)"
 	printf "9.    Toggle between built-in Ookla speedtest and speedtest-cli\\n      Currently: ${SETTING}%s${CLEARFORMAT} will be used for speedtests${CLEARFORMAT}\\n\\n" "$(SpeedtestBinary check)"
