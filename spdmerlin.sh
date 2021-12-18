@@ -1624,6 +1624,7 @@ Run_Speedtest(){
 -H "Referer: http://c.speedtest.net/flash/speedtest.swf" https://www.speedtest.net/api/api.php)
 					
 						resulturl="https://www.speedtest.net/result/$(echo "$curlresult" | cut -f2 -d'&' | cut -f2 -d'=')"
+						printf " Result URL: %s\\n" "$resulturl" | tee -a "$tmpfile"
 					fi
 					
 					echo "CREATE TABLE IF NOT EXISTS [spdstats_$IFACE_NAME] ([StatID] INTEGER PRIMARY KEY NOT NULL,[Timestamp] NUMERIC NOT NULL,[Download] REAL NOT NULL,[Upload] REAL NOT NULL,[Latency] REAL,[Jitter] REAL,[PktLoss] REAL,[ResultURL] TEXT,[DataDownload] REAL NOT NULL,[DataUpload] REAL NOT NULL,[ServerID] TEXT,[ServerName] TEXT);" > /tmp/spd-stats.sql
