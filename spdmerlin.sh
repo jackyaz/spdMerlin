@@ -1748,7 +1748,7 @@ Run_Speedtest_WebUI(){
 			sed -i 's/^PREFERREDSERVER_'"$spdifacename"'=.*$/PREFERREDSERVER_'"$spdifacename"'='"$spdtestserver"'/' "$SCRIPT_CONF"
 		fi
 	fi
-	
+	sleep 1
 	Run_Speedtest "$spdtestmode" "$spdifacename"
 	cp -a "$SCRIPT_CONF.bak" "$SCRIPT_CONF"
 }
