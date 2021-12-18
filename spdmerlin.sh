@@ -2081,7 +2081,7 @@ MainMenu(){
 	printf "a.    AutoBW\\n\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
-	printf "rt.    Reset %s database / delete all data\\n\\n" "$SCRIPT_NAME"
+	printf "rt.   Reset %s database / delete all data\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
 	printf "z.    Uninstall %s\\n" "$SCRIPT_NAME"
 	printf "\\n"
