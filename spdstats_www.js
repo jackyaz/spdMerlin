@@ -1999,22 +1999,6 @@ function EveryXToggle(forminput){
 	Validate_ScheduleValue($j('[name=everyxvalue]')[0]);
 }
 
-function ResultURLEnableDisable(forminput){
-	var inputname = forminput.name;
-	var inputvalue = forminput.value;
-	
-	if(inputvalue == 'builtin'){
-		showhide('spanresulturl',true);
-		$j('input[name^=spdmerlin_storeresulturl]').addClass('disabled');
-		$j('input[name^=spdmerlin_storeresulturl]').prop('disabled',true);
-	}
-	else if(inputvalue == 'external'){
-		showhide('spanresulturl',false);
-		$j('input[name^=spdmerlin_storeresulturl]').removeClass('disabled');
-		$j('input[name^=spdmerlin_storeresulturl]').prop('disabled',false);
-	}
-}
-
 function AutoBWEnableDisable(forminput){
 	var inputname = forminput.name;
 	var inputvalue = forminput.value;
