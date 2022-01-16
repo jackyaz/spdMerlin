@@ -198,9 +198,11 @@ Update_Version(){
 			case "$confirm" in
 				y|Y)
 					printf "\\n"
-					Update_File shared-jy.tar.gz
+					Update_File README.md
+					Update_File LICENSE
 					Update_File "$ARCH.tar.gz"
 					Update_File spdstats_www.asp
+					Update_File shared-jy.tar.gz
 					
 					Download_File "$SCRIPT_REPO/update/$SCRIPT_NAME_LOWER.sh" "/jffs/scripts/$SCRIPT_NAME_LOWER" && Print_Output true "$SCRIPT_NAME successfully updated"
 					chmod 0755 "/jffs/scripts/$SCRIPT_NAME_LOWER"
@@ -227,6 +229,8 @@ Update_Version(){
 	if [ "$1" = "force" ]; then
 		serverver=$(/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/version/$SCRIPT_NAME_LOWER.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE 'v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})')
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
+		Update_File README.md
+		Update_File LICENSE
 		Update_File "$ARCH.tar.gz"
 		Update_File spdstats_www.asp
 		Update_File shared-jy.tar.gz
@@ -294,6 +298,13 @@ Update_File(){
 				Print_Output true "New version of $1 downloaded" "$PASS"
 			fi
 		fi
+	elif [ "$1" = "README.md" ] || [ "$1" = "LICENSE" ]; then
+		tmpfile="/tmp/$1"
+		Download_File "$SCRIPT_REPO/files/$1" "$tmpfile"
+		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
+			Download_File "$SCRIPT_REPO/files/$1" "$SCRIPT_DIR/$1"
+		fi
+		rm -f "$tmpfile"
 	else
 		return 1
 	fi
@@ -1769,7 +1780,12 @@ Process_Upgrade(){
 			echo "}";
 		} > "$SCRIPT_STORAGE_DIR/spdtitletext.js"
 	fi
-	
+	if [ ! -f "$SCRIPT_DIR/README.md" ]; then
+		Update_File README.md
+	fi
+	if [ ! -f "$SCRIPT_DIR/LICENSE" ]; then
+		Update_File LICENSE
+	fi
 	if [ "$(AutoBWEnable check)" = "true" ]; then
 		if [ "$(ExcludeFromQoS check)" = "false" ]; then
 			Print_Output false "Enabling Exclude from QoS (required for AutoBW)"
@@ -2372,6 +2388,7 @@ Menu_Install(){
 	rm -f "$OOKLA_DIR/$ARCH.tar.gz"
 	chmod 0755 "$OOKLA_DIR/speedtest"
 	
+	Update_File README.md
 	Update_File spdstats_www.asp
 	Update_File shared-jy.tar.gz
 	
@@ -2385,6 +2402,8 @@ Menu_Install(){
 	Run_Speedtest auto WAN
 	
 	Clear_Lock
+	
+	Download_File "$SCRIPT_REPO/install-success/LICENSE" "$SCRIPT_DIR/LICENSE"
 	
 	ScriptHeader
 	MainMenu
