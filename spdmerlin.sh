@@ -52,7 +52,7 @@ readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 if [ "$(uname -m)" = "aarch64" ]; then
 	ARCH="aarch64"
 else
-	cat /proc/cpuinfo | /bin/grep -Eq 'Features\s*:.*\s+v?fp\s+' && ARCH="arm" || ARCH="armel"
+	/bin/grep -Eq 'Features\s*:.*\s+v?fp\s+' /proc/cpuinfo && ARCH="arm" || ARCH="armel"
 fi
 ### End of script variables ###
 
