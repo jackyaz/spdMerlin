@@ -49,7 +49,11 @@ readonly OOKLA_HOME_DIR="$HOME_DIR/.config/ookla"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 
-[ "$(uname -m)" = "aarch64" ] && ARCH="aarch64" || ARCH="arm"
+if [ "$(uname -m)" = "aarch64" ]; then
+	ARCH="aarch64"
+else
+	cat /proc/cpuinfo | /bin/grep -Eq 'Features\s*:.*\s+v?fp\s+' && ARCH="arm" || ARCH="armel"
+fi
 ### End of script variables ###
 
 ### Start of output format variables ###
